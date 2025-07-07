@@ -6,6 +6,7 @@ export const corsMiddleware = (req: Request, res: Response, next: NextFunction):
   const allowedOrigins = [
     process.env.FRONTEND_URL,
     'http://localhost:3000',
+    'https://finnextho-frontend.onrender.com',
     'https://finnextho.com',
     'https://www.finnextho.com',
     'https://finnextho.vercel.app'

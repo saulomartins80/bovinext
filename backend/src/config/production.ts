@@ -4,8 +4,9 @@ export const productionConfig = {
   nodeEnv: 'production',
   cors: {
     origin: [
-      process.env.FRONTEND_URL || 'https://theclosen-frontend.onrender.com',
+      process.env.FRONTEND_URL || 'https://finnextho-frontend.onrender.com',
       'https://theclosen-frontend.vercel.app',
+      'https://finnextho-frontend.onrender.com',
       'https://accounts.google.com'
     ],
     credentials: true,

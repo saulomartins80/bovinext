@@ -94,6 +94,7 @@ app.use(cors({
     process.env.FRONTEND_URL || 'http://localhost:3000',
     'http://localhost:3000',
     'https://theclosen-frontend.vercel.app',
+    'https://finnextho-frontend.onrender.com',
     'https://accounts.google.com',
     'https://finnextho.com',
     'https://www.finnextho.com',
@@ -121,9 +122,8 @@ app.use((req, res, next) => {
   res.setHeader('X-XSS-Protection', '1; mode=block');
   
   // Remover Cross-Origin-Opener-Policy para permitir popups do Google Auth
-  if (process.env.NODE_ENV === 'development') {
-    res.removeHeader('Cross-Origin-Opener-Policy');
-  }
+  // Necessário tanto em desenvolvimento quanto em produção para o Google Auth funcionar
+  res.removeHeader('Cross-Origin-Opener-Policy');
   
   next();
 });
