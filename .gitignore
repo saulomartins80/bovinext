@@ -106,3 +106,7 @@ backend/.env.backup
 backend/env-complete.txt
 backend/.env.backup
 backend/env-complete.txt
+# Arquivos sensíveis
+render-env-template.txt
+*.env*
+FIREBASE_RENDER_FIX.md
