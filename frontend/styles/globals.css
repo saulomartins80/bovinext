@@ -1,0 +1,445 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+}
+
+:root {
+  color-scheme: light dark;
+}
+
+/* Permite rolagem global (correção principal) */
+html, body {
+  @apply h-full w-full; /* Remove overflow-hidden */
+}
+
+/* Transições de tema */
+html.light {
+  @apply bg-white text-gray-900;
+}
+
+html.dark {
+  @apply bg-gray-900 text-white;
+}
+
+/* Estilização da barra de rolagem (funcionará agora) */
+::-webkit-scrollbar {
+  @apply w-2 h-2;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-600 rounded-full;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+/* Força o esquema de cores do input date para light */
+input[type="date"] {
+  color-scheme: light;
+}
+
+/* No modo dark, mantemos o esquema dark */
+.dark input[type="date"] {
+  color-scheme: dark;
+}
+
+/* Garante transição suave entre temas */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Melhora a legibilidade no modo escuro */
+.dark {
+  color-scheme: dark;
+}
+
+/* ESTILOS PARA CORREÇÃO DO AUTOFILL DO NAVEGADOR */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px white inset !important; /* Fundo para modo claro */
+    -webkit-text-fill-color: #111827 !important; /* Texto (gray-900) para modo claro */
+}
+
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus,
+html.dark input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #374151 inset !important; /* Fundo (gray-700) para modo escuro */
+    -webkit-text-fill-color: #ffffff !important; /* Texto (white) para modo escuro */
+}
+
+input:-moz-autofill,
+input:-moz-autofill:hover,
+input:-moz-autofill:focus,
+input:-moz-autofill:active {
+  filter: none !important;
+}
+
+html.dark input:-moz-autofill,
+html.dark input:-moz-autofill:hover,
+html.dark input:-moz-autofill:focus,
+html.dark input:-moz-autofill:active {
+  filter: none !important; 
+}
+
+/* ESTILOS PARA REACT-TOASTIFY */
+.Toastify__toast-container {
+  z-index: 9999 !important;
+}
+
+.Toastify__toast {
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  font-family: inherit !important;
+}
+
+.Toastify__toast--light {
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.Toastify__toast--dark {
+  background: #1f2937 !important;
+  color: #ffffff !important;
+  border: 1px solid #374151 !important;
+}
+
+.Toastify__toast--success {
+  background: #f0fdf4 !important;
+  color: #166534 !important;
+  border: 1px solid #bbf7d0 !important;
+}
+
+.Toastify__toast--error {
+  background: #fef2f2 !important;
+  color: #dc2626 !important;
+  border: 1px solid #fecaca !important;
+}
+
+.Toastify__toast--warning {
+  background: #fffbeb !important;
+  color: #d97706 !important;
+  border: 1px solid #fed7aa !important;
+}
+
+.Toastify__toast--info {
+  background: #eff6ff !important;
+  color: #2563eb !important;
+  border: 1px solid #bfdbfe !important;
+}
+
+.Toastify__close-button {
+  color: #6b7280 !important;
+  opacity: 0.7 !important;
+}
+
+.Toastify__close-button:hover {
+  opacity: 1 !important;
+}
+
+.Toastify__progress-bar {
+  background: linear-gradient(to right, #3b82f6, #8b5cf6) !important;
+}
+
+/* Melhorar contraste do chat no modo claro */
+.chat-message-bot {
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  color: #1f2937 !important;
+}
+
+.chat-message-user {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+}
+
+/* Melhorar visual do chat container */
+.chat-container {
+  background: #f9fafb !important;
+  border: 1px solid #e5e7eb !important;
+}
+
+.chat-header {
+  background: #ffffff !important;
+  border-bottom: 1px solid #e5e7eb !important;
+}
+
+.chat-input {
+  background: #ffffff !important;
+  border: 1px solid #d1d5db !important;
+  color: #1f2937 !important;
+}
+
+.chat-input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Correções específicas para contraste no modo claro */
+.chat-header-text {
+  color: #1f2937 !important; /* Cinza escuro para modo claro */
+}
+
+.chat-header-text.dark {
+  color: #ffffff !important; /* Branco para modo escuro */
+}
+
+.chat-message-text {
+  color: #1f2937 !important; /* Cinza escuro para modo claro */
+}
+
+.chat-message-text.dark {
+  color: #ffffff !important; /* Branco para modo escuro */
+}
+
+.chat-divider {
+  border-color: #d1d5db !important; /* Cinza claro para modo claro */
+}
+
+.chat-divider.dark {
+  border-color: #374151 !important; /* Cinza escuro para modo escuro */
+}
+
+/* Forçar contraste em textos específicos do chat */
+.chat-title {
+  color: #111827 !important; /* Cinza muito escuro */
+}
+
+.chat-subtitle {
+  color: #4b5563 !important; /* Cinza médio */
+}
+
+.chat-message-content {
+  color: #111827 !important; /* Cinza muito escuro */
+}
+
+/* Modo escuro - sobrescrever as cores acima */
+.dark .chat-title {
+  color: #ffffff !important;
+}
+
+.dark .chat-subtitle {
+  color: #9ca3af !important;
+}
+
+.dark .chat-message-content {
+  color: #ffffff !important;
+}
+
+/* Melhorar visibilidade das bordas divisórias */
+.chat-border-top {
+  border-top: 1px solid #d1d5db !important;
+}
+
+.chat-border-bottom {
+  border-bottom: 1px solid #d1d5db !important;
+}
+
+.dark .chat-border-top {
+  border-top: 1px solid #374151 !important;
+}
+
+.dark .chat-border-bottom {
+  border-bottom: 1px solid #374151 !important;
+}
+
+/* Melhorar visual da lista de conversas */
+.chat-session-item {
+  border: 1px solid #e5e7eb !important;
+  background: #ffffff !important;
+}
+
+.dark .chat-session-item {
+  border: 1px solid #374151 !important;
+  background: #1f2937 !important;
+}
+
+.chat-session-item:hover {
+  background: #f9fafb !important;
+}
+
+.dark .chat-session-item:hover {
+  background: #374151 !important;
+}
+
+/* Modo escuro para toasts */
+html.dark .Toastify__toast {
+  background-color: #374151 !important;
+  color: white !important;
+}
+
+html.dark .Toastify__toast--success {
+  background-color: #059669 !important;
+}
+
+html.dark .Toastify__toast--error {
+  background-color: #DC2626 !important;
+}
+
+html.dark .Toastify__toast--warning {
+  background-color: #D97706 !important;
+}
+
+html.dark .Toastify__toast--info {
+  background-color: #2563EB !important;
+}
+
+/* Garantir que os toasts apareçam acima de tudo */
+.Toastify__toast-container--top-right {
+  top: 1em !important;
+  right: 1em !important;
+  z-index: 9999 !important;
+}
+
+/* ESTILOS PARA PÁGINA DE MILHAS - DESKTOP */
+.milhas-desktop-card {
+  @apply rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden transition-all hover:shadow-md;
+}
+
+.milhas-desktop-card-header {
+  @apply px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center;
+}
+
+.milhas-desktop-card-title {
+  @apply text-lg font-semibold text-gray-900 dark:text-white;
+}
+
+.milhas-desktop-card-content {
+  @apply p-6;
+}
+
+.milhas-invoice-table {
+  @apply min-w-full divide-y divide-gray-200 dark:divide-gray-700;
+}
+
+.milhas-invoice-table-header {
+  @apply bg-gray-50 dark:bg-gray-700;
+}
+
+.milhas-invoice-table-row {
+  @apply hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors;
+}
+
+.milhas-invoice-table-cell {
+  @apply px-6 py-4 whitespace-nowrap text-sm;
+}
+
+.milhas-status-badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.milhas-progress-bar {
+  @apply w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden;
+}
+
+.milhas-progress-fill {
+  @apply bg-blue-600 h-2 rounded-full transition-all duration-300;
+}
+
+.milhas-bank-icon {
+  @apply flex items-center justify-center bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-lg rounded-lg;
+}
+
+.milhas-card-hover {
+  @apply hover:shadow-md transition-all duration-200;
+}
+
+.milhas-button-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200;
+}
+
+.milhas-button-secondary {
+  @apply bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200;
+}
+
+.milhas-button-danger {
+  @apply bg-red-600 text-white hover:bg-red-700 transition-colors duration-200;
+}
+
+/* Melhorar contraste e legibilidade */
+.milhas-text-primary {
+  @apply text-gray-900 dark:text-white;
+}
+
+.milhas-text-secondary {
+  @apply text-gray-500 dark:text-gray-400;
+}
+
+.milhas-text-muted {
+  @apply text-gray-400 dark:text-gray-500;
+}
+
+/* Animações suaves */
+.milhas-fade-in {
+  opacity: 0;
+  animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+.milhas-slide-up {
+  transform: translateY(1rem);
+  opacity: 0;
+  animation: slideUp 0.3s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(1rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Responsividade melhorada */
+@media (min-width: 1024px) {
+  .milhas-desktop-grid {
+    @apply grid grid-cols-1 lg:grid-cols-3 gap-6;
+  }
+  
+  .milhas-desktop-card-large {
+    @apply lg:col-span-2;
+  }
+}
+
+@media (min-width: 768px) {
+  .milhas-table-responsive {
+    @apply overflow-x-auto;
+  }
+  
+  .milhas-card-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-6;
+  }
+}
+
+@media (max-width: 767px) {
+  .mobile-fixed-size {
+    width: 360px !important;
+    min-width: 360px !important;
+    max-width: 360px !important;
+    height: 740px !important;
+    min-height: 740px !important;
+    max-height: 740px !important;
+    margin: 0 auto !important;
+    overflow-x: hidden !important;
+  }
+}

@@ -1,0 +1,108 @@
+# Build do Next.js
+.next/
+out/
+
+# Dependências do Node.js
+node_modules/
+
+# Logs e cache
+*.log
+.cache/
+
+# Arquivos temporários do Webpack
+*.hot-update.js
+
+# CSS gerado automaticamente
+styles/output.css
+
+# Arquivo de configuração do Vercel
+.vercel
+
+# Arquivos de ambiente
+.env
+.env.local
+.env*.local
+
+# Diretórios de desenvolvimento
+dist/
+build/
+out/
+
+# Arquivos de IDE/Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db
+
+# Arquivos de depuração
+*.pid
+*.seed
+*.pid.lock
+
+# Arquivos de configuração local
+*.local
+
+# Arquivos de teste
+coverage/
+*.lcov
+
+# Arquivos de pacote
+*.tgz
+
+# Arquivos de lock
+package-lock.json
+yarn.lock
+
+# Arquivos do Lerna
+lerna-debug.log
+
+# Arquivos do pnpm
+pnpm-debug.log
+
+# Arquivos do Turbo
+.turbo/
+
+# Exceção para o arquivo grande no node_modules
+!frontend/node_modules/@next/swc-win32-x64-msvc/next-swc.win32-x64-msvc.node
+
+# Ignorar a pasta .next/ do frontend
+frontend/.next/
+
+# Ignorar todos os arquivos .js, exceto os de configuração
+*.js
+!postcss.config.js
+!tailwind.config.js
+
+# Ignorar arquivos de configuração específicos do backend
+backend/src/config/firebaseServiceAccount.json
+
+# Ignorar pastas node_modules em subdiretórios
+backend/node_modules/
+frontend/node_modules/
+
+# Ignorar arquivos de desenvolvimento
+*.dll
+*.mapbackend/dist/
+backend/dist/
+backend/dist/
+backend/dist/
+backend/tsconfig.tsbuildinfo
+frontend/cors.json
+frontend/types/index.ts.backup
+backend/CORRECAO_*.md
+frontend/CORRECAO_*.md
+code/
+frontend/test-fix.md
+frontend/tsconfig.tsbuildinfo
+
+# Arquivos de correção e desenvolvimento
+code/
+frontend/CORRECOES_*.md
+backend/.env.backup
+backend/env-complete.txt
+backend/.env.backup
+backend/env-complete.txt

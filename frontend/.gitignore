@@ -1,0 +1,88 @@
+# Build do Next.js
+.next/
+out/
+
+# Dependências do Node.js
+node_modules/
+
+# Logs e cache
+*.log
+.cache/
+
+# Arquivos temporários do Webpack
+*.hot-update.js
+
+# CSS gerado automaticamente
+styles/output.css
+
+# Arquivo de configuração do Vercel
+.vercel
+
+# Arquivos de ambiente
+.env
+.env.local
+.env*.local
+
+# Diretórios de desenvolvimento
+dist/
+build/
+
+# Arquivos de IDE/Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db
+
+# Arquivos de depuração
+*.pid
+*.seed
+*.pid.lock
+
+# Arquivos de configuração local
+*.local
+
+# Arquivos de teste
+coverage/
+*.lcov
+
+# Arquivos de pacote
+*.tgz
+
+# Arquivos de lock
+package-lock.json
+yarn.lock
+
+# Arquivos do Lerna
+lerna-debug.log
+
+# Arquivos do pnpm
+pnpm-debug.log
+
+# Arquivos do Turbo
+.turbo/
+
+# Exceção para arquivo grande necessário
+!frontend/node_modules/@next/swc-win32-x64-msvc/next-swc.win32-x64-msvc.node
+
+# Ignorar a pasta .next/ do frontend
+frontend/.next/
+
+# Ignorar todos os arquivos .js, exceto os de configuração
+*.js
+!postcss.config.js
+!tailwind.config.js
+
+# Firebase service account
+backend/src/config/firebaseServiceAccount.json
+
+# Ignorar node_modules duplicados
+backend/node_modules/
+frontend/node_modules/
+
+# Ignorar outros arquivos indesejados
+*.dll
+*.map
