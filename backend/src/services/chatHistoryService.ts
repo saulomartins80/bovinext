@@ -37,7 +37,7 @@ export class ChatHistoryService {
     try {
       console.log(`[ChatHistoryService] Buscando conversa: ${chatId}`);
       
-      // Buscar mensagens da conversa que não expiraram
+      // ✅ OTIMIZAÇÃO: Buscar mensagens da conversa que não expiraram com limite
       const messages = await ChatMessageModel.find({ 
         chatId,
         $or: [
@@ -46,6 +46,7 @@ export class ChatHistoryService {
         ]
       })
       .sort({ timestamp: 1 })
+      .limit(100) // ✅ NOVO: Limitar a 100 mensagens para performance
       .lean();
 
       // Se não há mensagens, verificar se a conversa existe mas expirou
@@ -167,14 +168,17 @@ export class ChatHistoryService {
 
   async getSessions(userId: string): Promise<ChatSession[]> {
     try {
-      // Buscar todas as mensagens do usuário
+      // ✅ OTIMIZAÇÃO: Buscar mensagens do usuário com limite para performance
       const messages = await ChatMessageModel.find({ 
         userId,
         $or: [
           { expiresAt: { $gt: new Date() } },
           { expiresAt: { $exists: false } }
         ]
-      }).sort({ timestamp: -1 }).lean();
+      })
+      .sort({ timestamp: -1 })
+      .limit(500) // ✅ NOVO: Limitar a 500 mensagens para performance
+      .lean();
 
       // Agrupar por chatId manualmente
       const sessionsMap = new Map();

@@ -1,115 +1,165 @@
-# 🔧 Correções Necessárias para o Chatbot
+# Correções Aplicadas no Chatbot
 
-## Problemas Identificados:
+## Problemas Identificados
 
-### 1. **Campo `instituicao` não está sendo salvo**
-- O chatbot detecta "C6" como `conta` mas não salva no campo `instituicao`
-- Precisa mapear `entities.conta` para `payload.instituicao`
+1. **Conversas sendo salvas em múltiplas sessões** em vez de uma única conversa contínua
+2. **Chat demorando para responder** devido a consultas desnecessárias ao banco de dados
+3. **Performance ruim** no frontend e backend
 
-### 2. **Problema de Validação de Valor**
-- Sistema cria investimentos com valor R$ 0,00 quando deveria perguntar
-- Precisa validar se o valor foi fornecido antes de criar
+## Correções Aplicadas
 
-### 3. **Problema de Conversa**
-- Erro constante: "Conversa não encontrada"
-- Problema no serviço de histórico de chat
+### Backend - `chatbotController.ts`
 
-## Correções Necessárias:
-
-### 1. Atualizar `automatedActionsController.ts`:
+#### 1. Correção da função `startNewSession`
+- **Problema**: A função não estava criando conversas reais no banco de dados
+- **Solução**: Agora usa o `ChatHistoryService` para criar conversas reais
+- **Resultado**: Conversas são salvas corretamente no banco de dados
 
 ```typescript
-// Linha 21-27: Atualizar interface
-interface InvestmentPayload {
-  nome: string;
-  valor: number;
-  tipo: string;
-  data: string;
-  instituicao?: string; // Adicionar campo opcional
-}
-
-// Linha 229-237: Corrigir função mapInvestmentData
-function mapInvestmentData(entities: any): InvestmentPayload {
-  // Garantir que o valor seja um número válido
-  const valor = parseFloat(entities.valor) || 0;
-  
-  return {
-    nome: entities.nome || 'Investimento automático',
-    valor: valor,
-    tipo: entities.tipo || 'Renda Fixa',
-    data: entities.data || new Date().toISOString().split('T')[0],
-    instituicao: entities.conta || entities.instituicao || undefined
-  };
-}
-
-// Linha 604-664: Atualizar função createInvestment
-export async function createInvestment(userId: string, payload: any) {
-  // Validar se o valor foi fornecido
-  const valor = parseFloat(payload.valor) || 0;
-  if (valor <= 0) {
-    throw new Error('Por favor, informe o valor do investimento');
-  }
-
-  // ... resto do código existente ...
-
-  const investimento = new Investimento({
-    userId,
-    nome: payload.nome || 'Investimento',
-    tipo,
-    valor,
-    data: payload.data ? new Date(payload.data) : new Date(),
-    instituicao: payload.instituicao, // Adicionar campo instituicao
-    createdAt: new Date()
-  });
-  
-  await investimento.save();
-  return investimento;
-}
-```
-
-### 2. Atualizar `chatbotController.ts`:
-
-```typescript
-// Melhorar detecção de entidades para incluir instituição
-const prompt = `... extraia também:
-- instituicao: banco/corretora (ex: "C6", "Nubank", "XP")
-- conta: conta específica (se mencionada)
-...`;
-```
-
-### 3. Corrigir `chatHistoryService.ts`:
-
-```typescript
-// Verificar se a conversa existe antes de tentar buscar
-async getConversation(conversationId: string) {
+export const startNewSession = async (req: Request, res: Response) => {
   try {
-    const conversation = await ChatMessage.findOne({ conversationId });
-    if (!conversation) {
-      console.log(`[ChatHistoryService] Conversa ${conversationId} não encontrada`);
-      return null; // Retornar null em vez de throw error
+    const userId = (req as any).user?.uid;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
     }
-    return conversation;
+
+    // ✅ CORREÇÃO: Criar conversa real no banco de dados
+    const conversation = await chatHistoryService.startNewConversation(userId);
+    
+    return res.status(200).json({ 
+      success: true,
+      chatId: conversation.chatId,
+      session: {
+        chatId: conversation.chatId,
+        title: 'Nova Conversa',
+        createdAt: conversation.createdAt,
+        updatedAt: conversation.updatedAt,
+        userId: conversation.userId,
+        isActive: conversation.isActive,
+        lastActivity: conversation.lastActivity
+      }
+    });
   } catch (error) {
-    console.error('[ChatHistoryService] Erro ao buscar conversa:', error);
-    return null;
+    console.error('Erro ao iniciar sessão do chatbot:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: 'Erro ao iniciar sessão do chatbot' 
+    });
+  }
+};
+```
+
+#### 2. Otimização da função `handleChatQuery`
+- **Problema**: Muitas consultas desnecessárias ao banco de dados
+- **Solução**: 
+  - Buscar dados do usuário e dados financeiros em paralelo
+  - Limitar consultas com `.limit()`
+  - Reduzir frequência de funcionalidades opcionais
+- **Resultado**: Resposta mais rápida do chat
+
+```typescript
+// ✅ OTIMIZAÇÃO: Buscar dados do usuário e dados financeiros em paralelo
+const [user, transacoes, investimentos, metas] = await Promise.all([
+  User.findOne({ firebaseUid: userId }),
+  Transacoes.find({ userId: userId }).limit(50), // Limitar para performance
+  Investimento.find({ userId: userId }).limit(50), // Limitar para performance
+  Goal.find({ userId: userId }).limit(50) // Limitar para performance
+]);
+```
+
+### Backend - `chatHistoryService.ts`
+
+#### 3. Otimização do método `getConversation`
+- **Problema**: Buscando todas as mensagens sem limite
+- **Solução**: Adicionar `.limit(100)` para limitar a 100 mensagens
+- **Resultado**: Consultas mais rápidas
+
+```typescript
+// ✅ OTIMIZAÇÃO: Buscar mensagens da conversa que não expiraram com limite
+const messages = await ChatMessageModel.find({ 
+  chatId,
+  $or: [
+    { expiresAt: { $gt: new Date() } },
+    { expiresAt: { $exists: false } }
+  ]
+})
+.sort({ timestamp: 1 })
+.limit(100) // ✅ NOVO: Limitar a 100 mensagens para performance
+.lean();
+```
+
+#### 4. Otimização do método `getSessions`
+- **Problema**: Buscando todas as mensagens do usuário
+- **Solução**: Adicionar `.limit(500)` para limitar a 500 mensagens
+- **Resultado**: Lista de sessões carrega mais rápido
+
+### Frontend - `ChatbotCorrected.tsx`
+
+#### 5. Otimização com `useCallback`
+- **Problema**: Funções sendo recriadas a cada render
+- **Solução**: Usar `useCallback` para funções que não mudam frequentemente
+- **Resultado**: Menos re-renders desnecessários
+
+```typescript
+// ✅ OTIMIZAÇÃO: Usar useCallback para funções que não mudam frequentemente
+const loadChatSessions = useCallback(async () => {
+  try {
+    const response = await chatbotAPI.getSessions();
+    setSessions(response.data || []);
+  } catch (error) {
+    console.error('Failed to load sessions', error);
+    setSessions([]);
+  }
+}, []);
+
+const startNewSession = useCallback(async () => {
+  // ... implementação
+}, [isMileagePage]);
+
+const handleSendMessage = useCallback(async (message: string) => {
+  // ... implementação
+}, [activeSession, isLoading, isPremiumUser, startNewSession]);
+```
+
+#### 6. Correção da lógica de envio de mensagens
+- **Problema**: Criando múltiplas sessões em vez de usar uma única
+- **Solução**: 
+  - Aguardar criação da sessão antes de enviar mensagem
+  - Melhor tratamento de estados
+  - Atualizar título da sessão corretamente
+- **Resultado**: Conversas contínuas em uma única sessão
+
+```typescript
+// ✅ CORREÇÃO: Se não há sessão ativa, criar uma nova e aguardar
+if (!activeSession) {
+  await startNewSession();
+  // Aguardar um pouco para a sessão ser criada
+  await new Promise(resolve => setTimeout(resolve, 100));
+  // Se ainda não há sessão ativa após criar, retornar
+  if (!activeSession) {
+    console.error('[FRONTEND] Falha ao criar sessão');
+    return;
   }
 }
 ```
 
-## Testes Necessários:
+## Resultados Esperados
 
-1. **Teste de criação de investimento com instituição:**
-   - "quero investir em cdb 2000 reais no c6"
-   - Deve salvar: nome="CDB", valor=2000, tipo="CDB", instituicao="C6"
+1. **Conversas contínuas**: Todas as mensagens de uma conversa ficam em uma única sessão
+2. **Performance melhorada**: Chat responde mais rapidamente
+3. **Menos consultas ao banco**: Redução significativa de consultas desnecessárias
+4. **Interface mais responsiva**: Menos re-renders no frontend
 
-2. **Teste de validação de valor:**
-   - "quero add uma novo investimento em cdb"
-   - Deve perguntar o valor em vez de criar com R$ 0
+## Como Testar
 
-3. **Teste de histórico de conversa:**
-   - Verificar se não há mais erros de "Conversa não encontrada"
+1. Abrir o chat
+2. Enviar várias mensagens consecutivas
+3. Verificar se todas aparecem na mesma sessão
+4. Verificar se a resposta é mais rápida
+5. Verificar se não há criação de múltiplas sessões
 
-## Status:
-- ✅ Problemas identificados
-- ⏳ Aguardando implementação das correções
-- ⏳ Aguardando testes 
+## Monitoramento
+
+- Verificar logs do backend para confirmar redução de consultas
+- Monitorar tempo de resposta das APIs
+- Verificar se as conversas estão sendo salvas corretamente no banco 

@@ -33,7 +33,7 @@ type AutomatedAction = {
 
 type ChatMessage = {
   id: string;
-  sender: 'user' | 'bot';
+  sender: 'user' | 'bot' | 'assistant'; // ✅ CORREÇÃO: Adicionar 'assistant' como tipo válido
   content: string | React.ReactElement;
   timestamp: Date;
   metadata?: {
@@ -52,6 +52,7 @@ type ChatMessage = {
     pointsEarned?: number;
     estimatedValue?: number;
   };
+  isError?: boolean; // ✅ CORREÇÃO: Adicionar propriedade isError
 };
 
 type ChatSession = {
@@ -587,6 +588,7 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
   const [feedbackModal, setFeedbackModal] = useState<{ messageId: string; isOpen: boolean }>({ messageId: '', isOpen: false });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isMileagePage, setIsMileagePage] = useState(false);
+  const [inputValue, setInputValue] = useState('');
 
   // Usar estado externo se fornecido, senão usar interno
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
@@ -681,6 +683,7 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
 
   const expertise = getExpertiseDisplay();
 
+  // ✅ OTIMIZAÇÃO: Usar useCallback para funções que não mudam frequentemente
   const loadChatSessions = useCallback(async () => {
     try {
       const response = await chatbotAPI.getSessions();
@@ -691,21 +694,8 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
     }
   }, []);
 
-  useEffect(() => {
-    if (isOpen && !activeSession) {
-      loadChatSessions();
-    }
-  }, [isOpen, activeSession, loadChatSessions]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const startNewSession = async () => {
+  // ✅ OTIMIZAÇÃO: Usar useCallback para startNewSession
+  const startNewSession = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await chatbotAPI.startNewSession();
@@ -717,38 +707,32 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
       };
       
       setActiveSession(newSession);
-      setMessages([]);
       setSessions(prev => [newSession, ...prev]);
-      setIsNewSessionModalOpen(false);
+      setMessages([]);
+      
+      console.log('[FRONTEND] Nova sessão criada:', response.chatId);
     } catch (error) {
       console.error('Failed to start new session', error);
+      toast.error('Erro ao criar nova sessão');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isMileagePage]);
 
-  const loadSession = async (chatId: string) => {
-    try {
-      setIsLoading(true);
-      const response = await chatbotAPI.getSession(chatId);
-      setActiveSession(response.data.session);
-      setMessages(response.data.messages);
-    } catch (error) {
-      console.error('Failed to load session', error);
-      await startNewSession();
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Função principal de envio de mensagem com automação inteligente
-  const handleSendMessage = async (message: string) => {
+  // ✅ OTIMIZAÇÃO: Função principal de envio de mensagem com automação inteligente
+  const handleSendMessage = useCallback(async (message: string) => {
     if (!message.trim() || isLoading) return;
 
-    // Se não há sessão ativa, criar uma nova
+    // ✅ CORREÇÃO: Se não há sessão ativa, criar uma nova e aguardar
     if (!activeSession) {
       await startNewSession();
-      return;
+      // Aguardar um pouco para a sessão ser criada
+      await new Promise(resolve => setTimeout(resolve, 100));
+      // Se ainda não há sessão ativa após criar, retornar
+      if (!activeSession) {
+        console.error('[FRONTEND] Falha ao criar sessão');
+        return;
+      }
     }
 
     const userMessage: ChatMessage = {
@@ -759,156 +743,164 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
     };
 
     setMessages(prev => [...prev, userMessage]);
+    setInputValue('');
     setIsLoading(true);
 
     try {
-      // ✅ CORREÇÃO: Usar endpoint correto que salva nas sessões
+      console.log('[FRONTEND] Enviando mensagem para chatId:', activeSession.chatId);
+      
+      // ✅ CORREÇÃO: Usar objeto com message e chatId conforme definido na API
       const response = await chatbotAPI.sendQuery({
         message: message,
-        chatId: activeSession.chatId,
-        // O backend já busca os dados reais do usuário
+        chatId: activeSession.chatId
       });
-
-      console.log('[FRONTEND] Full response:', response);
-      console.log('[FRONTEND] Response type:', response.type);
-      console.log('[FRONTEND] Response text:', response.text);
-
-      if (response.type === 'ACTION_DETECTED') {
-        console.log('[FRONTEND] Processing automated action');
-        // Ação automatizada detectada
-        const action = response.automatedAction;
-        
-        // ✅ NOVA LÓGICA: Verificar se já foi executada automaticamente
-        if (action.executed) {
-          // Ação já foi executada automaticamente pelo backend
-          const successMessage: ChatMessage = {
-            id: `success-${Date.now()}`,
-            sender: 'bot',
-            content: `✅ ${response.message || response.text}`,
-            timestamp: new Date(),
-            metadata: {
-              isAutomated: true,
-              isPremium: isPremiumUser,
-              actionExecuted: true
-            }
-          };
-          
-          setMessages(prev => [...prev, successMessage]);
-          
-          // Adicionar sugestões de acompanhamento de forma natural
-          if (action.followUpQuestions && action.followUpQuestions.length > 0) {
-            const followUpMessage: ChatMessage = {
-              id: `followup-${Date.now()}`,
-              sender: 'bot',
-              content: 'Posso ajudar com mais alguma coisa?',
-              timestamp: new Date(),
-              metadata: {
-                suggestions: action.followUpQuestions,
-                isPremium: isPremiumUser
-              }
-            };
-            
-            setMessages(prev => [...prev, followUpMessage]);
-          }
-        } else if (action.error) {
-          // Houve erro na execução automática
-          const errorMessage: ChatMessage = {
-            id: `error-${Date.now()}`,
-            sender: 'bot',
-            content: `❌ ${response.message || response.text}`,
-            timestamp: new Date(),
-            metadata: {
-              action: action,
-              isAutomated: true,
-              confidence: action.confidence,
-              isPremium: isPremiumUser,
-              requiresConfirmation: true
-            }
-          };
-          
-          setMessages(prev => [...prev, errorMessage]);
-        } else {
-          // Ação precisa de confirmação
-          const botMessage: ChatMessage = {
-            id: `action-${Date.now()}`,
-            sender: 'bot',
-            content: response.message || response.text || 'Detectei uma ação que posso executar automaticamente!',
-            timestamp: new Date(),
-            metadata: {
-              action: action,
-              isAutomated: true,
-              confidence: action.confidence,
-              isPremium: isPremiumUser,
-              requiresConfirmation: true
-            }
-          };
-
-          setMessages(prev => [...prev, botMessage]);
-        }
-      } else if (response.type === 'TEXT_RESPONSE') {
-        console.log('[FRONTEND] Processing text response');
-        // ✅ CORREÇÃO: Acessar o texto da resposta corretamente
-        const responseText = response.message || response.data?.text || response.text || 'Olá! Como posso te ajudar hoje?';
-        console.log('[FRONTEND] Text content:', responseText);
-        
-        // Resposta normal do chatbot
-        const botMessage: ChatMessage = {
-          id: response.metadata?.messageId || response.data?.messageId || response.messageId || Date.now().toString(),
-          sender: 'bot',
-          content: responseText,
-          timestamp: new Date(),
-          metadata: {
-            ...response.metadata,
-            ...response.data,
-            isPremium: isPremiumUser,
-            processingTime: response.metadata?.processingTime || response.data?.processingTime
-          }
-        };
-
-        console.log('[FRONTEND] Created bot message:', botMessage);
-        setMessages(prev => [...prev, botMessage]);
-      } else {
-        console.log('[FRONTEND] Processing fallback response');
-        // ✅ CORREÇÃO: Acessar o texto da resposta corretamente
-        const responseText = response.message || response.data?.text || response.text || 'Olá! Como posso te ajudar hoje?';
-        console.log('[FRONTEND] Fallback text:', responseText);
-        
-        // Fallback para resposta simples
-        const botMessage: ChatMessage = {
-          id: Date.now().toString(),
-          sender: 'bot',
-          content: responseText,
-          timestamp: new Date(),
-          metadata: {
-            isPremium: isPremiumUser
-          }
-        };
-
-        console.log('[FRONTEND] Created fallback message:', botMessage);
-        setMessages(prev => [...prev, botMessage]);
-      }
       
-      // Atualizar título da sessão se for a primeira mensagem
-      if (messages.filter(m => m.sender === 'user').length === 1) {
-        const newTitle = message.slice(0, 30) + (message.length > 30 ? '...' : '');
-        setActiveSession(prev => prev ? { ...prev, title: newTitle } : null);
-        setSessions(prev => prev.map(s => 
-          s.chatId === activeSession.chatId ? { ...s, title: newTitle } : s
+      console.log('[FRONTEND] Resposta recebida:', response);
+      
+      // ✅ CORREÇÃO: Verificar se response existe e tem sucesso
+      if (response && response.success) {
+        const botMessage: ChatMessage = {
+          id: response.metadata?.messageId || `msg-${Date.now()}-${Math.random()}`,
+          sender: 'bot', // ✅ CORREÇÃO: Usar 'bot' em vez de 'assistant'
+          content: response.message || 'Resposta sem conteúdo',
+          timestamp: new Date(),
+          metadata: response.metadata || {}
+        };
+
+        setMessages(prev => [...prev, botMessage]);
+        
+        // ✅ CORREÇÃO: Atualizar sessão com última mensagem
+        setSessions(prev => prev.map(session => 
+          session.chatId === activeSession.chatId 
+            ? { ...session, updatedAt: new Date() }
+            : session
         ));
+
+        // ✅ NOVO: Mostrar celebrações se houver
+        if (response.metadata?.celebrations && Array.isArray(response.metadata.celebrations) && response.metadata.celebrations.length > 0) {
+          response.metadata.celebrations.forEach((celebration: string) => {
+            toast.success(celebration);
+          });
+        }
+
+        // ✅ NOVO: Mostrar mensagem motivacional se houver
+        if (response.metadata?.motivationalMessage) {
+          toast.info(response.metadata.motivationalMessage);
+        }
+
+        // ✅ NOVO: Mostrar upsell se houver
+        if (response.metadata?.upsellMessage) {
+          toast.warning(response.metadata.upsellMessage);
+        }
+
+        console.log('[FRONTEND] Mensagem processada com sucesso');
+      } else {
+        throw new Error(response?.message || 'Erro ao processar mensagem');
       }
     } catch (error) {
-      console.error('Erro no chat:', error);
+      console.error('[FRONTEND] Erro ao enviar mensagem:', error);
+      
       const errorMessage: ChatMessage = {
-        id: Date.now().toString(),
-        sender: 'bot',
-        content: 'Desculpe, ocorreu um erro. Por favor, tente novamente.',
-        timestamp: new Date()
+        id: `error-${Date.now()}-${Math.random()}`,
+        sender: 'bot', // ✅ CORREÇÃO: Usar 'bot' em vez de 'assistant'
+        content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Por favor, tente novamente.',
+        timestamp: new Date(),
+        isError: true
       };
+
       setMessages(prev => [...prev, errorMessage]);
+      toast.error('Erro ao processar mensagem');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [activeSession, isLoading, startNewSession]);
+
+  // ✅ OTIMIZAÇÃO: Carregar sessões apenas uma vez ao montar o componente
+  useEffect(() => {
+    loadChatSessions();
+  }, [loadChatSessions]);
+
+  // ✅ OTIMIZAÇÃO: Carregar mensagens da sessão ativa apenas quando necessário
+  const loadSessionMessages = useCallback(async (chatId: string) => {
+    try {
+      setIsLoading(true);
+      // ✅ CORREÇÃO: Usar getSession em vez de getSessionMessages
+      const response = await chatbotAPI.getSession(chatId);
+      
+      console.log('[FRONTEND] Resposta da sessão:', response);
+      
+      // ✅ CORREÇÃO: Verificar se response e response.messages existem
+      if (response && response.success && response.messages && Array.isArray(response.messages)) {
+        const formattedMessages: ChatMessage[] = response.messages.map((msg: any) => ({
+          id: msg.metadata?.messageId || msg._id || `msg-${Date.now()}-${Math.random()}`,
+          sender: msg.sender === 'assistant' ? 'bot' : (msg.sender || 'bot'),
+          content: msg.content || 'Mensagem sem conteúdo',
+          timestamp: new Date(msg.timestamp || Date.now()),
+          metadata: msg.metadata || {}
+        }));
+        
+        setMessages(formattedMessages);
+        console.log(`[FRONTEND] Carregadas ${formattedMessages.length} mensagens da sessão ${chatId}`);
+      } else {
+        // ✅ CORREÇÃO: Se não há mensagens, definir array vazio
+        console.log('[FRONTEND] Nenhuma mensagem encontrada na sessão ou formato inválido');
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error('Failed to load session messages', error);
+      toast.error('Erro ao carregar mensagens da sessão');
+      // ✅ CORREÇÃO: Em caso de erro, definir array vazio
+      setMessages([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // ✅ OTIMIZAÇÃO: Trocar sessão com melhor tratamento
+  const switchSession = useCallback(async (session: ChatSession) => {
+    setActiveSession(session);
+    setMessages([]);
+    await loadSessionMessages(session.chatId);
+  }, [loadSessionMessages]);
+
+  // ✅ OTIMIZAÇÃO: Deletar sessão com confirmação
+  const deleteSession = useCallback(async (chatId: string) => {
+    if (!window.confirm('Tem certeza que deseja deletar esta conversa?')) {
+      return;
+    }
+
+    try {
+      // ✅ CORREÇÃO: Usar chatbotDeleteAPI em vez de chatbotAPI.deleteSession
+      await chatbotDeleteAPI.deleteSession(chatId);
+      
+      setSessions(prev => prev.filter(s => s.chatId !== chatId));
+      
+      if (activeSession?.chatId === chatId) {
+        setActiveSession(null);
+        setMessages([]);
+      }
+      
+      toast.success('Conversa deletada com sucesso');
+    } catch (error) {
+      console.error('Failed to delete session', error);
+      toast.error('Erro ao deletar conversa');
+    }
+  }, [activeSession]);
+
+  // ✅ OTIMIZAÇÃO: Função para lidar com tecla Enter
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (inputValue.trim() && !isLoading) {
+        handleSendMessage(inputValue);
+      }
+    }
+  }, [inputValue, isLoading, handleSendMessage]);
+
+  // ✅ OTIMIZAÇÃO: Função para lidar com mudança no input
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInputValue(e.target.value);
+  }, []);
 
   // Executar ação automatizada
   const executeAutomatedAction = async (action: AutomatedAction) => {
@@ -1110,7 +1102,7 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
                       >
                         <div 
                           className="cursor-pointer"
-                          onClick={() => loadSession(session.chatId)}
+                          onClick={() => switchSession(session)}
                         >
                           <h4 className="font-medium text-gray-900 dark:text-white">{session.title}</h4>
                           <p className="text-xs text-gray-600 dark:text-gray-400">
@@ -1119,7 +1111,7 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
                         </div>
                         <div className="flex justify-end mt-2">
                           <button
-                            onClick={(e) => handleDeleteSession(session.chatId, e)}
+                            onClick={(e) => deleteSession(session.chatId)}
                             className="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
                             title="Excluir conversa"
                           >

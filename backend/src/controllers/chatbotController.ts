@@ -17,6 +17,7 @@ import Investimento from '../models/Investimento';
 import { Goal } from '../models/Goal';
 import { PassThrough } from 'stream';
 import { ChatMessage, ChatMessageMetadata } from '../types/chat';
+import OpenAI from 'openai';
 
 // ✅ IMPORTAR FUNÇÕES DO AUTOMATED ACTIONS CONTROLLER
 // import { 
@@ -31,6 +32,13 @@ import { ChatMessage, ChatMessageMetadata } from '../types/chat';
 const userService = container.get<UserService>(TYPES.UserService);
 const chatHistoryService = new ChatHistoryService();
 const aiService = new AIService();
+
+// ✅ CORREÇÃO: Inicializar OpenAI
+const openai = new OpenAI({
+  apiKey: process.env.DEEPSEEK_API_KEY,
+  baseURL: 'https://api.deepseek.com/v1',
+  timeout: 10000,
+});
 
 // Função para verificar se os dados estão completos para execução automática
 function hasCompleteData(action: any): boolean {
@@ -129,21 +137,39 @@ export const handleChatQuery = async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, message: 'message and chatId are required' });
     }
 
-    const chatHistoryService = new ChatHistoryService();
-    const aiService = new AIService();
+    const startTime = Date.now();
+    console.log(`[ChatbotController] Processando mensagem para usuário ${userId}, chatId: ${chatId}`);
 
-    // ✅ CORREÇÃO: Buscar ou criar conversa com melhor tratamento de erro
-    let conversationHistory;
-    try {
-      conversationHistory = await chatHistoryService.getConversation(chatId);
-      console.log(`[ChatbotController] Conversa ${chatId} encontrada com ${conversationHistory.messages.length} mensagens`);
-    } catch (error) {
-      console.log(`[ChatbotController] Conversa ${chatId} não encontrada, criando nova...`);
-      conversationHistory = await chatHistoryService.startNewConversation(userId);
-      console.log(`[ChatbotController] Nova conversa criada: ${conversationHistory.chatId}`);
+    // ✅ OTIMIZAÇÃO: Buscar tudo em paralelo para melhorar performance
+    const [conversationHistory, user] = await Promise.all([
+      chatHistoryService.getConversation(chatId).catch(() => chatHistoryService.startNewConversation(userId)),
+      User.findOne({ firebaseUid: userId })
+    ]);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // ✅ CORREÇÃO: Adicionar mensagem do usuário ANTES de processar
+    // ✅ OTIMIZAÇÃO CRÍTICA: Buscar dados financeiros apenas se necessário
+    const messageLower = message.toLowerCase();
+    const needsFinancialData = messageLower.includes('transação') || 
+                               messageLower.includes('investimento') || 
+                               messageLower.includes('meta') || 
+                               messageLower.includes('gasto') ||
+                               messageLower.includes('receita');
+
+    let transacoes = [], investimentos = [], metas = [];
+    
+    if (needsFinancialData) {
+      [transacoes, investimentos, metas] = await Promise.all([
+        Transacoes.find({ userId: user._id.toString() }).limit(20).lean(),
+        Investimento.find({ userId: user._id.toString() }).limit(20).lean(),
+        Goal.find({ userId: user._id.toString() }).limit(20).lean()
+      ]);
+      console.log(`[ChatbotController] Dados encontrados: ${transacoes.length} transações, ${investimentos.length} investimentos, ${metas.length} metas`);
+    }
+
+    // ✅ OTIMIZAÇÃO: Adicionar mensagem do usuário ANTES de processar
     const userMessageId = `${conversationHistory.chatId}_user_${Date.now()}`;
     await chatHistoryService.addMessage({
       chatId: conversationHistory.chatId,
@@ -157,19 +183,6 @@ export const handleChatQuery = async (req: Request, res: Response) => {
         messageId: userMessageId
       }
     });
-
-    // Buscar dados do usuário
-    const user = await User.findOne({ firebaseUid: userId });
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    // BUSCAR DADOS REAIS DAS COLEÇÕES SEPARADAS
-    const [transacoes, investimentos, metas] = await Promise.all([
-      Transacoes.find({ userId: user._id }),
-      Investimento.find({ userId: user._id }),
-      Goal.find({ userId: user._id })
-    ]);
 
     const subscriptionStatus = user.subscription?.status;
     const subscriptionPlan = user.subscription?.plan;
@@ -192,80 +205,22 @@ export const handleChatQuery = async (req: Request, res: Response) => {
       isPremium: isPremium
     });
 
-    // OBTER DADOS REAIS DO USUÁRIO
+    // ✅ OTIMIZAÇÃO: Preparar dados do usuário de forma mais eficiente
     const userRealData = {
-      // Dados pessoais
       name: user.name || 'Usuário',
       email: user.email || '',
-      createdAt: user.createdAt,
-      
-      // Dados da assinatura
       subscriptionPlan: subscriptionPlan || 'Gratuito',
       subscriptionStatus: subscriptionStatus || 'inactive',
       isPremium: isPremium,
-      
-      // Dados financeiros reais das coleções
-      transacoes: transacoes,
-      investimentos: investimentos,
-      metas: metas,
-      
-      // Estatísticas calculadas
       totalTransacoes: transacoes.length,
       totalInvestimentos: investimentos.length,
       totalMetas: metas.length,
-      
-      // Flags para verificação rápida
       hasTransactions: transacoes.length > 0,
       hasInvestments: investimentos.length > 0,
       hasGoals: metas.length > 0,
-      
-      // Resumos dos dados
-      resumoTransacoes: transacoes.length > 0 ? {
-        total: transacoes.length,
-        categorias: transacoes.reduce((acc: any, t: any) => {
-          const cat = t.categoria || 'Sem categoria';
-          acc[cat] = (acc[cat] || 0) + 1;
-          return acc;
-        }, {}),
-        ultimas: transacoes.slice(-5).map(t => ({
-          descricao: t.descricao,
-          valor: t.valor,
-          categoria: t.categoria,
-          tipo: t.tipo,
-          data: t.data
-        }))
-      } : null,
-      
-      resumoInvestimentos: investimentos.length > 0 ? {
-        total: investimentos.length,
-        tipos: investimentos.reduce((acc: any, i: any) => {
-          const tipo = i.tipo || 'Sem tipo';
-          acc[tipo] = (acc[tipo] || 0) + 1;
-          return acc;
-        }, {}),
-        ultimos: investimentos.slice(-5).map(i => ({
-          nome: i.nome,
-          valor: i.valor,
-          tipo: i.tipo,
-          data: i.data
-        }))
-      } : null,
-      
-      resumoMetas: metas.length > 0 ? {
-        total: metas.length,
-        status: metas.reduce((acc: any, m: any) => {
-          const status = m.prioridade || 'media';
-          acc[status] = (acc[status] || 0) + 1;
-          return acc;
-        }, {}),
-        ativas: metas.filter((m: any) => m.valor_atual < m.valor_total).slice(-5).map(m => ({
-          titulo: m.meta,
-          valor: m.valor_total,
-          valorAtual: m.valor_atual,
-          prazo: m.data_conclusao,
-          prioridade: m.prioridade
-        }))
-      } : null
+      transacoes: transacoes,
+      investimentos: investimentos,
+      metas: metas
     };
 
     console.log('[ChatbotController] Dados reais do usuário:', {
@@ -282,14 +237,14 @@ export const handleChatQuery = async (req: Request, res: Response) => {
     });
 
     let response;
-    const startTime = Date.now();
+    const processingStartTime = Date.now();
 
     try {
-      // ✅ CORREÇÃO: Buscar histórico completo da conversa
+      // ✅ OTIMIZAÇÃO: Buscar histórico completo da conversa apenas uma vez
       const fullConversationHistory = await chatHistoryService.getConversation(conversationHistory.chatId);
       console.log(`[ChatbotController] Histórico completo: ${fullConversationHistory.messages.length} mensagens`);
 
-      // ✅ CORREÇÃO: Usar histórico completo para contexto
+      // ✅ OTIMIZAÇÃO: Usar histórico completo para contexto
       const userContext = {
         name: userRealData.name,
         email: userRealData.email,
@@ -304,11 +259,10 @@ export const handleChatQuery = async (req: Request, res: Response) => {
         transacoes: transacoes,
         investimentos: investimentos,
         metas: metas,
-        // ✅ NOVO: Incluir histórico completo da conversa
         conversationHistory: fullConversationHistory.messages
       };
 
-      // Importar função de detecção de ações
+      // ✅ OTIMIZAÇÃO: Importar função de detecção de ações apenas quando necessário
       const { detectUserIntent } = require('./automatedActionsController');
       const detectedAction = await detectUserIntent(message, userContext, fullConversationHistory.messages);
       
@@ -331,24 +285,24 @@ export const handleChatQuery = async (req: Request, res: Response) => {
             switch (detectedAction.type) {
               case 'CREATE_TRANSACTION':
                 console.log('[ChatbotController] Creating transaction with payload:', detectedAction.payload);
-                result = await createTransaction(user._id.toString(), detectedAction.payload);
+                result = await createTransaction(userId, detectedAction.payload);
                 console.log('[ChatbotController] Transaction created successfully:', result);
                 break;
               case 'CREATE_INVESTMENT':
                 console.log('[ChatbotController] Creating investment with payload:', detectedAction.payload);
-                result = await createInvestment(user._id.toString(), detectedAction.payload);
+                result = await createInvestment(userId, detectedAction.payload);
                 console.log('[ChatbotController] Investment created successfully:', result);
                 break;
               case 'CREATE_GOAL':
                 console.log('[ChatbotController] Creating goal with payload:', detectedAction.payload);
-                result = await createGoal(user._id.toString(), detectedAction.payload);
+                result = await createGoal(userId, detectedAction.payload);
                 console.log('[ChatbotController] Goal created successfully:', result);
                 break;
               case 'ANALYZE_DATA':
-                result = await analyzeData(user._id.toString(), detectedAction.payload);
+                result = await analyzeData(userId, detectedAction.payload);
                 break;
               case 'GENERATE_REPORT':
-                result = await generateReport(user._id.toString(), detectedAction.payload);
+                result = await generateReport(userId, detectedAction.payload);
                 break;
               default:
                 throw new Error('Ação não suportada');
@@ -434,7 +388,7 @@ export const handleChatQuery = async (req: Request, res: Response) => {
         }
       }
 
-      // ✅ CORREÇÃO: Se chegou até aqui, usar a resposta da detecção de ações se disponível
+      // ✅ OTIMIZAÇÃO CRÍTICA: Gerar resposta simplificada
       let finalResponse;
       if (detectedAction && detectedAction.confidence && detectedAction.confidence > 0.5) {
         // Usar resposta da detecção de ações
@@ -444,49 +398,45 @@ export const handleChatQuery = async (req: Request, res: Response) => {
         };
         console.log('[ChatbotController] Using action detection response:', finalResponse.text);
       } else {
-        // ✅ CORREÇÃO: Usar o novo sistema FinnEngine com contexto completo
-        // Aumentar o histórico para as últimas 20 mensagens para manter contexto completo
-        const recentHistory = fullConversationHistory.messages.slice(-20);
-        console.log(`[ChatbotController] Using FinnEngine with ${recentHistory.length} messages of history`);
+        // ✅ OTIMIZAÇÃO CRÍTICA: Usar sistema simplificado para respostas rápidas
+        const recentHistory = fullConversationHistory.messages.slice(-5); // Apenas últimas 5 mensagens
         
-        finalResponse = await aiService.generateContextualResponse(
-          '', // systemPrompt vazio ativa o FinnEngine
-          message,
-          recentHistory, // ✅ CORREÇÃO: Passar mais mensagens do histórico
-          userRealData // Passar contexto completo do usuário
-        );
-        console.log('[ChatbotController] Using FinnEngine response:', finalResponse.text);
+        // ✅ OTIMIZAÇÃO CRÍTICA: Prompt simplificado
+        const simplePrompt = `
+Você é o Finn, assistente financeiro da Finnextho. 
+${isPremium ? 'Você é um consultor premium com acesso aos dados do usuário.' : 'Você é um assistente básico.'}
+
+Dados do usuário:
+- Nome: ${userRealData.name}
+- Plano: ${userRealData.subscriptionPlan}
+${userRealData.hasTransactions ? `- Transações: ${userRealData.totalTransacoes} registradas` : ''}
+${userRealData.hasInvestments ? `- Investimentos: ${userRealData.totalInvestimentos} registrados` : ''}
+${userRealData.hasGoals ? `- Metas: ${userRealData.totalMetas} definidas` : ''}
+
+Histórico recente:
+${recentHistory.map(msg => `${msg.sender}: ${msg.content}`).join('\n')}
+
+Responda de forma natural e útil à mensagem: "${message}"
+
+Resposta (máximo 2 frases):`;
+
+        // ✅ OTIMIZAÇÃO CRÍTICA: Chamada direta à API
+        const completion = await openai.chat.completions.create({
+          model: 'deepseek-chat',
+          messages: [{ role: 'system', content: simplePrompt }],
+          temperature: 0.7,
+          max_tokens: 200, // ✅ REDUZIDO: Menos tokens = resposta mais rápida
+        });
+
+        finalResponse = {
+          text: completion.choices[0]?.message?.content || 'Desculpe, não consegui processar sua mensagem.',
+          analysisText: completion.choices[0]?.message?.content || 'Desculpe, não consegui processar sua mensagem.'
+        };
+        console.log('[ChatbotController] Using simplified response:', finalResponse.text);
       }
 
-      // ✅ NOVA FUNCIONALIDADE: Detectar e celebrar marcos
-      const celebrations = await aiService.detectAndCelebrateMilestones(userId, userRealData);
-      
-      // ✅ NOVA FUNCIONALIDADE: Gerar mensagem motivacional
-      const motivationalMessage = await aiService.generateMotivationalMessage(userId, userRealData);
-      
-      // ✅ NOVA FUNCIONALIDADE: Adaptar resposta ao sentimento
-      let adaptedResponse = await aiService.adaptResponseToSentiment(userId, finalResponse.analysisText || finalResponse.text);
-      
-      // ✅ NOVA FUNCIONALIDADE: Gerar upsell inteligente (apenas ocasionalmente)
-      let upsellMessage = '';
-      if (Math.random() < 0.1) { // 10% de chance de mostrar upsell
-        upsellMessage = await aiService.generateUpsellMessage(userRealData);
-      }
-
-      // Combinar todas as mensagens
-      let completeResponse = adaptedResponse;
-      
-      if (celebrations.length > 0) {
-        completeResponse += '\n\n' + celebrations.join('\n');
-      }
-      
-      if (motivationalMessage) {
-        completeResponse += '\n\n' + motivationalMessage;
-      }
-      
-      if (upsellMessage) {
-        completeResponse += '\n\n' + upsellMessage;
-      }
+      // ✅ OTIMIZAÇÃO CRÍTICA: Usar resposta direta sem processamentos extras
+      let completeResponse = finalResponse.analysisText || finalResponse.text;
 
       // ✅ CORREÇÃO: Gerar ID único para a mensagem para feedback
       const botMessageId = `${conversationHistory.chatId}_bot_${Date.now()}`;
@@ -499,7 +449,7 @@ export const handleChatQuery = async (req: Request, res: Response) => {
         content: completeResponse,
         metadata: {
           analysisData: finalResponse.analysisData,
-          processingTime: Date.now() - startTime,
+          processingTime: Date.now() - processingStartTime,
           expertise: isPremium ? 'CFA, CFP, CNAI, CNPI' : 'Assistente Finnextho',
           confidence: isPremium ? 0.95 : 0.85,
           messageType: isPremium ? 'premium' : 'basic',
@@ -511,9 +461,9 @@ export const handleChatQuery = async (req: Request, res: Response) => {
             totalInvestimentos: userRealData.totalInvestimentos,
             totalMetas: userRealData.totalMetas
           },
-          celebrations: celebrations,
-          motivationalMessage: motivationalMessage,
-          upsellMessage: upsellMessage,
+          celebrations: [],
+          motivationalMessage: '',
+          upsellMessage: '',
           // ✅ NOVO: Incluir contexto da conversa
           conversationContext: {
             totalMessages: fullConversationHistory.messages.length,
@@ -536,15 +486,17 @@ export const handleChatQuery = async (req: Request, res: Response) => {
           totalInvestimentos: userRealData.totalInvestimentos,
           totalMetas: userRealData.totalMetas
         },
-        celebrations: celebrations,
-        motivationalMessage: motivationalMessage,
-        upsellMessage: upsellMessage,
+        celebrations: [],
+        motivationalMessage: '',
+        upsellMessage: '',
         // ✅ NOVO: Incluir contexto da conversa
         conversationContext: {
           totalMessages: fullConversationHistory.messages.length,
           conversationId: conversationHistory.chatId
         }
       };
+
+      console.log(`[ChatbotController] Resposta processada em ${Date.now() - startTime}ms`);
 
       return res.status(200).json({ 
         success: true, 
@@ -560,9 +512,9 @@ export const handleChatQuery = async (req: Request, res: Response) => {
             totalInvestimentos: userRealData.totalInvestimentos,
             totalMetas: userRealData.totalMetas
           },
-          celebrations: celebrations,
-          motivationalMessage: motivationalMessage,
-          upsellMessage: upsellMessage,
+          celebrations: [],
+          motivationalMessage: '',
+          upsellMessage: '',
           conversationContext: {
             totalMessages: fullConversationHistory.messages.length,
             conversationId: conversationHistory.chatId
@@ -583,7 +535,7 @@ export const handleChatQuery = async (req: Request, res: Response) => {
         timestamp: new Date(),
         metadata: {
           analysisData: null,
-          processingTime: Date.now() - startTime,
+          processingTime: Date.now() - processingStartTime,
           error: true,
           errorMessage: error instanceof Error ? error.message : 'Erro desconhecido',
           messageId: errorMessageId
@@ -598,29 +550,56 @@ export const handleChatQuery = async (req: Request, res: Response) => {
 
       await chatHistoryService.addMessage(errorMessage);
 
-      return res.status(500).json({ 
-        success: false, 
-        message: 'Ocorreu um erro ao processar sua mensagem. Tente novamente mais tarde.'
+      return res.status(500).json({
+        success: false,
+        message: 'Erro interno do servidor',
+        metadata: {
+          chatId: conversationHistory.chatId,
+          messageId: errorMessageId,
+          error: true
+        }
       });
     }
-
   } catch (error) {
-    console.error('Erro no handleChatQuery:', error);
-    return res.status(500).json({ 
-      success: false, 
-      message: 'Ocorreu um erro ao processar sua mensagem. Tente novamente mais tarde.'
+    console.error('Erro geral no handleChatQuery:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor'
     });
   }
 };
 
 export const startNewSession = async (req: Request, res: Response) => {
   try {
-    const chatId = uuidv4();
-    // Aqui você pode adicionar lógica para salvar a sessão no banco de dados
-    return res.status(200).json({ chatId });
+    const userId = (req as any).user?.uid;
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
+
+    // ✅ CORREÇÃO: Criar conversa real no banco de dados
+    const conversation = await chatHistoryService.startNewConversation(userId);
+    
+    console.log(`[ChatbotController] Nova sessão criada: ${conversation.chatId}`);
+    
+    return res.status(200).json({ 
+      success: true,
+      chatId: conversation.chatId,
+      session: {
+        chatId: conversation.chatId,
+        title: 'Nova Conversa',
+        createdAt: conversation.createdAt,
+        updatedAt: conversation.updatedAt,
+        userId: conversation.userId,
+        isActive: conversation.isActive,
+        lastActivity: conversation.lastActivity
+      }
+    });
   } catch (error) {
     console.error('Erro ao iniciar sessão do chatbot:', error);
-    return res.status(500).json({ error: 'Erro ao iniciar sessão do chatbot' });
+    return res.status(500).json({ 
+      success: false,
+      error: 'Erro ao iniciar sessão do chatbot' 
+    });
   }
 };
 
@@ -661,19 +640,24 @@ export const getSession = async (req: Request, res: Response) => {
       return res.status(403).json({ success: false, message: 'Acesso negado' });
     }
 
+    // ✅ CORREÇÃO: Retornar no formato esperado pelo frontend
     return res.status(200).json({ 
       success: true, 
-      data: {
-        session: {
-          chatId: conversation.chatId,
-          title: conversation.messages[conversation.messages.length - 1]?.content.slice(0, 30) + '...',
-          createdAt: conversation.createdAt,
-          updatedAt: conversation.updatedAt,
-          userId: conversation.userId,
-          isActive: conversation.isActive,
-          lastActivity: conversation.lastActivity
-        },
-        messages: conversation.messages
+      messages: conversation.messages.map((msg: any) => ({
+        _id: msg._id || msg.id,
+        sender: msg.sender,
+        content: msg.content,
+        timestamp: msg.timestamp || msg.createdAt,
+        metadata: msg.metadata || {}
+      })),
+      session: {
+        chatId: conversation.chatId,
+        title: conversation.messages[conversation.messages.length - 1]?.content.slice(0, 30) + '...',
+        createdAt: conversation.createdAt,
+        updatedAt: conversation.updatedAt,
+        userId: conversation.userId,
+        isActive: conversation.isActive,
+        lastActivity: conversation.lastActivity
       }
     });
   } catch (error) {
@@ -1338,15 +1322,61 @@ async function createTransaction(userId: string, payload: any) {
   console.log('[createTransaction] Creating transaction with payload:', payload);
   console.log('[createTransaction] User ID:', userId);
   
+  // ✅ CORREÇÃO CRÍTICA: Buscar o usuário pelo firebaseUid para obter o _id correto
+  const user = await User.findOne({ firebaseUid: userId });
+  if (!user) {
+    throw new Error('Usuário não encontrado');
+  }
+  
+  console.log('[createTransaction] User found:', user._id);
+  
+  // ✅ CORREÇÃO CRÍTICA: Função para parsear datas em português
+  function parsePortugueseDate(dateString: string): Date {
+    if (!dateString) return new Date();
+    
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    // Mapear expressões em português para datas
+    const dateMap: { [key: string]: Date } = {
+      'hoje': today,
+      'ontem': new Date(today.getTime() - 24 * 60 * 60 * 1000),
+      'amanhã': new Date(today.getTime() + 24 * 60 * 60 * 1000),
+      'amanha': new Date(today.getTime() + 24 * 60 * 60 * 1000),
+      'hoje de manhã': new Date(today.getTime() + 6 * 60 * 60 * 1000), // 6h da manhã
+      'hoje de manha': new Date(today.getTime() + 6 * 60 * 60 * 1000),
+      'hoje à tarde': new Date(today.getTime() + 14 * 60 * 60 * 1000), // 14h da tarde
+      'hoje a tarde': new Date(today.getTime() + 14 * 60 * 60 * 1000),
+      'hoje à noite': new Date(today.getTime() + 20 * 60 * 60 * 1000), // 20h da noite
+      'hoje a noite': new Date(today.getTime() + 20 * 60 * 60 * 1000),
+    };
+    
+    // Verificar se é uma expressão conhecida
+    const lowerDateString = dateString.toLowerCase().trim();
+    if (dateMap[lowerDateString]) {
+      return dateMap[lowerDateString];
+    }
+    
+    // Tentar parsear como data normal
+    const parsedDate = new Date(dateString);
+    if (!isNaN(parsedDate.getTime())) {
+      return parsedDate;
+    }
+    
+    // Se não conseguir parsear, usar data atual
+    console.log('[createTransaction] Could not parse date:', dateString, 'using current date');
+    return new Date();
+  }
+  
   // Garantir que os campos obrigatórios estejam presentes
   const transactionData = {
-    userId,
+    userId: user._id.toString(), // ✅ CORREÇÃO: Usar o _id do MongoDB
     valor: parseFloat(payload.valor) || 0,
     descricao: payload.descricao || 'Transação',
     tipo: payload.tipo || 'despesa',
     categoria: payload.categoria || 'Outros',
     conta: payload.conta || 'Conta Corrente',
-    data: payload.data ? new Date(payload.data) : new Date(),
+    data: parsePortugueseDate(payload.data), // ✅ CORREÇÃO: Usar função de parse
     createdAt: new Date()
   };
   
@@ -1362,6 +1392,14 @@ async function createTransaction(userId: string, payload: any) {
 async function createInvestment(userId: string, payload: any) {
   console.log('[createInvestment] Creating investment with payload:', payload);
   console.log('[createInvestment] User ID:', userId);
+  
+  // ✅ CORREÇÃO CRÍTICA: Buscar o usuário pelo firebaseUid para obter o _id correto
+  const user = await User.findOne({ firebaseUid: userId });
+  if (!user) {
+    throw new Error('Usuário não encontrado');
+  }
+  
+  console.log('[createInvestment] User found:', user._id);
   
   // Validar e mapear o tipo de investimento
   const tipoMapping: { [key: string]: string } = {
@@ -1438,7 +1476,7 @@ async function createInvestment(userId: string, payload: any) {
 
   // Preparar dados do investimento
   const investmentData = {
-    userId,
+    userId: user._id.toString(), // ✅ CORREÇÃO: Usar o _id do MongoDB
     nome: payload.nome || 'Investimento',
     tipo,
     valor,
@@ -1462,8 +1500,16 @@ async function createInvestment(userId: string, payload: any) {
 }
 
 async function createGoal(userId: string, payload: any) {
+  // ✅ CORREÇÃO CRÍTICA: Buscar o usuário pelo firebaseUid para obter o _id correto
+  const user = await User.findOne({ firebaseUid: userId });
+  if (!user) {
+    throw new Error('Usuário não encontrado');
+  }
+  
+  console.log('[createGoal] User found:', user._id);
+  
   const goal = new Goal({
-    userId,
+    userId: user._id.toString(), // ✅ CORREÇÃO: Usar o _id do MongoDB
     ...payload,
     valor_atual: 0,
     prioridade: 'media',
@@ -1475,11 +1521,17 @@ async function createGoal(userId: string, payload: any) {
 }
 
 async function analyzeData(userId: string, payload: any) {
+  // ✅ CORREÇÃO CRÍTICA: Buscar o usuário pelo firebaseUid para obter o _id correto
+  const user = await User.findOne({ firebaseUid: userId });
+  if (!user) {
+    throw new Error('Usuário não encontrado');
+  }
+  
   // Implementar análise de dados
   const [transacoes, investimentos, metas] = await Promise.all([
-    Transacoes.find({ userId }),
-    Investimento.find({ userId }),
-    Goal.find({ userId })
+    Transacoes.find({ userId: user._id.toString() }),
+    Investimento.find({ userId: user._id.toString() }),
+    Goal.find({ userId: user._id.toString() })
   ]);
 
   return {
