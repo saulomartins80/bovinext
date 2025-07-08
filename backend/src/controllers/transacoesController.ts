@@ -67,19 +67,36 @@ export const createTransacao = async (req: Request, res: Response): Promise<void
 
 export const getTransacoes = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user?._id || req.user?.uid;
+    const firebaseUid = req.user?.uid;
+    const mongoId = req.user?._id;
 
-    if (!userId) {
+    if (!firebaseUid) {
       res.status(401).json({ message: "Usuário não autenticado." });
       return;
     }
 
-    console.log("getTransacoes: userId =", userId);
+    console.log("getTransacoes: firebaseUid =", firebaseUid);
+    console.log("getTransacoes: mongoId =", mongoId);
 
-    // Filtrando transações pelo userId
-    const transacoes = await Transacoes.find({ userId }).sort({ data: -1 });
+    // ✅ CORREÇÃO: Buscar transações usando o _id do MongoDB
+    let query = {};
+    if (mongoId) {
+      // Se temos o _id do MongoDB, usar ele
+      query = { userId: mongoId };
+    } else {
+      // Se não temos, buscar o usuário pelo firebaseUid primeiro
+      const User = require('../models/User').User;
+      const user = await User.findOne({ firebaseUid });
+      if (user) {
+        query = { userId: user._id.toString() };
+      } else {
+        query = { userId: firebaseUid }; // Fallback
+      }
+    }
 
-    console.log("getTransacoes: query =", { userId });
+    const transacoes = await Transacoes.find(query).sort({ data: -1 });
+
+    console.log("getTransacoes: query =", query);
     console.log("getTransacoes: results =", transacoes);
 
     res.status(200).json(transacoes);

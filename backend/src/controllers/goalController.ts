@@ -16,13 +16,37 @@ interface ProgressoCategoria {
 
 export const getGoals = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user?._id || req.user?.uid;
-    if (!userId) {
+    const firebaseUid = req.user?.uid;
+    const mongoId = req.user?._id;
+
+    if (!firebaseUid) {
       res.status(401).json({ message: "Usuário não autenticado." });
       return;
     }
 
-    const goals = await Goal.find({ userId }).sort({ createdAt: -1 });
+    console.log("getGoals: firebaseUid =", firebaseUid);
+    console.log("getGoals: mongoId =", mongoId);
+
+    // ✅ CORREÇÃO: Buscar metas usando o _id do MongoDB
+    let query = {};
+    if (mongoId) {
+      // Se temos o _id do MongoDB, usar ele
+      query = { userId: mongoId };
+    } else {
+      // Se não temos, buscar o usuário pelo firebaseUid primeiro
+      const User = require('../models/User').User;
+      const user = await User.findOne({ firebaseUid });
+      if (user) {
+        query = { userId: user._id.toString() };
+      } else {
+        query = { userId: firebaseUid }; // Fallback
+      }
+    }
+
+    const goals = await Goal.find(query).sort({ createdAt: -1 });
+    console.log("getGoals: query =", query);
+    console.log("getGoals: results =", goals);
+    
     res.json(goals);
   } catch (error: unknown) {
     console.error("Erro ao buscar metas:", error);

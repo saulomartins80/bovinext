@@ -14,26 +14,49 @@ const TIPOS_VALIDOS = [
 
 export const getInvestimentos = async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = req.user?._id || req.user?.uid;
-    if (!userId) {
+    const firebaseUid = req.user?.uid;
+    const mongoId = req.user?._id;
+
+    if (!firebaseUid) {
       res.status(401).json({ message: "Usuário não autenticado." });
       return;
     }
 
+    console.log("getInvestimentos: firebaseUid =", firebaseUid);
+    console.log("getInvestimentos: mongoId =", mongoId);
+
+    // ✅ CORREÇÃO: Buscar investimentos usando o _id do MongoDB
+    let query: any = {};
+    if (mongoId) {
+      // Se temos o _id do MongoDB, usar ele
+      query.userId = mongoId;
+    } else {
+      // Se não temos, buscar o usuário pelo firebaseUid primeiro
+      const User = require('../models/User').User;
+      const user = await User.findOne({ firebaseUid });
+      if (user) {
+        query.userId = user._id.toString();
+      } else {
+        query.userId = firebaseUid; // Fallback
+      }
+    }
+
     const { tipo, dataInicio, dataFim } = req.query;
-    const filter: any = { userId }; // ADICIONAR userId AO FILTRO BASE
 
     if (tipo && TIPOS_VALIDOS.includes(tipo as any)) {
-      filter.tipo = tipo;
+      query.tipo = tipo;
     }
 
     if (dataInicio || dataFim) {
-      filter.data = filter.data || {}; // Garante que filter.data exista
-      if (dataInicio) filter.data.$gte = new Date(dataInicio as string);
-      if (dataFim) filter.data.$lte = new Date(dataFim as string);
+      query.data = query.data || {}; // Garante que query.data exista
+      if (dataInicio) query.data.$gte = new Date(dataInicio as string);
+      if (dataFim) query.data.$lte = new Date(dataFim as string);
     }
 
-    const investimentos = await Investimento.find(filter).sort({ data: -1 });
+    console.log("getInvestimentos: query =", query);
+    const investimentos = await Investimento.find(query).sort({ data: -1 });
+    console.log("getInvestimentos: results =", investimentos);
+    
     res.json(investimentos);
   } catch (error: unknown) {
     console.error("Erro ao buscar investimentos:", error);

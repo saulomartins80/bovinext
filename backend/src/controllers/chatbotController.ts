@@ -19,15 +19,10 @@ import { PassThrough } from 'stream';
 import { ChatMessage, ChatMessageMetadata } from '../types/chat';
 import OpenAI from 'openai';
 
-// ✅ IMPORTAR FUNÇÕES DO AUTOMATED ACTIONS CONTROLLER
-// import { 
-//   detectUserIntent,
-//   createTransaction,
-//   createInvestment,
-//   createGoal,
-//   analyzeData,
-//   generateReport
-// } from './automatedActionsController';
+// ✅ IMPORTAR APENAS A FUNÇÃO NECESSÁRIA
+import { 
+  detectUserIntent
+} from './automatedActionsController';
 
 const userService = container.get<UserService>(TYPES.UserService);
 const chatHistoryService = new ChatHistoryService();
@@ -40,18 +35,19 @@ const openai = new OpenAI({
   timeout: 10000,
 });
 
-// Função para verificar se os dados estão completos para execução automática
+// ✅ NOVO: Cache para contexto de conversa
+const conversationContextCache = new Map<string, any>();
+
+// ✅ MELHORIA: Função para verificar se os dados estão completos para execução automática
 function hasCompleteData(action: any): boolean {
   console.log('[hasCompleteData] Checking action:', action);
   
   switch (action.type) {
     case 'CREATE_TRANSACTION':
-      // Remover verificação de tipo - pode ser inferido automaticamente
       const hasTransactionData = !!(action.payload.valor && action.payload.descricao);
       console.log('[hasCompleteData] CREATE_TRANSACTION check:', {
         valor: action.payload.valor,
         descricao: action.payload.descricao,
-        tipo: action.payload.tipo,
         hasData: hasTransactionData
       });
       return hasTransactionData;
@@ -60,7 +56,6 @@ function hasCompleteData(action: any): boolean {
       console.log('[hasCompleteData] CREATE_INVESTMENT check:', {
         valor: action.payload.valor,
         nome: action.payload.nome,
-        tipo: action.payload.tipo,
         hasData: hasInvestmentData
       });
       return hasInvestmentData;
@@ -80,7 +75,54 @@ function hasCompleteData(action: any): boolean {
   }
 }
 
-// Função para gerar perguntas mais naturais para ações
+// ✅ MELHORIA: Função para verificar se já existe item similar
+async function checkForSimilarItems(type: string, payload: any, userId: string): Promise<boolean> {
+  try {
+    const user = await User.findOne({ firebaseUid: userId });
+    if (!user) return false;
+
+    switch (type) {
+      case 'CREATE_GOAL':
+        if (payload.meta && payload.valor_total) {
+          const existingGoal = await Goal.findOne({
+            userId: user._id.toString(),
+            meta: { $regex: payload.meta, $options: 'i' },
+            valor_total: payload.valor_total
+          });
+          return !!existingGoal;
+        }
+        break;
+      case 'CREATE_TRANSACTION':
+        if (payload.descricao && payload.valor) {
+          const existingTransaction = await Transacoes.findOne({
+            userId: user._id.toString(),
+            descricao: { $regex: payload.descricao, $options: 'i' },
+            valor: payload.valor,
+            data: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Últimas 24h
+          });
+          return !!existingTransaction;
+        }
+        break;
+      case 'CREATE_INVESTMENT':
+        if (payload.nome && payload.valor) {
+          const existingInvestment = await Investimento.findOne({
+            userId: user._id.toString(),
+            nome: { $regex: payload.nome, $options: 'i' },
+            valor: payload.valor,
+            data: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // Últimas 24h
+          });
+          return !!existingInvestment;
+        }
+        break;
+    }
+    return false;
+  } catch (error) {
+    console.error('[checkForSimilarItems] Error:', error);
+    return false;
+  }
+}
+
+// ✅ MELHORIA: Função para gerar perguntas mais naturais para ações
 function generateQuestionForAction(action: any): string {
   switch (action.type) {
     case 'CREATE_TRANSACTION':
@@ -124,6 +166,44 @@ function generateQuestionForAction(action: any): string {
   }
 }
 
+// ✅ MELHORIA: Função para extrair contexto da conversa
+function extractConversationContext(messages: any[], currentMessage: string): any {
+  const context = {
+    lastAction: null,
+    pendingData: {},
+    mentionedValues: [],
+    mentionedItems: []
+  };
+
+  // Analisar últimas 5 mensagens
+  const recentMessages = messages.slice(-5);
+  
+  for (const msg of recentMessages) {
+    if (msg.sender === 'user') {
+      const content = msg.content.toLowerCase();
+      
+      // Extrair valores mencionados
+      const valueMatches = content.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/gi);
+      if (valueMatches) {
+        context.mentionedValues.push(...valueMatches);
+      }
+      
+      // Extrair itens mencionados
+      if (content.includes('meta') || content.includes('objetivo')) {
+        context.mentionedItems.push('goal');
+      }
+      if (content.includes('transação') || content.includes('gasto') || content.includes('receita')) {
+        context.mentionedItems.push('transaction');
+      }
+      if (content.includes('investimento') || content.includes('ação') || content.includes('aplicação')) {
+        context.mentionedItems.push('investment');
+      }
+    }
+  }
+
+  return context;
+}
+
 export const handleChatQuery = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.uid;
@@ -140,7 +220,7 @@ export const handleChatQuery = async (req: Request, res: Response) => {
     const startTime = Date.now();
     console.log(`[ChatbotController] Processando mensagem para usuário ${userId}, chatId: ${chatId}`);
 
-    // ✅ OTIMIZAÇÃO: Buscar tudo em paralelo para melhorar performance
+    // ✅ MELHORIA: Buscar tudo em paralelo para melhorar performance
     const [conversationHistory, user] = await Promise.all([
       chatHistoryService.getConversation(chatId).catch(() => chatHistoryService.startNewConversation(userId)),
       User.findOne({ firebaseUid: userId })
@@ -150,26 +230,16 @@ export const handleChatQuery = async (req: Request, res: Response) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    // ✅ OTIMIZAÇÃO CRÍTICA: Buscar dados financeiros apenas se necessário
-    const messageLower = message.toLowerCase();
-    const needsFinancialData = messageLower.includes('transação') || 
-                               messageLower.includes('investimento') || 
-                               messageLower.includes('meta') || 
-                               messageLower.includes('gasto') ||
-                               messageLower.includes('receita');
-
-    let transacoes = [], investimentos = [], metas = [];
+    // ✅ MELHORIA: Buscar dados financeiros sempre para contexto completo
+    const [transacoes, investimentos, metas] = await Promise.all([
+      Transacoes.find({ userId: user._id.toString() }).limit(20).lean(),
+      Investimento.find({ userId: user._id.toString() }).limit(20).lean(),
+      Goal.find({ userId: user._id.toString() }).limit(20).lean()
+    ]);
     
-    if (needsFinancialData) {
-      [transacoes, investimentos, metas] = await Promise.all([
-        Transacoes.find({ userId: user._id.toString() }).limit(20).lean(),
-        Investimento.find({ userId: user._id.toString() }).limit(20).lean(),
-        Goal.find({ userId: user._id.toString() }).limit(20).lean()
-      ]);
-      console.log(`[ChatbotController] Dados encontrados: ${transacoes.length} transações, ${investimentos.length} investimentos, ${metas.length} metas`);
-    }
+    console.log(`[ChatbotController] Dados encontrados: ${transacoes.length} transações, ${investimentos.length} investimentos, ${metas.length} metas`);
 
-    // ✅ OTIMIZAÇÃO: Adicionar mensagem do usuário ANTES de processar
+    // ✅ MELHORIA: Adicionar mensagem do usuário ANTES de processar
     const userMessageId = `${conversationHistory.chatId}_user_${Date.now()}`;
     await chatHistoryService.addMessage({
       chatId: conversationHistory.chatId,
@@ -205,7 +275,7 @@ export const handleChatQuery = async (req: Request, res: Response) => {
       isPremium: isPremium
     });
 
-    // ✅ OTIMIZAÇÃO: Preparar dados do usuário de forma mais eficiente
+    // ✅ MELHORIA: Preparar dados do usuário de forma mais eficiente
     const userRealData = {
       name: user.name || 'Usuário',
       email: user.email || '',
@@ -240,11 +310,14 @@ export const handleChatQuery = async (req: Request, res: Response) => {
     const processingStartTime = Date.now();
 
     try {
-      // ✅ OTIMIZAÇÃO: Buscar histórico completo da conversa apenas uma vez
+      // ✅ MELHORIA: Buscar histórico completo da conversa apenas uma vez
       const fullConversationHistory = await chatHistoryService.getConversation(conversationHistory.chatId);
       console.log(`[ChatbotController] Histórico completo: ${fullConversationHistory.messages.length} mensagens`);
 
-      // ✅ OTIMIZAÇÃO: Usar histórico completo para contexto
+      // ✅ MELHORIA: Extrair contexto da conversa
+      const conversationContext = extractConversationContext(fullConversationHistory.messages, message);
+
+      // ✅ MELHORIA: Usar histórico completo para contexto
       const userContext = {
         name: userRealData.name,
         email: userRealData.email,
@@ -259,11 +332,11 @@ export const handleChatQuery = async (req: Request, res: Response) => {
         transacoes: transacoes,
         investimentos: investimentos,
         metas: metas,
-        conversationHistory: fullConversationHistory.messages
+        conversationHistory: fullConversationHistory.messages,
+        conversationContext: conversationContext
       };
 
-      // ✅ OTIMIZAÇÃO: Importar função de detecção de ações apenas quando necessário
-      const { detectUserIntent } = require('./automatedActionsController');
+      // ✅ MELHORIA: Detectar intenção com contexto melhorado
       const detectedAction = await detectUserIntent(message, userContext, fullConversationHistory.messages);
       
       if (detectedAction && detectedAction.confidence && detectedAction.confidence > 0.7) {
@@ -274,7 +347,42 @@ export const handleChatQuery = async (req: Request, res: Response) => {
           confidence: detectedAction.confidence
         });
         
-        // ✅ CORREÇÃO: Executar automaticamente se confiança é alta e dados estão completos
+        // ✅ MELHORIA: Verificar se já existe item similar
+        const hasSimilar = await checkForSimilarItems(detectedAction.type, detectedAction.payload, userId);
+        if (hasSimilar) {
+          const duplicateMessage = `Parece que você já tem uma ${detectedAction.type === 'CREATE_GOAL' ? 'meta' : detectedAction.type === 'CREATE_TRANSACTION' ? 'transação' : 'investimento'} similar registrada. Quer que eu mostre as existentes ou criar uma nova?`;
+          
+          const duplicateMessageId = `${conversationHistory.chatId}_duplicate_${Date.now()}`;
+          await chatHistoryService.addMessage({
+            chatId: conversationHistory.chatId,
+            userId: userId,
+            sender: 'assistant',
+            content: duplicateMessage,
+            metadata: {
+              messageType: 'premium',
+              isImportant: true,
+              messageId: duplicateMessageId,
+              duplicateDetected: true,
+              actionType: detectedAction.type
+            },
+            timestamp: new Date()
+          });
+
+          return res.status(200).json({
+            success: true,
+            type: 'DUPLICATE_DETECTED',
+            message: duplicateMessage,
+            metadata: {
+              chatId: conversationHistory.chatId,
+              messageId: duplicateMessageId,
+              isPremium,
+              duplicateDetected: true,
+              actionType: detectedAction.type
+            }
+          });
+        }
+        
+        // ✅ MELHORIA: Executar automaticamente se confiança é alta e dados estão completos
         const hasComplete = hasCompleteData(detectedAction);
         console.log('[ChatbotController] Has complete data:', hasComplete);
         
@@ -309,7 +417,7 @@ export const handleChatQuery = async (req: Request, res: Response) => {
             }
 
             console.log('[ChatbotController] Action executed successfully, returning response...');
-            // ✅ CORREÇÃO: Adicionar resposta de sucesso ao histórico
+            // ✅ MELHORIA: Adicionar resposta de sucesso ao histórico
             const successMessageId = `${conversationHistory.chatId}_success_${Date.now()}`;
             await chatHistoryService.addMessage({
               chatId: conversationHistory.chatId,
@@ -349,7 +457,7 @@ export const handleChatQuery = async (req: Request, res: Response) => {
             // Se falhar, continuar para confirmação manual
           }
         } else {
-          // ✅ CORREÇÃO: Pedir mais detalhes de forma mais natural
+          // ✅ MELHORIA: Pedir mais detalhes de forma mais natural
           const questionMessage = generateQuestionForAction(detectedAction);
           
           const questionMessageId = `${conversationHistory.chatId}_question_${Date.now()}`;
@@ -388,7 +496,7 @@ export const handleChatQuery = async (req: Request, res: Response) => {
         }
       }
 
-      // ✅ OTIMIZAÇÃO CRÍTICA: Gerar resposta simplificada
+      // ✅ MELHORIA: Gerar resposta simplificada com contexto melhorado
       let finalResponse;
       if (detectedAction && detectedAction.confidence && detectedAction.confidence > 0.5) {
         // Usar resposta da detecção de ações
@@ -398,10 +506,10 @@ export const handleChatQuery = async (req: Request, res: Response) => {
         };
         console.log('[ChatbotController] Using action detection response:', finalResponse.text);
       } else {
-        // ✅ OTIMIZAÇÃO CRÍTICA: Usar sistema simplificado para respostas rápidas
+        // ✅ MELHORIA: Usar sistema simplificado para respostas rápidas com contexto
         const recentHistory = fullConversationHistory.messages.slice(-5); // Apenas últimas 5 mensagens
         
-        // ✅ OTIMIZAÇÃO CRÍTICA: Prompt simplificado
+        // ✅ MELHORIA: Prompt melhorado com contexto
         const simplePrompt = `
 Você é o Finn, assistente financeiro da Finnextho. 
 ${isPremium ? 'Você é um consultor premium com acesso aos dados do usuário.' : 'Você é um assistente básico.'}
@@ -413,19 +521,26 @@ ${userRealData.hasTransactions ? `- Transações: ${userRealData.totalTransacoes
 ${userRealData.hasInvestments ? `- Investimentos: ${userRealData.totalInvestimentos} registrados` : ''}
 ${userRealData.hasGoals ? `- Metas: ${userRealData.totalMetas} definidas` : ''}
 
-Histórico recente:
-${recentHistory.map(msg => `${msg.sender}: ${msg.content}`).join('\n')}
+Contexto da conversa:
+${recentHistory.map(msg => `${msg.sender === 'user' ? 'Usuário' : 'Finn'}: ${msg.content}`).join('\n')}
+
+IMPORTANTE: 
+- Seja natural e humanizado
+- Mantenha contexto da conversa
+- Se o usuário mencionar valores ou itens sem contexto, pergunte naturalmente
+- Evite repetir o nome do usuário em todas as mensagens
+- Seja conversacional e amigável
 
 Responda de forma natural e útil à mensagem: "${message}"
 
 Resposta (máximo 2 frases):`;
 
-        // ✅ OTIMIZAÇÃO CRÍTICA: Chamada direta à API
+        // ✅ MELHORIA: Chamada direta à API
         const completion = await openai.chat.completions.create({
           model: 'deepseek-chat',
           messages: [{ role: 'system', content: simplePrompt }],
           temperature: 0.7,
-          max_tokens: 200, // ✅ REDUZIDO: Menos tokens = resposta mais rápida
+          max_tokens: 200,
         });
 
         finalResponse = {
@@ -435,18 +550,19 @@ Resposta (máximo 2 frases):`;
         console.log('[ChatbotController] Using simplified response:', finalResponse.text);
       }
 
-      // ✅ OTIMIZAÇÃO CRÍTICA: Usar resposta direta sem processamentos extras
+      // ✅ MELHORIA: Usar resposta direta sem processamentos extras
       let completeResponse = finalResponse.analysisText || finalResponse.text;
 
-      // ✅ CORREÇÃO: Gerar ID único para a mensagem para feedback
+      // ✅ MELHORIA: Gerar ID único para a mensagem para feedback
       const botMessageId = `${conversationHistory.chatId}_bot_${Date.now()}`;
 
-      // ✅ CORREÇÃO: Adicionar resposta ao histórico com contexto completo
+      // ✅ MELHORIA: Adicionar resposta ao histórico com contexto completo
       await chatHistoryService.addMessage({
         chatId: conversationHistory.chatId,
         userId: userId,
         sender: 'assistant',
         content: completeResponse,
+        timestamp: new Date(),
         metadata: {
           analysisData: finalResponse.analysisData,
           processingTime: Date.now() - processingStartTime,
@@ -454,7 +570,7 @@ Resposta (máximo 2 frases):`;
           confidence: isPremium ? 0.95 : 0.85,
           messageType: isPremium ? 'premium' : 'basic',
           isImportant: false,
-          messageId: botMessageId, // ID para feedback
+          messageId: botMessageId,
           userDataAccessed: {
             name: userRealData.name,
             totalTransacoes: userRealData.totalTransacoes,
@@ -464,17 +580,16 @@ Resposta (máximo 2 frases):`;
           celebrations: [],
           motivationalMessage: '',
           upsellMessage: '',
-          // ✅ NOVO: Incluir contexto da conversa
           conversationContext: {
             totalMessages: fullConversationHistory.messages.length,
             lastUserMessage: message,
-            conversationId: conversationHistory.chatId
+            conversationId: conversationHistory.chatId,
+            extractedContext: conversationContext
           }
-        },
-        timestamp: new Date()
+        }
       });
 
-      // ✅ CORREÇÃO: Retornar resposta com ID para feedback e contexto
+      // ✅ MELHORIA: Retornar resposta com ID para feedback e contexto
       const cleanResponse = {
         text: completeResponse,
         chatId: conversationHistory.chatId,
@@ -489,10 +604,10 @@ Resposta (máximo 2 frases):`;
         celebrations: [],
         motivationalMessage: '',
         upsellMessage: '',
-        // ✅ NOVO: Incluir contexto da conversa
         conversationContext: {
           totalMessages: fullConversationHistory.messages.length,
-          conversationId: conversationHistory.chatId
+          conversationId: conversationHistory.chatId,
+          extractedContext: conversationContext
         }
       };
 
@@ -517,7 +632,8 @@ Resposta (máximo 2 frases):`;
           upsellMessage: '',
           conversationContext: {
             totalMessages: fullConversationHistory.messages.length,
-            conversationId: conversationHistory.chatId
+            conversationId: conversationHistory.chatId,
+            extractedContext: conversationContext
           }
         }
       });
@@ -525,7 +641,7 @@ Resposta (máximo 2 frases):`;
     } catch (error) {
       console.error('Erro ao processar mensagem:', error);
       
-      // ✅ CORREÇÃO: Adicionar mensagem de erro ao histórico
+      // ✅ MELHORIA: Adicionar mensagem de erro ao histórico
       const errorMessageId = `${conversationHistory.chatId}_error_${Date.now()}`;
       const errorMessage = {
         chatId: conversationHistory.chatId,

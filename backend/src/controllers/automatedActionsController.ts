@@ -62,6 +62,7 @@ CRIAR META:
 - "Preciso guardar R$ X" → CREATE_GOAL (se X estiver claro)
 - "estou querendo add uma nova meta" → CREATE_GOAL (solicitar detalhes)
 - "quero criar uma meta" → CREATE_GOAL (solicitar detalhes)
+- "viagem para gramado" + valor → CREATE_GOAL (completar dados)
 
 CRIAR TRANSAÇÃO:
 - "Gastei R$ X no Y" → CREATE_TRANSACTION (se X e Y estiverem claros)
@@ -83,6 +84,7 @@ CONTINUAÇÃO DE CONVERSAS:
 - Se o usuário mencionar "valor é X reais" e na conversa anterior foi mencionada uma transação → CREATE_TRANSACTION
 - Se o usuário disser "é uma despesa" e na conversa anterior foi mencionada uma transação → CREATE_TRANSACTION
 - Se o usuário disser "outras informações já passei" → usar contexto da conversa anterior
+- Se o usuário disser "não foi criada" ou "não estou vendo" → verificar se já existe e criar novamente
 
 REGRAS CRÍTICAS:
 1. SEMPRE ser natural e humanizado nas respostas
@@ -95,6 +97,7 @@ REGRAS CRÍTICAS:
 5. Manter respostas naturais e humanizadas
 6. IMPORTANTE: Se o usuário mencionar "outras informações já passei" ou "já te passei antes", considerar o contexto da conversa anterior
 7. Para cumprimentos simples como "oi", "tudo bem", "boa noite", retornar UNKNOWN com resposta natural
+8. Se o usuário disser que algo não foi criado, verificar se já existe e criar novamente se necessário
 
 CONFIRMAÇÕES E CONTINUAÇÕES:
 - "vamos nessa" → UNKNOWN (confirmação)

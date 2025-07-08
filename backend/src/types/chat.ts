@@ -15,6 +15,8 @@ export interface ChatMessageMetadata {
   result?: any;
   action?: any;
   requiresConfirmation?: boolean;
+  // ✅ NOVO: Propriedades para detecção de duplicatas
+  duplicateDetected?: boolean;
   userDataAccessed?: {
     name: string;
     totalTransacoes: number;
@@ -35,11 +37,12 @@ export interface ChatMessageMetadata {
     level: number;
     streak: number;
   };
-  // ✅ NOVO: Contexto da conversa para melhorar o histórico
+  // ✅ MELHORIA: Contexto da conversa expandido
   conversationContext?: {
     totalMessages: number;
     lastUserMessage?: string;
     conversationId: string;
+    extractedContext?: any; // ✅ NOVO: Contexto extraído da conversa
   };
 }
 
