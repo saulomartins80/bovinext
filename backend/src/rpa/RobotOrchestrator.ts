@@ -51,9 +51,10 @@ export interface RobotMetrics {
 }
 
 export class RobotOrchestrator extends EventEmitter {
-  private redis: Redis;
+  private redis: Redis | null = null;
   private logger: winston.Logger;
   private workers: Map<string, RobotWorker> = new Map();
+  private tasks: Map<string, RobotTask> = new Map();
   private taskQueue: string[] = [];
   private isRunning: boolean = false;
   private heartbeatInterval: NodeJS.Timeout;
@@ -62,26 +63,7 @@ export class RobotOrchestrator extends EventEmitter {
   constructor() {
     super();
     
-    // Configurar Redis (opcional)
-    try {
-      this.redis = new Redis({
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-        password: process.env.REDIS_PASSWORD,
-        maxRetriesPerRequest: 3,
-        lazyConnect: true,        
-        enableReadyCheck: false
-      });
-
-      this.redis.on('error', (error) => {
-        this.logger.warn('⚠️ Redis não disponível, usando armazenamento local:', error.message);
-      });
-    } catch (error) {
-      this.logger.warn('⚠️ Redis não configurado, usando armazenamento local');
-      this.redis = null;
-    }
-
-    // Configurar Logger
+    // Configurar Logger primeiro
     this.logger = winston.createLogger({
       level: 'info',
       format: winston.format.combine(
@@ -101,6 +83,34 @@ export class RobotOrchestrator extends EventEmitter {
         })
       ]
     });
+    
+    // Verificar se Redis está desabilitado em produção
+    const isProduction = process.env.NODE_ENV === 'production';
+    const redisDisabled = process.env.REDIS_DISABLED === 'true';
+    
+    if (isProduction && redisDisabled) {
+      this.logger.info('⚠️ Redis desabilitado em produção, usando armazenamento local');
+      this.redis = null;
+    } else {
+      // Configurar Redis (opcional)
+      try {
+        this.redis = new Redis({
+          host: process.env.REDIS_HOST || 'localhost',
+          port: parseInt(process.env.REDIS_PORT || '6379'),
+          password: process.env.REDIS_PASSWORD,
+          maxRetriesPerRequest: 1, // Reduzir tentativas
+          lazyConnect: true,        
+          enableReadyCheck: false
+        });
+
+        this.redis.on('error', (error) => {
+          this.logger.warn('⚠️ Redis não disponível, usando armazenamento local:', error.message);
+        });
+      } catch (error) {
+        this.logger.warn('⚠️ Redis não configurado, usando armazenamento local');
+        this.redis = null;
+      }
+    }
 
     // Inicializar intervalos
     this.heartbeatInterval = setInterval(() => this.checkWorkerHealth(), 30000);
@@ -121,10 +131,18 @@ export class RobotOrchestrator extends EventEmitter {
       maxRetries: task.maxRetries || 3
     };
 
-    // Salvar no Redis
-    await this.redis.hset(`task:${taskId}`, newTask);
-    await this.redis.zadd('task_queue', this.getPriorityScore(task.priority), taskId);
+    // Salvar no Redis se disponível, senão usar armazenamento local
+    if (this.redis) {
+      try {
+        await this.redis.hset(`task:${taskId}`, newTask);
+        await this.redis.zadd('task_queue', this.getPriorityScore(task.priority), taskId);
+      } catch (error) {
+        this.logger.warn('⚠️ Erro ao salvar no Redis, usando armazenamento local:', error.message);
+      }
+    }
     
+    // Sempre salvar localmente
+    this.tasks.set(taskId, newTask);
     this.taskQueue.push(taskId);
     this.logger.info(`📋 Nova tarefa adicionada: ${taskId} (${task.type})`);
     
@@ -133,19 +151,38 @@ export class RobotOrchestrator extends EventEmitter {
   }
 
   async getTask(taskId: string): Promise<RobotTask | null> {
-    const taskData = await this.redis.hgetall(`task:${taskId}`);
-    if (!taskData || Object.keys(taskData).length === 0) {
-      return null;
+    // Primeiro tentar buscar localmente
+    const localTask = this.tasks.get(taskId);
+    if (localTask) {
+      return localTask;
+    }
+
+    // Se não encontrado localmente e Redis disponível, buscar no Redis
+    if (this.redis) {
+      try {
+        const taskData = await this.redis.hgetall(`task:${taskId}`);
+        if (!taskData || Object.keys(taskData).length === 0) {
+          return null;
+        }
+        
+        const task = {
+          ...taskData,
+          createdAt: new Date(taskData.createdAt),
+          startedAt: taskData.startedAt ? new Date(taskData.startedAt) : undefined,
+          completedAt: taskData.completedAt ? new Date(taskData.completedAt) : undefined,
+          retries: parseInt(taskData.retries),
+          maxRetries: parseInt(taskData.maxRetries)
+        } as RobotTask;
+
+        // Salvar localmente para cache
+        this.tasks.set(taskId, task);
+        return task;
+      } catch (error) {
+        this.logger.warn('⚠️ Erro ao buscar no Redis:', error.message);
+      }
     }
     
-    return {
-      ...taskData,
-      createdAt: new Date(taskData.createdAt),
-      startedAt: taskData.startedAt ? new Date(taskData.startedAt) : undefined,
-      completedAt: taskData.completedAt ? new Date(taskData.completedAt) : undefined,
-      retries: parseInt(taskData.retries),
-      maxRetries: parseInt(taskData.maxRetries)
-    } as RobotTask;
+    return null;
   }
 
   async updateTaskStatus(taskId: string, status: RobotTask['status'], error?: string): Promise<void> {
@@ -163,9 +200,20 @@ export class RobotOrchestrator extends EventEmitter {
       if (error) updates.error = error;
     }
 
-    await this.redis.hset(`task:${taskId}`, updates);
+    // Atualizar localmente
+    Object.assign(task, updates);
+    this.tasks.set(taskId, task);
+
+    // Atualizar no Redis se disponível
+    if (this.redis) {
+      try {
+        await this.redis.hset(`task:${taskId}`, updates);
+      } catch (error) {
+        this.logger.warn('⚠️ Erro ao atualizar no Redis:', error.message);
+      }
+    }
+
     this.logger.info(`🔄 Status da tarefa ${taskId} atualizado para: ${status}`);
-    
     this.emit('taskStatusUpdated', { taskId, status, error });
   }
 
@@ -185,7 +233,15 @@ export class RobotOrchestrator extends EventEmitter {
     };
 
     this.workers.set(workerId, newWorker);
-    await this.redis.hset(`worker:${workerId}`, newWorker);
+    
+    // Salvar no Redis se disponível
+    if (this.redis) {
+      try {
+        await this.redis.hset(`worker:${workerId}`, newWorker);
+      } catch (error) {
+        this.logger.warn('⚠️ Erro ao salvar worker no Redis:', error.message);
+      }
+    }
     
     this.logger.info(`🤖 Worker registrado: ${workerId} (${worker.name})`);
     this.emit('workerRegistered', newWorker);
@@ -272,15 +328,25 @@ export class RobotOrchestrator extends EventEmitter {
   }
 
   async getAllTasks(): Promise<RobotTask[]> {
-    const taskKeys = await this.redis.keys('task:*');
-    const tasks: RobotTask[] = [];
-    
-    for (const key of taskKeys) {
-      const task = await this.getTask(key.replace('task:', ''));
-      if (task) tasks.push(task);
+    // Se Redis não disponível, usar armazenamento local
+    if (!this.redis) {
+      return Array.from(this.tasks.values()).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
     }
-    
-    return tasks.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    try {
+      const taskKeys = await this.redis.keys('task:*');
+      const tasks: RobotTask[] = [];
+      
+      for (const key of taskKeys) {
+        const task = await this.getTask(key.replace('task:', ''));
+        if (task) tasks.push(task);
+      }
+      
+      return tasks.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    } catch (error) {
+      this.logger.warn('⚠️ Erro ao buscar tarefas no Redis, usando armazenamento local:', error.message);
+      return Array.from(this.tasks.values()).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    }
   }
 
   async getAllWorkers(): Promise<RobotWorker[]> {

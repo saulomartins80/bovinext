@@ -36,24 +36,59 @@ export class BankAutomationService {
   async init() {
     if (this.isInitialized) return;
 
-    this.browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu'
-      ]
-    });
+    // Verificar se está em produção (Render)
+    if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
+      console.log('🤖 Puppeteer desabilitado em produção');
+      this.isInitialized = true;
+      return;
+    }
 
-    this.isInitialized = true;
-    console.log('🤖 Browser inicializado para automação bancária');
+    try {
+      this.browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--disable-gpu'
+        ]
+      });
+
+      this.isInitialized = true;
+      console.log('🤖 Browser inicializado para automação bancária');
+    } catch (error) {
+      console.log('⚠️ Erro ao inicializar Puppeteer:', error.message);
+      this.isInitialized = true; // Marcar como inicializado para evitar tentativas repetidas
+    }
   }
 
   async syncBankData(userId: string, credentials: BankCredentials): Promise<RobotTask> {
+    // Verificar se está em produção
+    if (process.env.NODE_ENV === 'production' || process.env.RENDER) {
+      return {
+        id: `bank-sync-${userId}-${Date.now()}`,
+        type: 'DATA_SYNC',
+        priority: 'HIGH',
+        status: 'FAILED',
+        payload: {
+          operation: 'SYNC_BANK_DATA',
+          userId,
+          error: 'Automação bancária não disponível em produção',
+          executionTime: 0
+        },
+        userId,
+        createdAt: new Date(),
+        startedAt: new Date(),
+        completedAt: new Date(),
+        error: 'Automação bancária não disponível em produção',
+        retries: 0,
+        maxRetries: 3
+      };
+    }
+
     if (!this.browser) {
       throw new Error('Browser não inicializado');
     }

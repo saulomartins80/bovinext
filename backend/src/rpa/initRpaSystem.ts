@@ -22,6 +22,28 @@ const logger = winston.createLogger({
 
 export async function initializeRpaSystem(): Promise<void> {
   try {
+    // Verificar se está em produção no Render
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isRender = process.env.RENDER === 'true';
+    
+    if (isProduction && isRender) {
+      logger.info('🚀 Iniciando sistema RPA em modo produção (Render) - recursos limitados');
+      
+      // Em produção no Render, desabilitar recursos problemáticos
+      logger.info('⚠️ Desabilitando Chrome/Puppeteer e Redis em produção');
+      
+      // Apenas inicializar orquestração básica sem Redis
+      try {
+        await robotOrchestrator.startOrchestration();
+        logger.info('✅ Orquestração básica iniciada (sem Redis)');
+      } catch (orchestrationError) {
+        logger.warn('⚠️ Erro na orquestração básica (continuando):', orchestrationError);
+      }
+      
+      logger.info('🎉 Sistema RPA inicializado em modo produção');
+      return;
+    }
+
     logger.info('🚀 Iniciando sistema RPA do Finnnextho...');
 
     // 1. Registrar workers (simplificado)
