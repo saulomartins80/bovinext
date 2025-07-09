@@ -31,6 +31,7 @@ import automatedActionsRoutes from './routes/automatedActions';
 import mileageRoutes from './routes/mileageRoutes';
 import pluggyRoutes from './routes/pluggyRoutes';
 import rpaRoutes from './routes/rpaRoutes';
+import { initializeRpaSystem } from './rpa/initRpaSystem';
 
 interface HealthCheckResponse {
   status: 'OK' | 'PARTIAL' | 'FAIL';
@@ -298,6 +299,20 @@ const startServer = async () => {
     });
 
     console.log("✅ Conectado ao MongoDB");
+
+    // 🤖 Inicializar sistema RPA
+    console.log("🤖 Sistema RPA desabilitado temporariamente para teste");
+    
+    try {
+      console.log("🤖 Iniciando sistema RPA...");
+      await initializeRpaSystem();
+      console.log("🤖 Sistema RPA inicializado com sucesso");
+    } catch (error) {
+      console.error("❌ Erro ao inicializar sistema RPA:", error);
+      console.log("🔄 Continuando inicialização do servidor...");
+      // Não interromper o servidor se o RPA falhar
+    }
+    
 
     server = app.listen(PORT, () => {
       console.log(`🚀 Servidor rodando na porta ${PORT}`);

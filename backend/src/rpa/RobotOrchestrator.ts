@@ -62,14 +62,24 @@ export class RobotOrchestrator extends EventEmitter {
   constructor() {
     super();
     
-    // Configurar Redis
-    this.redis = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD,
-      maxRetriesPerRequest: 3,
-      lazyConnect: true,
-    });
+    // Configurar Redis (opcional)
+    try {
+      this.redis = new Redis({
+        host: process.env.REDIS_HOST || 'localhost',
+        port: parseInt(process.env.REDIS_PORT || '6379'),
+        password: process.env.REDIS_PASSWORD,
+        maxRetriesPerRequest: 3,
+        lazyConnect: true,        
+        enableReadyCheck: false
+      });
+
+      this.redis.on('error', (error) => {
+        this.logger.warn('⚠️ Redis não disponível, usando armazenamento local:', error.message);
+      });
+    } catch (error) {
+      this.logger.warn('⚠️ Redis não configurado, usando armazenamento local');
+      this.redis = null;
+    }
 
     // Configurar Logger
     this.logger = winston.createLogger({
@@ -287,14 +297,16 @@ export class RobotOrchestrator extends EventEmitter {
     this.isRunning = true;
     this.logger.info('🚀 Iniciando orquestração de tarefas');
 
-    while (this.isRunning) {
-      try {
-        await this.processTaskQueue();
-        await new Promise(resolve => setTimeout(resolve, 1000)); // 1 segundo
-      } catch (error) {
-        this.logger.error('Erro na orquestração:', error);
+    // Iniciar processamento em background sem bloquear
+    setInterval(async () => {
+      if (this.isRunning) {
+        try {
+          await this.processTaskQueue();
+        } catch (error) {
+          this.logger.error('Erro na orquestração:', error);
+        }
       }
-    }
+    }, 5000); // Verificar a cada 5 segundos
   }
 
   async stopOrchestration(): Promise<void> {
