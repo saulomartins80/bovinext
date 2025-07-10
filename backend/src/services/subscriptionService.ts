@@ -173,6 +173,43 @@ export class SubscriptionService {
         }
     }
 
+    async getUserSubscription(userId: string): Promise<any> {
+        try {
+            // Buscar usuário no banco de dados
+            const user = await this.userRepository.findById(userId);
+            
+            if (!user || !user.subscription?.stripeSubscriptionId) {
+                // Usuário não tem assinatura ativa
+                return {
+                    status: 'free',
+                    plan: 'free',
+                    currentPeriodEnd: null,
+                    cancelAtPeriodEnd: false
+                };
+            }
+
+            // Buscar assinatura no Stripe
+            const subscription = await stripe.subscriptions.retrieve(user.subscription.stripeSubscriptionId);
+            
+            return {
+                status: subscription.status,
+                plan: subscription.items.data[0].price.nickname || 'premium',
+                currentPeriodEnd: new Date((subscription as any).current_period_end * 1000),
+                cancelAtPeriodEnd: subscription.cancel_at_period_end,
+                stripeSubscriptionId: subscription.id
+            };
+        } catch (error) {
+            logError(error as Error, { userId });
+            // Em caso de erro, retornar status free
+            return {
+                status: 'free',
+                plan: 'free',
+                currentPeriodEnd: null,
+                cancelAtPeriodEnd: false
+            };
+        }
+    }
+
     async getSubscriptionPlans(): Promise<Stripe.Price[]> {
         try {
             const prices = await stripe.prices.list({

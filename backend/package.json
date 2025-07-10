@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node dist/index.js",
-    "dev": "cross-env NODE_ENV=development ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": "cross-env NODE_ENV=development ts-node-dev -r tsconfig-paths/register --respawn --transpile-only src/index.ts",
     "build": "rimraf dist && tsc",
     "build:production": "node scripts/setup-production.js && rimraf dist && tsc",
     "type-check": "tsc --noEmit",
@@ -24,7 +24,7 @@
     "@types/cookie-parser": "^1.4.8",
     "@types/puppeteer": "5.4.7",
     "@types/stripe": "^8.0.416",
-    "axios": "^1.9.0",
+    "axios": "1.10.0",
     "bcrypt": "5.1.1",
     "bcryptjs": "^3.0.2",
     "bullmq": "5.56.1",
@@ -121,16 +121,16 @@
     }
   },
   "_moduleAliases": {
-    "@routes": "dist/routes",
-    "@controllers": "dist/controllers",
-    "@models": "dist/models",
-    "@config": "dist/config",
-    "@services": "dist/services",
-    "@interfaces": "dist/interfaces",
-    "@utils": "dist/utils",
-    "@middlewares": "dist/middlewares",
-    "@validations": "dist/validations",
-    "@core": "dist/core",
-    "@modules": "dist/modules"
+    "@routes": "src/routes",
+    "@controllers": "src/controllers",
+    "@models": "src/models",
+    "@config": "src/config",
+    "@services": "src/services",
+    "@interfaces": "src/interfaces",
+    "@utils": "src/utils",
+    "@middlewares": "src/middlewares",
+    "@validations": "src/validations",
+    "@core": "src/core",
+    "@modules": "src/modules"
   }
 }

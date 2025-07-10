@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { AppError } from '../core/errors/AppError';
 import { MarketService } from './marketService';
 import { ChatMessage } from '../types/chat';
+import { db } from '../rpa/core/MemoryDB';
 
 if (!process.env.DEEPSEEK_API_KEY) {
   throw new Error('DEEPSEEK_API_KEY não está configurada no ambiente');

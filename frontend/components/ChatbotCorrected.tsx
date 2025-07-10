@@ -686,8 +686,18 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
   // ✅ OTIMIZAÇÃO: Usar useCallback para funções que não mudam frequentemente
   const loadChatSessions = useCallback(async () => {
     try {
+      console.log('[FRONTEND] Carregando sessões...');
       const response = await chatbotAPI.getSessions();
-      setSessions(response.data || []);
+      console.log('[FRONTEND] Sessões recebidas:', response);
+      
+      if (response && response.success && Array.isArray(response.data)) {
+        setSessions(response.data);
+      } else if (Array.isArray(response)) {
+        setSessions(response);
+      } else {
+        console.log('[FRONTEND] Formato de resposta inesperado:', response);
+        setSessions([]);
+      }
     } catch (error) {
       console.error('Failed to load sessions', error);
       setSessions([]);
@@ -709,6 +719,9 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
       setActiveSession(newSession);
       setSessions(prev => [newSession, ...prev]);
       setMessages([]);
+      
+      // ✅ CORREÇÃO: Fechar modal automaticamente
+      setIsNewSessionModalOpen(false);
       
       console.log('[FRONTEND] Nova sessão criada:', response.chatId);
     } catch (error) {

@@ -86,7 +86,7 @@ export class RpaController {
       ];
 
       const automationConfig = {
-        type: 'web' as const,
+        type: "web",
         target: bankUrl,
         credentials: { username, password },
         selectors,
@@ -95,7 +95,8 @@ export class RpaController {
         timeout: 60000
       };
 
-      const result = await this.automationService.executeAutomation(automationConfig);
+      // Corrigido: passar apenas as actions, não o objeto de configuração completo
+      const result = await this.automationService.executeAutomation(actions);
 
       if (result.success) {
         // Processar dados extraídos

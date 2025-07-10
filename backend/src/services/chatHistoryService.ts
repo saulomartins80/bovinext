@@ -135,6 +135,59 @@ export class ChatHistoryService {
     }
   }
 
+  // ✅ ADICIONADO: Método createConversation que estava faltando
+  async createConversation(userId: string): Promise<Conversation> {
+    try {
+      console.log(`[ChatHistoryService] Criando nova conversa para usuário: ${userId}`);
+      
+      const chatId = uuidv4();
+      
+      // Criar mensagem inicial do sistema
+      const welcomeMessage = new ChatMessageModel({
+        chatId,
+        userId,
+        sender: 'assistant',
+        content: 'Olá! Sou o assistente Finn. Como posso te ajudar hoje?',
+        timestamp: new Date(),
+        metadata: {
+          messageType: 'basic',
+          isImportant: false
+        },
+        expiresAt: this.calculateExpirationDate('basic'),
+        isImportant: false
+      });
+
+      await welcomeMessage.save();
+
+      console.log(`[ChatHistoryService] Conversa ${chatId} criada com sucesso`);
+
+      return {
+        chatId,
+        messages: [{
+          chatId,
+          sender: 'assistant',
+          content: 'Olá! Sou o assistente Finn. Como posso te ajudar hoje?',
+          timestamp: new Date(),
+          metadata: {
+            messageType: 'basic',
+            isImportant: false
+          },
+          expiresAt: this.calculateExpirationDate('basic'),
+          isImportant: false,
+          userId
+        }],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        userId,
+        isActive: true,
+        lastActivity: new Date()
+      };
+    } catch (error) {
+      console.error('Erro ao criar nova conversa:', error);
+      throw error;
+    }
+  }
+
   async addMessage(message: ChatMessage): Promise<void> {
     try {
       const messageType = message.metadata?.messageType || 'basic';
