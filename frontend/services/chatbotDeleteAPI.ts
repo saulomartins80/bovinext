@@ -2,7 +2,7 @@ import axios from 'axios';
 import { getAuth, getIdToken } from 'firebase/auth';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'https://backend-hzmhqdxnw-saulomartins80s-projects.vercel.app',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -20,32 +20,30 @@ api.interceptors.request.use(async (config) => {
       config.headers.Authorization = `Bearer ${token}`;
     } catch (error) {
       console.error('Erro ao obter token:', error);
-      throw new Error('Falha na autenticação');
     }
   }
 
   return config;
 });
 
-// Métodos de exclusão para o chatbot
 export const chatbotDeleteAPI = {
   deleteSession: async (chatId: string) => {
-    console.log('[chatbotDeleteAPI] Deletando sessão:', chatId);
     try {
+      console.log('[chatbotDeleteAPI] Deletando sessão:', chatId);
       const response = await api.delete(`/api/chatbot/sessions/${chatId}`);
-      console.log('[chatbotDeleteAPI] Sessão deletada com sucesso:', response.data);
+      console.log('[chatbotDeleteAPI] Sessão deletada com sucesso');
       return response.data;
     } catch (error) {
       console.error('[chatbotDeleteAPI] Erro ao deletar sessão:', error);
       throw error;
     }
   },
-  
+
   deleteAllSessions: async () => {
-    console.log('[chatbotDeleteAPI] Deletando todas as sessões');
     try {
+      console.log('[chatbotDeleteAPI] Deletando todas as sessões');
       const response = await api.delete('/api/chatbot/sessions');
-      console.log('[chatbotDeleteAPI] Todas as sessões deletadas com sucesso:', response.data);
+      console.log('[chatbotDeleteAPI] Todas as sessões deletadas com sucesso');
       return response.data;
     } catch (error) {
       console.error('[chatbotDeleteAPI] Erro ao deletar todas as sessões:', error);

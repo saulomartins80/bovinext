@@ -1,4 +1,5 @@
 import { Check, X, Edit } from 'lucide-react';
+import { getConfirmationMessage } from '../src/utils/friendlyMessages';
 
 interface GoalConfirmationProps {
   suggestion: {
@@ -19,10 +20,16 @@ export const GoalConfirmation = ({
   onEdit,
   onReject
 }: GoalConfirmationProps) => {
+  // Função para gerar mensagem personalizada baseada na meta
+  const getPersonalizedMessage = () => {
+    if (suggestion.mensagem) return suggestion.mensagem;
+    return getConfirmationMessage('goal', suggestion);
+  };
+
   return (
     <div className="border rounded-lg p-4 mb-4 bg-purple-50 dark:bg-purple-900/20">
       <h4 className="font-bold text-lg dark:text-white mb-2">
-        {suggestion.mensagem || "Confirme a meta"}
+        {getPersonalizedMessage()}
       </h4>
       
       <div className="grid grid-cols-2 gap-2 mb-4">

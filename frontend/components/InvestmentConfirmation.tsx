@@ -1,4 +1,5 @@
 import { Check, X, Edit } from 'lucide-react';
+import { getConfirmationMessage } from '../src/utils/friendlyMessages';
 
 interface InvestmentConfirmationProps {
   suggestion: {
@@ -19,10 +20,16 @@ export const InvestmentConfirmation = ({
   onEdit,
   onReject
 }: InvestmentConfirmationProps) => {
+  // Função para gerar mensagem personalizada baseada no investimento
+  const getPersonalizedMessage = () => {
+    if (suggestion.mensagem) return suggestion.mensagem;
+    return getConfirmationMessage('investment', suggestion);
+  };
+
   return (
     <div className="border rounded-lg p-4 mb-4 bg-blue-50 dark:bg-blue-900/20">
       <h4 className="font-bold text-lg dark:text-white mb-2">
-        {suggestion.mensagem || "Confirme o investimento"}
+        {getPersonalizedMessage()}
       </h4>
       
       <div className="grid grid-cols-2 gap-2 mb-4">

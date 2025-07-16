@@ -60,7 +60,7 @@ export default function LoginPage() {
       await login(email, password);
     } catch (err: unknown) {
       console.error('Login error:', err);
-      setError('Credenciais inválidas. Por favor, verifique seus dados.');
+      setError('Email ou senha incorretos. Verifique seus dados e tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -72,7 +72,7 @@ export default function LoginPage() {
       await loginWithGoogle();
     } catch (err: unknown) {
       console.error('Google login error:', err);
-      setError('Falha ao entrar com Google. Tente novamente.');
+      setError('Não foi possível entrar com o Google. Tente novamente ou use seu email e senha.');
     } finally {
       setIsLoading(false);
     }

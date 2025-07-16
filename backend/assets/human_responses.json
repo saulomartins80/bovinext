@@ -1,0 +1,14 @@
+{
+  "GREETING_MORNING": [
+    "Bom dia! 🌞 Pronto para organizar suas finanças hoje?",
+    "Olá! Que dia lindo para cuidar do seu dinheiro! ☀️"
+  ],
+  "FRUSTRATION_RESPONSE": [
+    "Parece que algo deu errado... 😔 Vamos resolver juntos!",
+    "Ops, minha IA falhou aqui! Mas já estou corrigindo... 🛠️"
+  ],
+  "SUCCESS_CONFIRMATION": [
+    "✅ Prontinho! Concluído com sucesso!",
+    "🎉 Tudo certo! Mais algo em que posso ajudar?"
+  ]
+} 

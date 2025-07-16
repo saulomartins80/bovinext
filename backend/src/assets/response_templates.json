@@ -1,0 +1,212 @@
+{
+  "CREATE_GOAL": {
+    "initial": [
+      "Vamos criar sua meta financeira! 🎯 Qual valor você deseja alcançar?",
+      "Ótimo! Vamos planejar sua meta. Qual o valor total necessário?",
+      "Que bom que você quer estabelecer uma meta! 📈 Me conte qual é o objetivo."
+    ],
+    "missing_amount": [
+      "Para criar sua meta, preciso saber: qual valor você deseja acumular?",
+      "Quanto dinheiro você precisa para alcançar esta meta?",
+      "Qual é o valor total necessário para realizar seu objetivo?"
+    ],
+    "missing_deadline": [
+      "Quando você gostaria de alcançar esta meta?",
+      "Qual é o prazo ideal para atingir esse objetivo?",
+      "Em quanto tempo você pretende juntar esse valor?"
+    ],
+    "success": [
+      "✅ Meta criada com sucesso! Valor: R$ {amount} | Prazo: {deadline}",
+      "🎯 Meta registrada! Você quer juntar R$ {amount} até {deadline}",
+      "🚀 Perfeito! Sua meta de R$ {amount} foi criada para {deadline}"
+    ],
+    "confirmation": [
+      "Confirma a criação da meta '{goal}' de R$ {amount} até {deadline}?",
+      "Posso criar esta meta: {goal} - R$ {amount} - prazo: {deadline}?",
+      "Está correto? Meta: {goal} | Valor: R$ {amount} | Data: {deadline}"
+    ],
+    "suggestions": [
+      "Dica: Considere dividir em submetas mensais para facilitar o acompanhamento",
+      "Sugestão: Automatize transferências para uma conta poupança específica",
+      "Recomendação: Revise sua meta a cada 3 meses para ajustar se necessário"
+    ]
+  },
+  
+  "ADD_TRANSACTION": {
+    "initial": [
+      "Vou registrar sua transação! 💰 Qual foi o valor e descrição?",
+      "Perfeito! Vamos adicionar essa transação. Me dê os detalhes.",
+      "Ótimo! Conte-me sobre essa transação para eu registrar."
+    ],
+    "missing_amount": [
+      "Qual foi o valor da transação?",
+      "Preciso saber o valor para registrar a transação",
+      "Quanto foi gasto ou recebido?"
+    ],
+    "missing_description": [
+      "Pode me dar uma descrição da transação?",
+      "O que foi comprado ou recebido?",
+      "Descreva brevemente essa transação"
+    ],
+    "missing_category": [
+      "Em qual categoria essa transação se encaixa?",
+      "Como você classificaria este gasto?",
+      "Qual categoria melhor descreve esta transação?"
+    ],
+    "success": [
+      "✅ Transação adicionada! R$ {amount} - {description}",
+      "💰 Registrado: {description} por R$ {amount}",
+      "🎯 Transação salva: R$ {amount} em {category}"
+    ],
+    "confirmation": [
+      "Confirma: R$ {amount} - {description} na categoria {category}?",
+      "Posso registrar esta transação: {description} - R$ {amount}?",
+      "Está correto? Valor: R$ {amount} | Descrição: {description} | Categoria: {category}"
+    ],
+    "impact_positive": [
+      "Excelente! Esta transação melhora sua saúde financeira em {percentage}%",
+      "Ótimo controle! Você está dentro do orçamento previsto",
+      "Parabéns! Esta entrada fortalece sua reserva de emergência"
+    ],
+    "impact_negative": [
+      "Atenção: Esta transação impacta {percentage}% do seu orçamento mensal",
+      "Cuidado: Você está se aproximando do limite da categoria {category}",
+      "Alerta: Esta transação pode afetar suas metas de economia"
+    ]
+  },
+  
+  "ANALYZE_INVESTMENT": {
+    "initial": [
+      "Vou analisar seus investimentos! 📊 Que tipo de análise você precisa?",
+      "Perfeito! Vamos examinar seu portfólio. O que você gostaria de saber?",
+      "Ótimo! Conte-me o que você quer descobrir sobre seus investimentos."
+    ],
+    "success": [
+      "📈 Análise concluída! Seu portfólio está {performance}",
+      "✅ Relatório pronto! Rentabilidade: {return}% | Risco: {risk}",
+      "🎯 Análise completa! Recomendação: {recommendation}"
+    ],
+    "performance_excellent": [
+      "🚀 Excelente! Seus investimentos estão superando o mercado",
+      "⭐ Fantástico! Rentabilidade acima da média do setor",
+      "🔥 Parabéns! Seu portfólio está em alta performance"
+    ],
+    "performance_good": [
+      "👍 Bom trabalho! Seus investimentos estão no caminho certo",
+      "✅ Desempenho positivo! Continue assim",
+      "📊 Resultados satisfatórios! Portfólio bem balanceado"
+    ],
+    "performance_poor": [
+      "⚠️ Atenção! Seus investimentos precisam de ajustes",
+      "📉 Recomendo revisar sua estratégia de investimento",
+      "🔄 Hora de rebalancear seu portfólio"
+    ],
+    "recommendations": [
+      "Dica: Diversifique mais em renda fixa para reduzir risco",
+      "Sugestão: Considere investimentos em fundos indexados",
+      "Recomendação: Aumente o aporte mensal em {percentage}%"
+    ]
+  },
+  
+  "EMERGENCY": {
+    "detected": [
+      "⚠️ Detectei uma situação crítica! Ativando modo emergencial...",
+      "🚨 Situação de risco identificada! Tomando ações protetivas...",
+      "🔴 Alerta de emergência! Iniciando protocolo de segurança..."
+    ],
+    "low_emergency_fund": [
+      "💰 Sua reserva de emergência está baixa! Recomendo priorizar essa meta",
+      "🏦 Atenção: Fundo de emergência abaixo do recomendado",
+      "⚠️ Risco detectado: Reserva de emergência insuficiente"
+    ],
+    "high_spending": [
+      "📊 Gastos acima do normal detectados! Vamos analisar juntos",
+      "💸 Atenção: Você está gastando mais que o usual",
+      "🔍 Padrão de gastos elevado identificado"
+    ],
+    "debt_alert": [
+      "💳 Alerta de endividamento! Vamos criar um plano de recuperação",
+      "🚨 Nível de dívida preocupante detectado",
+      "⚠️ Risco de endividamento! Ação imediata necessária"
+    ],
+    "market_crash": [
+      "📉 Turbulência no mercado detectada! Mantendo estratégia conservadora",
+      "🛡️ Protegendo seu portfólio da volatilidade do mercado",
+      "🔒 Acionando proteção automática contra perdas"
+    ]
+  },
+  
+  "GET_DASHBOARD": {
+    "initial": [
+      "📊 Carregando seu dashboard personalizado...",
+      "📈 Preparando visão geral das suas finanças...",
+      "🎯 Montando relatório completo para você..."
+    ],
+    "success": [
+      "📊 Dashboard atualizado! Saúde financeira: {health}%",
+      "✅ Relatório pronto! Saldo: R$ {balance} | Metas: {goals_progress}%",
+      "🎯 Visão geral: {income} entrada | {expenses} saída | {savings} economia"
+    ],
+    "empty_data": [
+      "📝 Parece que você ainda não tem muitos dados. Vamos começar?",
+      "🌟 Seu dashboard está vazio. Que tal adicionar sua primeira transação?",
+      "🚀 Vamos personalizar seu dashboard! Comece criando uma meta"
+    ]
+  },
+  
+  "GENERAL": {
+    "greeting": [
+      "Olá! Sou seu assistente financeiro inteligente! 🤖 Como posso ajudar?",
+      "Bem-vindo de volta! 👋 Estou aqui para cuidar das suas finanças",
+      "Oi! Pronto para turbinar sua vida financeira? 💪"
+    ],
+    "error": [
+      "Ops! Tive um probleminha técnico. Pode tentar novamente? 🔧",
+      "Desculpe, algo deu errado. Vamos tentar de novo? 🔄",
+      "Humm, parece que houve um erro. Pode repetir? 🤔"
+    ],
+    "confirmation": [
+      "Perfeito! Confirmado ✅",
+      "Entendi! Vamos prosseguir 🚀",
+      "Ótimo! Continuando... ⏳"
+    ],
+    "thinking": [
+      "🤔 Deixe-me pensar...",
+      "⏳ Processando informações...",
+      "🧠 Analisando dados..."
+    ],
+    "unknown": [
+      "Não entendi completamente. Pode reformular? 🤷‍♂️",
+      "Hmm, não captei. Pode explicar de outra forma? 🤔",
+      "Desculpe, não compreendi. Pode ser mais específico? 💭"
+    ]
+  },
+  
+  "CONTEXT_SUGGESTIONS": {
+    "new_user": [
+      "Criar sua primeira meta financeira",
+      "Adicionar uma transação",
+      "Conhecer o dashboard"
+    ],
+    "experienced_user": [
+      "Analisar investimentos",
+      "Criar relatório mensal",
+      "Otimizar portfólio"
+    ],
+    "premium_user": [
+      "Análise avançada com IA",
+      "Automação completa",
+      "Relatórios personalizados"
+    ],
+    "after_goal": [
+      "Criar estratégia de economia",
+      "Definir parcelas mensais",
+      "Acompanhar progresso"
+    ],
+    "after_transaction": [
+      "Categorizar automaticamente",
+      "Analisar padrão de gastos",
+      "Verificar orçamento"
+    ]
+  }
+} 

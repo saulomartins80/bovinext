@@ -10,6 +10,7 @@ import LoadingSpinner from "../components/LoadingSpinner";
 import FinanceMarket from '../components/FinanceMarket';
 import { ArrowUp, ArrowDown, Wallet, TrendingUp, TrendingDown, DollarSign, User } from 'lucide-react'; // Added User icon for header
 import { useRouter } from "next/router";
+import { getGreeting, getFriendlyName } from "../src/utils/friendlyMessages";
 
 type TransacaoAdaptada = {
   _id: string | { $oid: string };
@@ -26,13 +27,6 @@ type InvestimentoAdaptado = {
 interface ApiError {
   message?: string;
 }
-
-const getGreeting = (): string => {
-  const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) return "Bom dia";
-  if (hour >= 12 && hour < 18) return "Boa tarde";
-  return "Boa noite";
-};
 
 const formatCurrency = (value: number | undefined, currency: string = 'BRL'): string => {
   if (typeof value !== 'number' || isNaN(value)) return '--';
@@ -146,8 +140,8 @@ const DashboardContent: React.FC = () => {
     return (
       <div className={`flex items-center justify-center h-screen ${resolvedTheme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
         <div className={`p-4 rounded-lg max-w-md text-center ${resolvedTheme === 'dark' ? 'bg-red-900/20 text-red-300 border border-red-700' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-          <h3 className="font-bold mb-2">Erro ao carregar dados</h3>
-          <p>{(error as any)?.message || marketError || "Erro desconhecido"}</p>
+          <h3 className="font-bold mb-2">Ops! Algo deu errado</h3>
+          <p>Não conseguimos carregar seus dados financeiros. Tente novamente em alguns instantes.</p>
            {fetchData && (
              <button
                onClick={() => {fetchData(); refreshMarketData();}}
@@ -247,7 +241,7 @@ const DashboardContent: React.FC = () => {
             <div>
               <h1 className="text-2xl md:text-3xl font-bold">
                 {getGreeting()}, <span className={`${resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}> {/* Cor ajustada para o nome */}
-                  {user?.name || user?.email?.split("@")[0] || "Usuário"}
+                  {getFriendlyName(user)}
                 </span>!
               </h1>
               <p className={`text-sm ${resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}> {/* Cor ajustada para o subtítulo */}

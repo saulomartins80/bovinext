@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import Header from './Header';
 import MobileHeader from './MobileHeader';
 import Sidebar from './Sidebar';
-import Chatbot from './ChatbotCorrected';
+import Chatbot from './Chatbot';
 import MobileNavigation from './MobileNavigation';
 import { ProtectedRoute } from './ProtectedRoute';
 import { Elements } from '@stripe/react-stripe-js';
@@ -210,6 +210,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             isOpen={isChatOpen}
             onToggle={toggleChat}
           />
+
+          {/* Botão flutuante para abrir o chat */}
+          {!isChatOpen && (
+            <button
+              className="fixed bottom-6 right-6 z-50 p-4 rounded-full bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-colors"
+              onClick={() => setIsChatOpen(true)}
+              aria-label="Abrir chat"
+            >
+              Abrir Chat
+            </button>
+          )}
           
           {/* Navegação móvel */}
           <MobileNavigation 

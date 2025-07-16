@@ -1,8 +1,6 @@
-// pages/dashboard.tsx
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
-// Update the import path below to the correct location of LoadingSpinner
 import LoadingSpinner from '../components/LoadingSpinner';
 import DashboardContent from '../components/DashboardContent';
 import styles from './Dashboard.module.css';

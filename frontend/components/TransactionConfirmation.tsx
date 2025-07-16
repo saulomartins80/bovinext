@@ -1,4 +1,5 @@
 import { Check, X, Edit } from 'lucide-react';
+import { getConfirmationMessage } from '../src/utils/friendlyMessages';
 
 interface TransactionConfirmationProps {
   suggestion: {
@@ -21,10 +22,16 @@ export const TransactionConfirmation = ({
   onEdit,
   onReject
 }: TransactionConfirmationProps) => {
+  // Função para gerar mensagem personalizada baseada no tipo de transação
+  const getPersonalizedMessage = () => {
+    if (suggestion.mensagem) return suggestion.mensagem;
+    return getConfirmationMessage('transaction', suggestion);
+  };
+
   return (
     <div className="border rounded-lg p-4 mb-4 bg-green-50 dark:bg-green-900/20">
       <h4 className="font-bold text-lg dark:text-white mb-2">
-        {suggestion.mensagem || "Confirme a transação"}
+        {getPersonalizedMessage()}
       </h4>
       
       <div className="grid grid-cols-2 gap-2 mb-4">

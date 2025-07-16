@@ -44,7 +44,7 @@ export const SettingsDropdown = () => {
     { 
       value: "system", 
       icon: Monitor, 
-      label: "Sistema", 
+      label: "IA & Analytics", 
       active: theme === "system", 
       action: () => setTheme("system") 
     }

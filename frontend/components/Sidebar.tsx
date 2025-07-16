@@ -12,6 +12,7 @@ import {
   Gem, // Ícone para Planos/Assinaturas
   HelpCircle, // Ícone para Suporte
   Plane, // Ícone para Milhas
+  Activity, // Ícone para IA & Analytics
 } from "lucide-react";
 import { useRouter } from "next/router";
 import { motion, AnimatePresence } from "framer-motion";
@@ -104,6 +105,11 @@ export default function Sidebar({
       path: "/milhas",
       icon: Plane,
       label: "Milhas",
+    },
+    {
+      path: "/sistema",
+      icon: Activity,
+      label: "IA & Analytics",
     },
     {
       path: "/assinaturas",

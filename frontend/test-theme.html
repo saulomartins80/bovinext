@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Tema - Finnextho</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {}
+            }
+        }
+    </script>
+</head>
+<body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors">
+    <div class="min-h-screen p-8">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-3xl font-bold mb-8">Teste de Tema - Finnextho</h1>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Card de Teste -->
+                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4">Card de Teste</h2>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">
+                        Este é um teste para verificar se o tema escuro está funcionando corretamente.
+                    </p>
+                    <div class="space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500 dark:text-gray-400">Status:</span>
+                            <span class="text-green-600 dark:text-green-400">Online</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500 dark:text-gray-400">Performance:</span>
+                            <span class="text-blue-600 dark:text-blue-400">95%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controles de Tema -->
+                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-lg">
+                    <h2 class="text-xl font-semibold mb-4">Controles de Tema</h2>
+                    <div class="space-y-4">
+                        <button 
+                            onclick="setTheme('light')"
+                            class="w-full px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg transition-colors"
+                        >
+                            🌞 Modo Claro
+                        </button>
+                        <button 
+                            onclick="setTheme('dark')"
+                            class="w-full px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg transition-colors"
+                        >
+                            🌙 Modo Escuro
+                        </button>
+                        <button 
+                            onclick="setTheme('system')"
+                            class="w-full px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+                        >
+                            🖥️ Modo Sistema
+                        </button>
+                    </div>
+                    
+                    <div class="mt-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            Tema atual: <span id="current-theme" class="font-semibold">Claro</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Status do Sistema -->
+            <div class="mt-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-lg">
+                <h2 class="text-xl font-semibold mb-4">Status do Sistema</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600 dark:text-green-400">98%</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">Uptime</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">1.2s</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">Latência</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-purple-600 dark:text-purple-400">95%</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">Precisão</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-orange-600 dark:text-orange-400">24/7</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400">Suporte</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Função para definir o tema
+        function setTheme(theme) {
+            const root = document.documentElement;
+            
+            // Remover classes existentes
+            root.classList.remove('light', 'dark');
+            
+            if (theme === 'system') {
+                // Verificar preferência do sistema
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                root.classList.add(prefersDark ? 'dark' : 'light');
+                document.getElementById('current-theme').textContent = prefersDark ? 'Escuro (Sistema)' : 'Claro (Sistema)';
+            } else {
+                root.classList.add(theme);
+                document.getElementById('current-theme').textContent = theme === 'dark' ? 'Escuro' : 'Claro';
+            }
+            
+            // Salvar no localStorage
+            localStorage.setItem('app-theme', theme);
+        }
+
+        // Carregar tema salvo
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('app-theme') || 'system';
+            setTheme(savedTheme);
+        }
+
+        // Carregar tema ao iniciar
+        loadTheme();
+
+        // Listener para mudanças na preferência do sistema
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            const savedTheme = localStorage.getItem('app-theme');
+            if (savedTheme === 'system') {
+                setTheme('system');
+            }
+        });
+    </script>
+</body>
+</html> 

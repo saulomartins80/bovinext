@@ -18,8 +18,7 @@ const QuotaExceededAlert: React.FC<QuotaExceededAlertProps> = ({ onRetry }) => {
         </h3>
         
         <p className="text-gray-600 dark:text-gray-300 text-center mb-6">
-          O limite gratuito do Firebase Authentication foi atingido. 
-          Tente novamente mais tarde ou entre em contato com o suporte.
+          Estamos com muitas pessoas acessando agora. Tente novamente em alguns minutos ou entre em contato conosco se o problema persistir.
         </p>
         
         <div className="flex flex-col sm:flex-row gap-3">

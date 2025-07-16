@@ -40,7 +40,7 @@ export default function Header({
   const themeOptions = [
     { value: 'light', icon: FiSun, label: 'Claro' },
     { value: 'dark', icon: FiMoon, label: 'Escuro' },
-    { value: 'system', icon: FiMonitor, label: 'Sistema' }
+    { value: 'system', icon: FiMonitor, label: 'IA & Analytics' }
   ];
 
   if (!user) {

@@ -50,7 +50,14 @@ export function ThemeProvider({
   }, []);
 
   const toggleTheme = useCallback(() => {
-    setTheme(userPreference === 'dark' ? 'light' : 'dark');
+    // ✅ CORREÇÃO: Alternar entre os três modos corretamente
+    if (userPreference === 'light') {
+      setTheme('dark');
+    } else if (userPreference === 'dark') {
+      setTheme('system');
+    } else {
+      setTheme('light');
+    }
   }, [userPreference, setTheme]);
 
   useEffect(() => {

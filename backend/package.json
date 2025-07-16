@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@types/cookie-parser": "^1.4.8",
+    "@types/nodemailer": "6.4.17",
     "@types/puppeteer": "5.4.7",
     "@types/stripe": "^8.0.416",
     "axios": "1.10.0",
@@ -50,6 +51,7 @@
     "mongoose": "^8.15.0",
     "morgan": "^1.10.0",
     "node-cron": "^4.0.7",
+    "nodemailer": "7.0.5",
     "openai": "^5.1.1",
     "os-utils": "^0.0.14",
     "puppeteer": "24.12.0",

@@ -142,7 +142,7 @@ export const marketDataAPI = {
 export const chatbotAPI = {
   sendQuery: async (data: { message: string; chatId: string; context?: any }) => {
     try {
-      console.log('[chatbotAPI] Enviando consulta:', data);
+      console.log('[chatbotAPI] 📤 Enviando consulta:', data);
       
       // ✅ CORREÇÃO: Usar endpoint correto que salva nas sessões
       const response = await api.post('/api/chatbot/query', {
@@ -150,10 +150,15 @@ export const chatbotAPI = {
         chatId: data.chatId
       });
 
-      console.log('[chatbotAPI] Resposta recebida com sucesso:', response.data);
+      console.log('[chatbotAPI] ✅ Resposta recebida com sucesso:', response.data);
       return response.data;
     } catch (error) {
-      console.error('[chatbotAPI] Erro ao enviar consulta:', error);
+      console.error('[chatbotAPI] ❌ Erro ao enviar consulta:', error);
+      console.error('[chatbotAPI] ❌ Detalhes do erro:', {
+        message: (error as any)?.response?.data?.message,
+        status: (error as any)?.response?.status,
+        statusText: (error as any)?.response?.statusText
+      });
       throw error;
     }
   },

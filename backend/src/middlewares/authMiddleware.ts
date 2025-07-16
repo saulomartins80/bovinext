@@ -2,6 +2,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { adminAuth } from '../config/firebaseAdmin';
 import { AppError } from '@core/errors/AppError';
+import { User } from '../models/User';
 
 // ✅ CORREÇÃO: Simplificar autenticação para resolver erro 401
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -28,20 +29,39 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       const decoded = await adminAuth.verifyIdToken(token);
       console.log(`[AUTH] ✅ Token Firebase válido para UID: ${decoded.uid}`);
       
-      // ✅ CORREÇÃO: Configurar req.user de forma simples
+      // ✅ CORREÇÃO: Buscar dados do usuário no banco de dados
+      let userSubscription = { status: 'free', plan: 'free' };
+      try {
+        const user = await User.findOne({ firebaseUid: decoded.uid });
+        if (user && user.subscription) {
+          userSubscription = {
+            status: user.subscription.status || 'free',
+            plan: user.subscription.plan || 'free'
+          };
+          console.log(`[AUTH] 📊 Subscription encontrada:`, userSubscription);
+        } else {
+          console.log(`[AUTH] ⚠️ Usuário não encontrado ou sem subscription`);
+        }
+      } catch (dbError) {
+        console.log(`[AUTH] ⚠️ Erro ao buscar subscription no banco:`, dbError);
+        // Continuar com subscription padrão
+      }
+      
+      // ✅ CORREÇÃO: Configurar req.user com dados do banco
       req.user = {
         _id: decoded.uid,
         firebaseUid: decoded.uid,
         uid: decoded.uid,
         email: decoded.email,
         name: decoded.name,
-        subscription: decoded.subscription || { status: 'free', plan: 'free' }
+        subscription: userSubscription
       };
 
     console.log(`[AUTH] 👤 req.user configurado:`, {
       uid: req.user?.uid,
       firebaseUid: req.user?.firebaseUid,
-      _id: req.user?._id
+      _id: req.user?._id,
+      subscription: req.user?.subscription
     });
 
     console.log(`[AUTH] ✅ Autenticação bem-sucedida para: ${req.method} ${req.path}`);

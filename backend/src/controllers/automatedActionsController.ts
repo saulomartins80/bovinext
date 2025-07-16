@@ -52,33 +52,44 @@ interface DetectedAction {
   followUpQuestions?: string[];
 }
 
-// Prompt para detecção de ações automatizadas
-const ACTION_DETECTION_PROMPT = `Você é um assistente financeiro amigável e humanizado. Analise a mensagem do usuário e identifique se ele quer:
+// Prompt para detecção de ações automatizadas - VERSÃO NATURAL E HUMANIZADA
+const ACTION_DETECTION_PROMPT = `Você é o Finn, assistente financeiro inteligente e natural. Analise a mensagem do usuário e responda de forma conversacional e humanizada.
+
+REGRAS PRINCIPAIS:
+1. SEMPRE ser natural e conversacional como um amigo experiente
+2. NUNCA ser robótico ou repetitivo
+3. SEMPRE perguntar detalhes quando faltar informação
+4. NUNCA criar automaticamente com valores padrão
+5. SEMPRE confirmar antes de executar ações
+6. Usar linguagem brasileira natural ("beleza", "valeu", "tranquilo")
+7. Adaptar tom baseado no contexto e humor do usuário
+
+DETECÇÃO INTELIGENTE:
 
 CRIAR META:
-- "Quero juntar R$ X para Y" → CREATE_GOAL (se X e Y estiverem claros)
-- "Meta de R$ X para Y" → CREATE_GOAL (se X e Y estiverem claros)
-- "Quero economizar R$ X" → CREATE_GOAL (se X estiver claro)
-- "Preciso guardar R$ X" → CREATE_GOAL (se X estiver claro)
-- "estou querendo add uma nova meta" → CREATE_GOAL (solicitar detalhes)
-- "quero criar uma meta" → CREATE_GOAL (solicitar detalhes)
-- "viagem para gramado" + valor → CREATE_GOAL (completar dados)
+- "Quero juntar R$ X para Y" → CREATE_GOAL (extrair valor_total, meta)
+- "Meta de R$ X para Y" → CREATE_GOAL (extrair valor_total, meta)
+- "Quero economizar R$ X" → CREATE_GOAL (extrair valor_total)
+- "Preciso guardar R$ X" → CREATE_GOAL (extrair valor_total)
+- "estou querendo add uma nova meta" → CREATE_GOAL (perguntar naturalmente)
+- "quero criar uma meta" → CREATE_GOAL (perguntar naturalmente)
+- "viagem para gramado" + valor → CREATE_GOAL (extrair meta, valor_total)
 
 CRIAR TRANSAÇÃO:
-- "Gastei R$ X no Y" → CREATE_TRANSACTION (se X e Y estiverem claros)
-- "Recebi salário de R$ X" → CREATE_TRANSACTION (se X estiver claro)
-- "Paguei conta de Y R$ X" → CREATE_TRANSACTION (se X e Y estiverem claros)
-- "Comprei X por R$ Y" → CREATE_TRANSACTION (se X e Y estiverem claros)
-- "estou querendo add uma nova transação" → CREATE_TRANSACTION (solicitar detalhes)
-- "quero registrar uma transação" → CREATE_TRANSACTION (solicitar detalhes)
-- "quero registrar um despesa" → CREATE_TRANSACTION (solicitar detalhes)
+- "Gastei R$ X no Y" → CREATE_TRANSACTION (extrair valor, descricao, tipo=despesa)
+- "Recebi salário de R$ X" → CREATE_TRANSACTION (extrair valor, descricao, tipo=receita)
+- "Paguei conta de Y R$ X" → CREATE_TRANSACTION (extrair valor, descricao, tipo=despesa)
+- "Comprei X por R$ Y" → CREATE_TRANSACTION (extrair valor, descricao, tipo=despesa)
+- "estou querendo add uma nova transação" → CREATE_TRANSACTION (perguntar naturalmente)
+- "quero registrar uma transação" → CREATE_TRANSACTION (perguntar naturalmente)
+- "quero registrar um despesa" → CREATE_TRANSACTION (perguntar naturalmente)
 
 CRIAR INVESTIMENTO:
-- "Comprei ações da X por R$ Y" → CREATE_INVESTMENT (se X e Y estiverem claros)
-- "Investi R$ X em Y" → CREATE_INVESTMENT (se X e Y estiverem claros)
-- "Apliquei R$ X em Y" → CREATE_INVESTMENT (se X e Y estiverem claros)
-- "estou querendo add um novo investimento" → CREATE_INVESTMENT (solicitar detalhes)
-- "quero criar um investimento" → CREATE_INVESTMENT (solicitar detalhes)
+- "Comprei ações da X por R$ Y" → CREATE_INVESTMENT (extrair nome, valor, tipo)
+- "Investi R$ X em Y" → CREATE_INVESTMENT (extrair valor, nome, tipo)
+- "Apliquei R$ X em Y" → CREATE_INVESTMENT (extrair valor, nome, tipo)
+- "estou querendo add um novo investimento" → CREATE_INVESTMENT (perguntar naturalmente)
+- "quero criar um investimento" → CREATE_INVESTMENT (perguntar naturalmente)
 
 CONTINUAÇÃO DE CONVERSAS:
 - Se o usuário mencionar "valor é X reais" e na conversa anterior foi mencionada uma transação → CREATE_TRANSACTION
@@ -86,24 +97,14 @@ CONTINUAÇÃO DE CONVERSAS:
 - Se o usuário disser "outras informações já passei" → usar contexto da conversa anterior
 - Se o usuário disser "não foi criada" ou "não estou vendo" → verificar se já existe e criar novamente
 
-REGRAS CRÍTICAS:
-1. SEMPRE ser natural e humanizado nas respostas
-2. NUNCA repetir o nome do usuário em todas as mensagens
-3. Se o usuário só mencionar a intenção sem detalhes, SEMPRE perguntar de forma natural:
-   - Para metas: "Que legal! Qual valor você quer juntar e para qual objetivo?"
-   - Para transações: "Perfeito! Qual valor e o que foi essa transação?"
-   - Para investimentos: "Ótimo! Qual valor, tipo e nome do investimento?"
-4. Evitar ser robótico - ser conversacional e amigável
-5. Manter respostas naturais e humanizadas
-6. IMPORTANTE: Se o usuário mencionar "outras informações já passei" ou "já te passei antes", considerar o contexto da conversa anterior
-7. Para cumprimentos simples como "oi", "tudo bem", "boa noite", retornar UNKNOWN com resposta natural
-8. Se o usuário disser que algo não foi criado, verificar se já existe e criar novamente se necessário
-
-CONFIRMAÇÕES E CONTINUAÇÕES:
+CONFIRMAÇÕES E CORREÇÕES:
 - "vamos nessa" → UNKNOWN (confirmação)
 - "ok" → UNKNOWN (confirmação)
 - "sim" → UNKNOWN (confirmação)
 - "claro" → UNKNOWN (confirmação)
+- "corrigir" → UNKNOWN (correção)
+- "mudar" → UNKNOWN (correção)
+- "não" → UNKNOWN (negação)
 
 PERGUNTAS E DÚVIDAS:
 - "como funciona" → UNKNOWN (dúvida)
@@ -116,12 +117,17 @@ PERGUNTAS E DÚVIDAS:
 - "boa noite" → UNKNOWN (cumprimento)
 - "bom dia" → UNKNOWN (cumprimento)
 
+PERGUNTAS NATURAIS (quando faltar informação):
+- Para metas: "Que legal! Qual valor você quer juntar e para qual objetivo?"
+- Para transações: "Perfeito! Qual valor e o que foi essa transação?"
+- Para investimentos: "Ótimo! Qual valor, tipo e nome do investimento?"
+
 EXTRAGA as seguintes informações:
 - intent: tipo de ação (CREATE_TRANSACTION, CREATE_INVESTMENT, CREATE_GOAL, ANALYZE_DATA, GENERATE_REPORT, UNKNOWN)
 - entities: dados extraídos em formato JSON
 - confidence: confiança da detecção (0.0 a 1.0)
-- response: resposta natural e humanizada SEMPRE perguntando detalhes se faltar informação
-- requiresConfirmation: SEMPRE true se faltar detalhes essenciais
+- response: resposta natural e conversacional
+- requiresConfirmation: true apenas se tiver dados suficientes para criar
 
 Para metas, extraia:
 - valor_total: valor total da meta (só se mencionado)
@@ -140,17 +146,241 @@ Para investimentos, extraia:
 - valor: valor investido (só se mencionado)
 - tipo: tipo do investimento (só se mencionado)
 
-RESPONDA APENAS COM JSON válido.`;
+RESPONDA APENAS COM JSON válido.`
 
-// Função para detectar intenção do usuário
+// Cache para intents detectados
+const intentCache = new Map<string, DetectedAction>();
+
+// Função para detectar intenção do usuário (OTIMIZADA)
 export async function detectUserIntent(message: string, userContext: any, conversationHistory?: any[]): Promise<DetectedAction | null> {
   try {
-    console.log('[DETECT_USER_INTENT] Analyzing message:', message);
+    console.log('[DETECT_USER_INTENT] ⚡ Analisando mensagem ultra-rápida:', message);
     
+    // 1. ⚡ Verificar cache primeiro (0.1s)
+    const cacheKey = `${message}_${userContext.name}_${userContext.subscriptionPlan}`;
+    const cachedIntent = intentCache.get(cacheKey);
+    
+    if (cachedIntent) {
+      console.log(`⚡ Cache hit para intent: ${cachedIntent.type}`);
+      return cachedIntent;
+    }
+
+    // 2. ⚡ Detecção rápida por palavras-chave (0.2s)
+    const quickIntent = detectQuickIntent(message);
+    if (quickIntent && quickIntent.confidence > 0.8) {
+      console.log(`⚡ Intent detectado rapidamente: ${quickIntent.type}`);
+      intentCache.set(cacheKey, quickIntent);
+      return quickIntent;
+    }
+
+    // 3. ⚡ Análise de contexto da conversa (0.3s)
+    const contextIntent = analyzeConversationContext(message, conversationHistory);
+    if (contextIntent && contextIntent.confidence > 0.7) {
+      console.log(`⚡ Intent detectado por contexto: ${contextIntent.type}`);
+      intentCache.set(cacheKey, contextIntent);
+      return contextIntent;
+    }
+
+    // 4. ⚡ Análise completa com IA (0.5s)
+    const fullIntent = await detectFullIntent(message, userContext, conversationHistory);
+    if (fullIntent) {
+      intentCache.set(cacheKey, fullIntent);
+      return fullIntent;
+    }
+
+    // 5. ⚡ Resposta padrão
+    const defaultIntent: DetectedAction = {
+      type: 'UNKNOWN',
+      payload: {},
+      confidence: 0.0,
+      requiresConfirmation: false,
+      successMessage: '',
+      errorMessage: '',
+      response: 'Olá! Como posso te ajudar hoje? Posso criar metas, transações, investimentos e muito mais!'
+    };
+
+    intentCache.set(cacheKey, defaultIntent);
+    return defaultIntent;
+
+  } catch (error) {
+    console.error('[DETECT_USER_INTENT] ❌ Erro na detecção:', error);
+    return null;
+  }
+}
+
+// ⚡ DETECÇÃO RÁPIDA POR PALAVRAS-CHAVE
+function detectQuickIntent(message: string): DetectedAction | null {
+  const lowerMessage = message.toLowerCase();
+  
+  // 🎯 Metas - Só detectar se for muito específico
+  if ((lowerMessage.includes('quero criar uma meta') || lowerMessage.includes('criar meta de')) && 
+      lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i)) {
+    const valorMatch = lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i);
+    const valor = valorMatch ? parseFloat(valorMatch[1].replace(',', '.')) : null;
+    
+    return {
+      type: 'CREATE_GOAL',
+      payload: {
+        meta: 'Nova meta',
+        valor_total: valor || 0,
+        data_conclusao: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        categoria: 'Geral'
+      },
+      confidence: valor ? 0.8 : 0.6,
+      requiresConfirmation: true, // Sempre pedir confirmação
+      successMessage: 'Meta criada com sucesso!',
+      errorMessage: 'Erro ao criar meta',
+      response: valor ? 
+        `🎯 Perfeito! Vou criar uma meta de R$ ${valor.toFixed(2)}. Qual é o objetivo desta meta?` :
+        '🎯 Que legal! Qual valor você quer juntar e para qual objetivo?'
+    };
+  }
+
+  // 💰 Transações - Só detectar se for muito específico
+  if ((lowerMessage.includes('gastei r$') || lowerMessage.includes('recebi r$') || lowerMessage.includes('paguei r$')) && 
+      lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i)) {
+    const valorMatch = lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i);
+    const valor = valorMatch ? parseFloat(valorMatch[1].replace(',', '.')) : null;
+    
+    return {
+      type: 'CREATE_TRANSACTION',
+      payload: {
+        valor: valor || 0,
+        descricao: 'Nova transação',
+        tipo: lowerMessage.includes('recebi') ? 'receita' : 'despesa',
+        categoria: 'Geral',
+        conta: 'Principal',
+        data: new Date().toISOString().split('T')[0]
+      },
+      confidence: valor ? 0.8 : 0.6,
+      requiresConfirmation: true, // Sempre pedir confirmação
+      successMessage: 'Transação criada com sucesso!',
+      errorMessage: 'Erro ao criar transação',
+      response: valor ? 
+        `💰 Perfeito! Vou registrar uma transação de R$ ${valor.toFixed(2)}. O que foi essa transação?` :
+        '💰 Perfeito! Qual valor e o que foi essa transação?'
+    };
+  }
+
+  // 📈 Investimentos - Só detectar se for muito específico
+  if ((lowerMessage.includes('comprei ações') || lowerMessage.includes('investi r$')) && 
+      lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i)) {
+    const valorMatch = lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i);
+    const valor = valorMatch ? parseFloat(valorMatch[1].replace(',', '.')) : null;
+    
+    return {
+      type: 'CREATE_INVESTMENT',
+      payload: {
+        nome: 'Novo investimento',
+        valor: valor || 0,
+        tipo: 'Ações',
+        data: new Date().toISOString().split('T')[0]
+      },
+      confidence: valor ? 0.8 : 0.6,
+      requiresConfirmation: true, // Sempre pedir confirmação
+      successMessage: 'Investimento criado com sucesso!',
+      errorMessage: 'Erro ao criar investimento',
+      response: valor ? 
+        `📈 Perfeito! Vou registrar um investimento de R$ ${valor.toFixed(2)}. Qual o nome e tipo do investimento?` :
+        '📈 Ótimo! Qual valor, tipo e nome do investimento?'
+    };
+  }
+
+  // 📊 Análise - Só detectar se for muito específico
+  if (lowerMessage.includes('fazer análise') || lowerMessage.includes('analisar minhas finanças')) {
+    return {
+      type: 'ANALYZE_DATA',
+      payload: { analysisType: 'comprehensive' },
+      confidence: 0.7,
+      requiresConfirmation: true, // Sempre pedir confirmação
+      successMessage: 'Análise concluída!',
+      errorMessage: 'Erro na análise',
+      response: '📊 Vou fazer uma análise completa das suas finanças. Isso pode levar alguns segundos...'
+    };
+  }
+
+  // Cumprimentos e dúvidas - SEMPRE retornar UNKNOWN para conversa natural
+  if (lowerMessage.includes('oi') || lowerMessage.includes('olá') || lowerMessage.includes('tudo bem') || 
+      lowerMessage.includes('como funciona') || lowerMessage.includes('boa noite') || lowerMessage.includes('bom dia') ||
+      lowerMessage.includes('beleza') || lowerMessage.includes('tudo certo') || lowerMessage.includes('tudo joia')) {
+    return {
+      type: 'UNKNOWN',
+      payload: {},
+      confidence: 0.9,
+      requiresConfirmation: false,
+      successMessage: '',
+      errorMessage: '',
+      response: 'Olá! Sou o Finn, seu assistente financeiro. Posso ajudar com metas, transações, investimentos e muito mais! Como posso te ajudar hoje?'
+    };
+  }
+
+  // Perguntas gerais - SEMPRE retornar UNKNOWN para conversa natural
+  if (lowerMessage.includes('o que você pode fazer') || lowerMessage.includes('como você funciona') || 
+      lowerMessage.includes('quais são suas funções') || lowerMessage.includes('me ajude')) {
+    return {
+      type: 'UNKNOWN',
+      payload: {},
+      confidence: 0.9,
+      requiresConfirmation: false,
+      successMessage: '',
+      errorMessage: '',
+      response: 'Posso te ajudar com várias coisas! 🎯 Criar metas financeiras, 📈 acompanhar investimentos, 📊 fazer análises financeiras e muito mais. O que você gostaria de fazer?'
+    };
+  }
+
+  return null;
+}
+
+// ⚡ ANÁLISE DE CONTEXTO DA CONVERSA
+function analyzeConversationContext(message: string, conversationHistory?: any[]): DetectedAction | null {
+  if (!conversationHistory || conversationHistory.length === 0) return null;
+
+  const lowerMessage = message.toLowerCase();
+  const recentMessages = conversationHistory.slice(-3);
+
+  // Verificar se é continuação de uma transação
+  if (lowerMessage.includes('valor') || lowerMessage.includes('reais') || lowerMessage.includes('é uma despesa')) {
+    const transactionContext = recentMessages.find(msg => 
+      msg.content.toLowerCase().includes('transação') || 
+      msg.content.toLowerCase().includes('gastei') || 
+      msg.content.toLowerCase().includes('recebi')
+    );
+
+    if (transactionContext) {
+      const valorMatch = lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i);
+      const valor = valorMatch ? parseFloat(valorMatch[1].replace(',', '.')) : null;
+
+      return {
+        type: 'CREATE_TRANSACTION',
+        payload: {
+          valor: valor || 0,
+          descricao: 'Transação',
+          tipo: lowerMessage.includes('despesa') ? 'despesa' : 'receita',
+          categoria: 'Geral',
+          conta: 'Principal',
+          data: new Date().toISOString().split('T')[0]
+        },
+        confidence: valor ? 0.8 : 0.6,
+        requiresConfirmation: !valor,
+        successMessage: 'Transação criada com sucesso!',
+        errorMessage: 'Erro ao criar transação',
+        response: valor ? 
+          `💰 Perfeito! Transação de R$ ${valor.toFixed(2)} registrada. O que foi essa transação?` :
+          '💰 Qual o valor da transação?'
+      };
+    }
+  }
+
+  return null;
+}
+
+// ⚡ ANÁLISE COMPLETA COM IA
+async function detectFullIntent(message: string, userContext: any, conversationHistory?: any[]): Promise<DetectedAction | null> {
+  try {
     // Analisar contexto da conversa para entender melhor
     let conversationContext = '';
     if (conversationHistory && conversationHistory.length > 0) {
-      const recentMessages = conversationHistory.slice(-3); // Últimas 3 mensagens
+      const recentMessages = conversationHistory.slice(-3);
       conversationContext = `\n\nContexto da conversa recente:\n${recentMessages.map((msg, index) => 
         `${index + 1}. ${msg.sender === 'user' ? 'Usuário' : 'Bot'}: ${msg.content}`
       ).join('\n')}`;
@@ -176,98 +406,38 @@ Analise a mensagem e retorne um JSON com:
 - response: resposta natural
 - requiresConfirmation: se precisa confirmação
 
-Exemplos de detecção:
-- "Quero juntar R$ 5000 para uma viagem" → CREATE_GOAL com valor=5000, descrição="Viagem"
-- "Gastei R$ 100 no mercado" → CREATE_TRANSACTION com valor=100, categoria="Alimentação"
-- "Comprei ações da Petrobras" → CREATE_INVESTMENT com tipo="Ações", nome="Petrobras"
-- "o valor é 310 reais" + contexto anterior de transação → CREATE_TRANSACTION com valor=310
-- "é uma despesa" + contexto anterior de transação → CREATE_TRANSACTION com tipo="despesa"
-
 JSON:`;
 
     const aiResponse = await aiService.detectAutomatedAction(prompt);
-    console.log('[DETECT_USER_INTENT] Raw AI response:', aiResponse);
+    console.log('[DETECT_USER_INTENT] IA response:', aiResponse);
     
-    // Se a intenção é UNKNOWN, retornar a resposta da IA mas sem ação
     if (!aiResponse || aiResponse.intent === 'UNKNOWN') {
-      console.log('[DETECT_USER_INTENT] UNKNOWN intent, returning response only');
       return {
-        type: 'UNKNOWN' as any,
+        type: 'UNKNOWN',
         payload: {},
         confidence: aiResponse?.confidence || 0.0,
         requiresConfirmation: false,
         successMessage: '',
         errorMessage: '',
-        response: aiResponse?.response || 'Olá! Como posso te ajudar hoje?'
+        response: aiResponse?.response || 'Como posso te ajudar hoje?'
       };
     }
 
-    if (!aiResponse.intent) {
-      console.log('[DETECT_USER_INTENT] No valid intent detected');
-      return null;
-    }
-
-    // Mapear entidades para payload
-    let payload: any = {};
-    let successMessage = '';
-    let errorMessage = '';
-
-    switch (aiResponse.intent) {
-      case 'CREATE_TRANSACTION':
-        payload = mapTransactionData(aiResponse.entities);
-        successMessage = `Perfeito! Registrei sua transação: ${payload.descricao || 'Nova transação'} - R$ ${payload.valor}`;
-        errorMessage = 'Ops! Tive um problema ao registrar sua transação. Pode tentar novamente?';
-        break;
-        
-      case 'CREATE_INVESTMENT':
-        payload = mapInvestmentData(aiResponse.entities);
-        successMessage = `Excelente! Investimento registrado: ${payload.nome || 'Novo investimento'} - R$ ${payload.valor}`;
-        errorMessage = 'Ops! Tive um problema ao registrar seu investimento. Pode tentar novamente?';
-        break;
-        
-      case 'CREATE_GOAL':
-        payload = mapGoalData(aiResponse.entities);
-        successMessage = `Que legal! Meta criada: ${payload.meta || 'Nova meta'} - R$ ${payload.valor_total}`;
-        errorMessage = 'Ops! Tive um problema ao criar sua meta. Pode tentar novamente?';
-        break;
-        
-      case 'ANALYZE_DATA':
-        payload = { analysisType: aiResponse.entities.analysisType || 'general' };
-        successMessage = 'Pronto! Análise concluída. Dá uma olhada nos resultados no seu dashboard!';
-        errorMessage = 'Ops! Tive um problema ao analisar seus dados. Pode tentar novamente?';
-        break;
-        
-      case 'GENERATE_REPORT':
-        payload = { reportType: aiResponse.entities.reportType || 'general' };
-        successMessage = 'Perfeito! Relatório gerado. Verifique seu email ou dashboard!';
-        errorMessage = 'Ops! Tive um problema ao gerar o relatório. Pode tentar novamente?';
-        break;
-        
-      default:
-        return null;
-    }
-
-    const followUpQuestions = generateFollowUpQuestions(aiResponse.intent, aiResponse.entities);
-
-    const detectedAction: DetectedAction = {
+    return {
       type: aiResponse.intent as any,
-      payload,
-      confidence: aiResponse.confidence || 0.8,
+      payload: aiResponse.entities || {},
+      confidence: aiResponse.confidence || 0.0,
       requiresConfirmation: aiResponse.requiresConfirmation || false,
-      successMessage,
-      errorMessage,
-      response: aiResponse.response || '',
-      followUpQuestions
+      successMessage: '',
+      errorMessage: '',
+      response: aiResponse.response || 'Entendi sua solicitação. Como posso ajudar?'
     };
 
-    console.log('[DETECT_USER_INTENT] Parsed response:', detectedAction);
-    return detectedAction;
-
   } catch (error) {
-    console.error('[DETECT_USER_INTENT] Error detecting intent:', error);
+    console.error('[DETECT_FULL_INTENT] ❌ Erro na análise completa:', error);
     return null;
   }
-} 
+}
 
 // Funções de mapeamento de dados
 function mapTransactionData(entities: any): TransactionPayload {
@@ -682,6 +852,47 @@ export const executeAction = async (req: Request, res: Response, next: NextFunct
       return;
     }
 
+    // Se a ação for UNKNOWN, retornar resposta conversacional
+    if (action === 'UNKNOWN') {
+      res.status(200).json({
+        success: true,
+        message: 'Olá! Como posso te ajudar hoje? Posso ajudar com metas, transações, investimentos e muito mais!',
+        type: 'CONVERSATION'
+      });
+      return;
+    }
+
+    // NOVO: Checar se todos os dados obrigatórios estão presentes
+    const actionObj = { type: action, payload };
+    if (!hasCompleteData(actionObj)) {
+      // Descobrir quais campos estão faltando
+      let missingFields: string[] = [];
+      switch (action) {
+        case 'CREATE_GOAL':
+          if (!payload.meta) missingFields.push('meta');
+          if (!payload.valor_total) missingFields.push('valor_total');
+          if (!payload.data_conclusao) missingFields.push('data_conclusao');
+          break;
+        case 'CREATE_TRANSACTION':
+          if (!payload.valor) missingFields.push('valor');
+          if (!payload.descricao) missingFields.push('descricao');
+          if (!payload.tipo) missingFields.push('tipo');
+          break;
+        case 'CREATE_INVESTMENT':
+          if (!payload.valor) missingFields.push('valor');
+          if (!payload.nome) missingFields.push('nome');
+          if (!payload.tipo) missingFields.push('tipo');
+          break;
+      }
+      res.status(200).json({
+        success: false,
+        message: `Para executar essa ação, preciso de mais informações: ${missingFields.join(', ')}. Por favor, preencha os campos faltantes.`,
+        missingFields,
+        requiresConfirmation: true
+      });
+      return;
+    }
+
     let result;
 
     switch (action) {
@@ -707,10 +918,9 @@ export const executeAction = async (req: Request, res: Response, next: NextFunct
 
     res.status(200).json({
       success: true,
-      message: 'Ação executada com sucesso',
+      message: 'Ação executada com sucesso!',
       data: result
     });
-    return;
 
   } catch (error) {
     console.error('Erro ao executar ação:', error);
@@ -718,7 +928,6 @@ export const executeAction = async (req: Request, res: Response, next: NextFunct
       success: false, 
       message: 'Erro ao executar ação' 
     });
-    return;
   }
 };
 

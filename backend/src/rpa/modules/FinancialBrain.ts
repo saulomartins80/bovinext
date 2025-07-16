@@ -3,8 +3,6 @@
  * (Análise financeira inteligente e automação)
  ***************************************/
 
-import { db } from '../core/MemoryDB';
-import { RobotOrchestrator } from '../core/RobotOrchestrator';
 import { AutomationService } from '../services/AutomationService';
 
 interface FinancialAnalysis {
@@ -31,12 +29,10 @@ interface AutomationRequest {
 
 export class FinancialBrain {
   private static instance: FinancialBrain;
-  private orchestrator: RobotOrchestrator;
   private automationService: AutomationService;
   private analysisCache: Map<string, FinancialAnalysis> = new Map();
 
   private constructor() {
-    this.orchestrator = RobotOrchestrator.getInstance();
     this.automationService = AutomationService.getInstance();
   }
 
@@ -94,9 +90,8 @@ export class FinancialBrain {
         timestamp: new Date()
       };
 
-      // Salvar no cache e banco
+      // Salvar no cache
       this.analysisCache.set(cacheKey, analysis);
-      await db.set(`financial_analysis_${userId}`, analysis);
 
       console.log(`✅ Análise financeira concluída para ${userId}`);
       return analysis;
@@ -140,13 +135,6 @@ export class FinancialBrain {
     
     console.log(`🎯 Automatizando criação de meta para ${userId}`);
 
-    // Adicionar tarefa ao orchestrator
-    const taskId = await this.orchestrator.addTask('GOAL_CREATION', {
-      userId,
-      goalData: data,
-      priority
-    }, this.getPriorityNumber(priority));
-
     // Executar automação no frontend
     const automationResult = await this.automationService.automateGoalCreation(userId, data);
 
@@ -156,7 +144,6 @@ export class FinancialBrain {
 
     return {
       success: true,
-      taskId,
       automationResult,
       recommendations,
       message: `Meta "${data.meta}" criada com sucesso! ${recommendations.suggestion}`,
@@ -170,13 +157,6 @@ export class FinancialBrain {
     
     console.log(`💰 Automatizando adição de transação para ${userId}`);
 
-    // Adicionar tarefa ao orchestrator
-    const taskId = await this.orchestrator.addTask('TRANSACTION_ADDITION', {
-      userId,
-      transactionData: data,
-      priority
-    }, this.getPriorityNumber(priority));
-
     // Executar automação no frontend
     const automationResult = await this.automationService.automateTransactionAddition(userId, data);
 
@@ -185,7 +165,6 @@ export class FinancialBrain {
 
     return {
       success: true,
-      taskId,
       automationResult,
       impact,
       message: `Transação "${data.descricao}" adicionada! ${impact.message}`,
@@ -199,13 +178,6 @@ export class FinancialBrain {
     
     console.log(`📈 Automatizando análise de investimento para ${userId}`);
 
-    // Adicionar tarefa ao orchestrator
-    const taskId = await this.orchestrator.addTask('INVESTMENT_ANALYSIS', {
-      userId,
-      investmentData: data,
-      priority
-    }, this.getPriorityNumber(priority));
-
     // Executar automação no frontend
     const automationResult = await this.automationService.automateMarketData(userId);
 
@@ -215,7 +187,6 @@ export class FinancialBrain {
 
     return {
       success: true,
-      taskId,
       automationResult,
       analysis: investmentAdvice,
       message: `Análise de investimento concluída! ${investmentAdvice.summary}`,
@@ -257,7 +228,7 @@ export class FinancialBrain {
       const analysis = await this.analyzeUser(userId);
       
       // Métricas do RPA
-      const rpaMetrics = await this.orchestrator.getSystemMetrics();
+      // const rpaMetrics = await this.orchestrator.getSystemMetrics(); // Removed
       
       // Histórico de automações
       const automationHistory = await this.automationService.getAllAutomations();
@@ -272,7 +243,7 @@ export class FinancialBrain {
         userId,
         timestamp: new Date(),
         analysis,
-        rpaMetrics,
+        // rpaMetrics, // Removed
         automationHistory: automationHistory.filter(a => a.userId === userId),
         alerts,
         projections,

@@ -6,6 +6,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from 'next/image';
 import { useAuth } from "../context/AuthContext"; // Import useAuth
 import { useRouter } from 'next/router';
+import { getFriendlyName } from "../src/utils/friendlyMessages";
+
 // Firebase signOut and auth are no longer needed here directly for logout, as AuthContext handles it.
 // import { signOut } from 'firebase/auth'; 
 // import { auth } from '../lib/firebase/client';
@@ -131,7 +133,7 @@ export default function ProfileMenu() {
   ];
 
   // Use user.name (from MongoDB via AuthContext) if available, then try displayName, then email
-  const userName = user?.name || user?.displayName || user?.email?.split('@')[0] || 'Usuário';
+  const userName = user?.name || user?.displayName || user?.email?.split('@')[0] || 'Amigo';
   const userPhoto = user?.photoUrl || user?.photoURL; // Prioritize photoUrl from MongoDB via AuthContext
 
   return (
@@ -182,7 +184,7 @@ export default function ProfileMenu() {
           >
             <div className="p-4 border-b border-gray-200 dark:border-gray-700">
               <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                {userName}
+                {getFriendlyName(user)}
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                 {user?.email || 'Não autenticado'}

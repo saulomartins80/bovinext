@@ -42,17 +42,17 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const validateField = (name: string, value: string) => {
-    if (!value.trim()) return "Campo obrigatório";
+    if (!value.trim()) return "Este campo é obrigatório";
 
     if (name === "valor") {
       const isValidFormat = /^-?\d+(,\d{1,2})?$/.test(value);
       if (!isValidFormat) {
-        return "Formato inválido (ex: -250,00 ou 150,50)";
+        return "Digite um valor válido (ex: 250,00 ou 150,50)";
       }
       const numericValue = parseFloat(value.replace(',', '.'));
-      if (numericValue === 0) return "Valor não pode ser zero";
+      if (numericValue === 0) return "O valor não pode ser zero";
       if (formData.tipo !== "transferencia" && numericValue <= 0) {
-        return "Valor deve ser positivo";
+        return "O valor deve ser positivo";
       }
     }
     return "";
@@ -123,7 +123,7 @@ const TransactionForm: React.FC<TransactionFormProps> = ({
       await onSave(payload);
     } catch (error) {
       console.error("Erro ao salvar transação:", error);
-      toast.error("Erro ao salvar transação");
+      toast.error("Não foi possível salvar a transação. Tente novamente.");
     }
   };
 

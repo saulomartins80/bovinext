@@ -1,5 +1,4 @@
 import { Page } from 'puppeteer';
-import { db } from '../core/MemoryDB';
 
 interface AutomationAction {
   type: 'click' | 'type' | 'wait' | 'navigate' | 'screenshot' | 'extract' | 'scroll' | 'select';
@@ -23,6 +22,7 @@ export class AutomationService {
   private page: Page | null = null;
   private isRunning: boolean = false;
   private automationQueue: Array<{ id: string; actions: AutomationAction[]; priority: number }> = [];
+  private automationCache: Map<string, AutomationResult> = new Map();
 
   static getInstance(): AutomationService {
     if (!AutomationService.instance) {
@@ -71,8 +71,8 @@ export class AutomationService {
         }
       }
 
-      // Salvar resultado no banco
-      await db.set(`automation_${automationId}`, result);
+      // Salvar resultado no cache
+      this.automationCache.set(automationId, result);
       
       console.log(`✅ Automação ${automationId} concluída`);
       return result;
@@ -86,7 +86,7 @@ export class AutomationService {
         timestamp: Date.now()
       };
 
-      await db.set(`automation_${automationId}`, errorResult);
+      this.automationCache.set(automationId, errorResult);
       return errorResult;
     } finally {
       this.isRunning = false;
@@ -276,22 +276,16 @@ export class AutomationService {
 
   // Métodos de utilidade
   async getAutomationStatus(automationId: string): Promise<any> {
-    return await db.get(`automation_${automationId}`);
+    return this.automationCache.get(automationId) || null;
   }
 
   async getAllAutomations(): Promise<any[]> {
-    const keys = await db.keys();
-    const automationKeys = keys.filter(key => key.startsWith('automation_'));
-    
     const automations = [];
-    for (const key of automationKeys) {
-      const automation = await db.get(key);
-      if (automation) {
-        automations.push({
-          id: key.replace('automation_', ''),
-          ...automation
-        });
-      }
+    for (const [id, result] of this.automationCache.entries()) {
+      automations.push({
+        id,
+        ...result
+      });
     }
     
     return automations;
