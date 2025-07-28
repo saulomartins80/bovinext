@@ -13,7 +13,7 @@ export const initRedis = () => {
 
   try {
     const config: any = {
-      maxRetriesPerRequest: 1,
+      maxRetriesPerRequest: process.env.NODE_ENV === 'production' ? 10 : 3,
       enableReadyCheck: false,
       lazyConnect: true,
     };
@@ -38,10 +38,13 @@ export const initRedis = () => {
 
     redis.on('connect', () => {
       console.log('✅ Conectado ao Redis');
+      if (redis.options && redis.options.host) {
+        console.log(`[Redis] Host: ${redis.options.host}, Porta: ${redis.options.port}`);
+      }
     });
 
     redis.on('error', (error) => {
-      console.log('⚠️ Erro na conexão Redis:', error.message);
+      console.error('⚠️ Erro na conexão Redis:', error);
       redis = null;
     });
 
