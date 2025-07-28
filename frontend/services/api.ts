@@ -140,7 +140,7 @@ export const marketDataAPI = {
 
 // --- CHATBOT API ---
 export const chatbotAPI = {
-  sendQuery: async (data: { message: string; chatId: string; context?: any }) => {
+  sendQuery: async (data: { message: string; chatId: string; context?: any; history?: any }) => {
     try {
       console.log('[chatbotAPI] 📤 Enviando consulta:', data);
       

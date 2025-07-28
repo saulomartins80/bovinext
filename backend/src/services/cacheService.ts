@@ -1,37 +1,36 @@
 //cacheService.ts
-import Redis from 'ioredis';
 import { AppError } from '../core/errors/AppError';
+import { initRedis } from '../config/redis';
 
 class CacheService {
-  private redis: Redis;
+  private redis: any;
   private localCache: Map<string, { data: any; timestamp: number; ttl: number }>;
 
   constructor() {
-    this.redis = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD,
-      username: process.env.REDIS_USERNAME,
-      maxRetriesPerRequest: 3,
-      lazyConnect: true,
-      showFriendlyErrorStack: true,
-    });
-
+    this.redis = initRedis();
     this.localCache = new Map();
-    
-    // Conectar ao Redis
-    this.redis.on('connect', () => {
-      console.log('✅ Conectado ao Redis');
-    });
-
-    this.redis.on('error', (error) => {
-      console.error('❌ Erro na conexão com Redis:', error);
-    });
+    if (this.redis) {
+      this.redis.on('connect', () => {
+        console.log(' Conectado ao Redis');
+      });
+      this.redis.on('error', (error: any) => {
+        console.error(' Erro na conexão com Redis:', error);
+      });
+    } else {
+      console.log(' Redis indisponível. Usando apenas cache local.');
+    }
   }
 
   // ✅ NOVO: Método healthCheck
   async healthCheck(): Promise<{ status: string; connected: boolean; latency?: number }> {
     try {
+      if (!this.redis) {
+        return {
+          status: 'unhealthy',
+          connected: false
+        };
+      }
+
       const startTime = Date.now();
       await this.redis.ping();
       const latency = Date.now() - startTime;

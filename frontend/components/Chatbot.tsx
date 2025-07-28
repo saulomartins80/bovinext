@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { debounce } from "../utils/debounce"; // Importa debounce do Layout
 import { useRouter } from 'next/router';
 import { 
   Bot, 
@@ -748,11 +749,15 @@ const CommandBar = ({
   placeholder: string;
 }) => {
   const [message, setMessage] = useState('');
+  // Debounce para evitar múltiplos envios rápidos
+  const debouncedSubmit = useRef(debounce((msg: string) => {
+    onSubmit(msg);
+  }, 800)).current;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() && !isLoading) {
-      onSubmit(message.trim());
+      debouncedSubmit(message.trim());
       setMessage('');
     }
   };
@@ -1154,9 +1159,11 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
     setIsLoading(true);
 
     try {
+      // Envia o histórico junto se a API suportar
       const response = await chatbotAPI.sendQuery({
         message: message,
-        chatId: activeSession?.chatId || chatId || 'new-session'
+        chatId: activeSession?.chatId || chatId || 'new-session',
+        history: messages // Envia todo o histórico atual
       });
       
       const botMessage: ChatMessage = {
@@ -1310,6 +1317,10 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
   }, [loadSessionMessages]);
 
   // ✅ OTIMIZAÇÃO: Deletar sessão com confirmação
+  const clearCurrentSession = useCallback(() => {
+    setMessages([]);
+  }, []);
+
   const deleteSession = useCallback(async (chatId: string) => {
     if (!window.confirm('Tem certeza que deseja deletar esta conversa?')) {
       return;
@@ -1583,6 +1594,16 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
             </div>
           </div>
 
+          {/* Botão de limpar histórico */}
+          <div className="flex justify-end px-4 pt-2">
+            <button
+              onClick={clearCurrentSession}
+              className="flex items-center gap-2 text-xs text-red-500 hover:text-red-700 bg-red-100 dark:bg-red-900/30 px-3 py-1 rounded-lg transition-colors"
+              title="Limpar histórico desta conversa"
+            >
+              <span>🗑️ Limpar histórico</span>
+            </button>
+          </div>
           {/* Área de mensagens - MELHORADA */}
           <div className={`flex-1 overflow-y-auto p-4 ${theme.chatBg} scroll-smooth`}>
             {messages.length === 0 ? (

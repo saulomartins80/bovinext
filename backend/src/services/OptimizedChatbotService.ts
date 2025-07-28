@@ -3,7 +3,7 @@ import { UserService } from '../modules/users/services/UserService';
 import { EmailService } from './emailService';
 import { PersonalityService } from './personalityService';
 import cacheService from './cacheService';
-import Redis from 'ioredis';
+import { initRedis } from '../config/redis';
 import winston from 'winston';
 
 interface ChatResponse {
@@ -14,15 +14,21 @@ interface ChatResponse {
 }
 
 export class OptimizedChatbotService {
-  private redis: Redis;
+  private redis: any;
   private logger: winston.Logger;
 
   constructor() {
-    this.redis = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD
-    });
+    this.redis = initRedis();
+    if (this.redis) {
+      this.redis.on('connect', () => {
+        console.log('✅ Conectado ao Redis (Chatbot)');
+      });
+      this.redis.on('error', (error: any) => {
+        console.error('❌ Erro na conexão com Redis (Chatbot):', error);
+      });
+    } else {
+      console.log('⚠️ Redis indisponível para o Chatbot. Usando apenas cache local.');
+    }
 
     this.logger = winston.createLogger({
       level: 'info',
