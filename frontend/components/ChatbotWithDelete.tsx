@@ -1,12 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  MessageSquare, X, Send, User, Bot, 
-  Sparkles, BarChart2, Lightbulb, BookOpen,
-  Copy, ThumbsUp, ThumbsDown, Paperclip, Command,
-  Star, TrendingUp, Target, Shield, Zap, Trash2,
-  AlertTriangle, Clock, BarChart3, CheckCircle, XCircle,
-  Plus, Edit3, Eye, Brain, Zap as ZapIcon
+  MessageSquare, X, Send, Bot, Sparkles, Trash2 
 } from 'lucide-react';
 import { chatbotAPI } from '../services/api';
 import { chatbotDeleteAPI } from '../services/chatbotDeleteAPI';
@@ -21,7 +16,7 @@ type ChatMessage = {
   sender: 'user' | 'bot';
   content: string | React.ReactElement;
   timestamp: Date;
-  metadata?: any;
+  metadata?: Record<string, unknown>; // Ou um tipo mais específico se possível
 };
 
 type ChatSession = {
@@ -33,7 +28,6 @@ type ChatSession = {
 
 interface ChatbotProps {
   isOpen?: boolean;
-  onToggle?: () => void;
 }
 
 // Sistema de Temas Dinâmicos
@@ -72,9 +66,8 @@ const getChatTheme = (plan?: string) => {
   };
 };
 
-export default function ChatbotWithDelete({ isOpen: externalIsOpen, onToggle }: ChatbotProps) {
+export default function ChatbotWithDelete({ isOpen: externalIsOpen }: ChatbotProps) {
   const { user } = useAuth();
-  const { theme: appTheme } = useTheme();
   const { addNotification } = useNotifications();
   const [isOpen, setIsOpen] = useState(externalIsOpen || false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -82,7 +75,6 @@ export default function ChatbotWithDelete({ isOpen: externalIsOpen, onToggle }: 
   const [activeSession, setActiveSession] = useState<ChatSession | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isNewSessionModalOpen, setIsNewSessionModalOpen] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const theme = getChatTheme(user?.subscription?.plan);
 

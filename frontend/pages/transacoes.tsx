@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Plus, Download, Edit, Trash, X } from "lucide-react";
+import { Plus, Download, X } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+
 import { transacaoAPI } from "../services/api";
 import FinancialSummary from "../components/FinancialSummary";
 import TransactionTable from "../components/TransactionTable";
@@ -12,13 +12,14 @@ import { Transacao, NovaTransacaoPayload, AtualizarTransacaoPayload } from '../t
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../context/AuthContext";
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRouter } from "next/router";
 import { useAddItemCallback } from "../src/hooks/useAddItemCallback";
+import { useLayoutContext } from "../components/Layout";
 
 
 const Transacoes = () => {
   const { user } = useAuth();
   const { resolvedTheme } = useTheme(); 
+  const { registerAddItemCallback, unregisterAddItemCallback, registerExportPDFCallback, unregisterExportPDFCallback } = useLayoutContext();
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -31,7 +32,6 @@ const Transacoes = () => {
     tipo: "receita" as "receita" | "despesa" | "transferencia",
     conta: "",
   });
-  const router = useRouter();
   const [isMobileView, setIsMobileView] = useState(false);
 
   // Detectar se está no mobile
@@ -61,6 +61,17 @@ const Transacoes = () => {
   useEffect(() => {
     fetchTransacoes();
   }, [fetchTransacoes]);
+
+  // Registrar callbacks para navegação mobile
+  useEffect(() => {
+    registerAddItemCallback(() => openModal());
+    registerExportPDFCallback(handleExportPDF);
+    
+    return () => {
+      unregisterAddItemCallback();
+      unregisterExportPDFCallback();
+    };
+  }, [registerAddItemCallback, unregisterAddItemCallback, registerExportPDFCallback, unregisterExportPDFCallback]);
 
   const resetForm = useCallback(() => {
     setEditingId(null);

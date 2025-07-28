@@ -125,25 +125,21 @@ const FinanceMarket: React.FC<FinanceMarketProps> = ({
   };
 
   // Dados com fallback
-  const stocks = marketData?.stocks || [];
-  const cryptos = marketData?.cryptos || [];
-  const commodities = marketData?.commodities || [];
-  const indices = marketData?.indices || []; // <-- Corrigido aqui
   const lastUpdated = marketData?.lastUpdated || '';
 
   // Filtros
-  const filteredTableStocks = stocks.filter(stock =>
+  const filteredTableStocks = marketData?.stocks?.filter(stock =>
     stock?.symbol?.toLowerCase?.().includes(searchTerm.toLowerCase())
-  );
+  ) || [];
 
-  const filteredTableCryptos = cryptos.filter(crypto =>
+  const filteredTableCryptos = marketData?.cryptos?.filter(crypto =>
     crypto?.symbol?.toLowerCase?.().includes(searchTerm.toLowerCase())
-  );
+  ) || [];
 
-  const filteredTableCommodities = commodities.filter(commodity =>
+  const filteredTableCommodities = marketData?.commodities?.filter(commodity =>
     commodity?.symbol?.toLowerCase?.().includes(searchTerm.toLowerCase()) ||
     getCommodityDisplayName(commodity?.symbol ?? '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ) || [];
 
   if (loadingMarketData) {
     return (
@@ -319,12 +315,6 @@ const FinanceMarket: React.FC<FinanceMarketProps> = ({
                   i.symbol === normalizedSymbol
                 );
 
-                console.log('Rendering index:', {
-                  normalizedSymbol,
-                  indexInfo,
-                  indexData
-                });
-
                 return (
                   <div key={indexSymbol} className={`p-4 rounded-xl border ${
                     resolvedTheme === "dark"
@@ -386,7 +376,7 @@ const FinanceMarket: React.FC<FinanceMarketProps> = ({
         )}
 
         {/* Ações - Tabela */}
-        {stocks.length > 0 && (!searchTerm || filteredTableStocks.length > 0) && (
+        {marketData?.stocks && marketData.stocks.length > 0 && (!searchTerm || filteredTableStocks.length > 0) && (
           <div className="mb-8">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold text-lg text-gray-800 dark:text-white">Ações</h3>
@@ -435,7 +425,7 @@ const FinanceMarket: React.FC<FinanceMarketProps> = ({
                     ? "bg-gray-800/50" 
                     : "bg-white"
                 }`}>
-                  {(searchTerm ? filteredTableStocks : stocks).map((stock) => (
+                  {(searchTerm ? filteredTableStocks : marketData.stocks).map((stock) => (
                     <tr key={stock.symbol} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
                       <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                         {stock.symbol.replace('.SA', '')}
@@ -474,7 +464,7 @@ const FinanceMarket: React.FC<FinanceMarketProps> = ({
         )}
 
         {/* Criptomoedas - Tabela */}
-        {cryptos.length > 0 && (!searchTerm || filteredTableCryptos.length > 0) && (
+        {marketData?.cryptos && marketData.cryptos.length > 0 && (!searchTerm || filteredTableCryptos.length > 0) && (
           <div className="mb-8">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold text-lg text-gray-800 dark:text-white">Criptomoedas</h3>
@@ -523,7 +513,7 @@ const FinanceMarket: React.FC<FinanceMarketProps> = ({
                     ? "bg-gray-800/50" 
                     : "bg-white"
                 }`}>
-                  {(searchTerm ? filteredTableCryptos : cryptos).map((crypto) => (
+                  {(searchTerm ? filteredTableCryptos : marketData.cryptos).map((crypto) => (
                     <tr key={crypto.symbol} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
                       <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                         {crypto.symbol.replace('-USD', '')}
@@ -562,7 +552,7 @@ const FinanceMarket: React.FC<FinanceMarketProps> = ({
         )}
 
         {/* Commodities - Tabela */}
-        {commodities.length > 0 && (!searchTerm || filteredTableCommodities.length > 0) && (
+        {marketData?.commodities && marketData.commodities.length > 0 && (!searchTerm || filteredTableCommodities.length > 0) && (
           <div className="mb-8">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold text-lg text-gray-800 dark:text-white">Commodities</h3>
@@ -611,7 +601,7 @@ const FinanceMarket: React.FC<FinanceMarketProps> = ({
                     ? "bg-gray-800/50" 
                     : "bg-white"
                 }`}>
-                  {(searchTerm ? filteredTableCommodities : commodities).map((commodity) => (
+                  {(searchTerm ? filteredTableCommodities : marketData.commodities).map((commodity) => (
                     <tr key={commodity.symbol} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
                       <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                         {getCommodityDisplayName(commodity.symbol)}

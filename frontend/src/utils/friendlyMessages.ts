@@ -3,14 +3,30 @@
 /**
  * Obtém um nome amigável do usuário
  */
-export const getFriendlyName = (user: any): string => {
-  if (user?.name) {
+interface User {
+  name?: string | null;
+  email?: string | null;
+  displayName?: string | null;
+}
+export const getFriendlyName = (user: User | null): string => {
+  if (!user) {
+    return "Usuário";
+  }
+  
+  // Check name (string | null)
+  if (user?.name && typeof user.name === 'string') {
     // Usar apenas o primeiro nome se houver mais de um
     const firstName = user.name.split(' ')[0];
     return firstName;
   }
   
-  if (user?.email) {
+  // Check displayName (for Firebase users)
+  if (user?.displayName && typeof user.displayName === 'string') {
+    const firstName = user.displayName.split(' ')[0];
+    return firstName;
+  }
+  
+  if (user?.email && typeof user.email === 'string') {
     // Usar prefixo do email se não houver nome
     const emailPrefix = user.email.split('@')[0];
     // Capitalizar primeira letra
@@ -63,23 +79,36 @@ export const friendlySuccessMessages = {
 /**
  * Mensagens de confirmação personalizadas
  */
-export const getConfirmationMessage = (type: 'transaction' | 'goal' | 'investment', data: any): string => {
+interface ConfirmationData {
+  valor?: number;
+  tipo?: string;
+  valor_total?: number;
+  meta?: string;
+  nome?: string;
+}
+export const getConfirmationMessage = (
+  type: 'transaction' | 'goal' | 'investment', 
+  data: ConfirmationData
+): string => {
   switch (type) {
-    case 'transaction':
+    case 'transaction': {
       const valor = data.valor?.toFixed(2) || '0,00';
       const tipo = data.tipo === 'receita' ? 'receita' : 'despesa';
       return `Ótimo! Vamos registrar essa ${tipo} de R$ ${valor}?`;
+    }
     
-    case 'goal':
+    case 'goal': {
       const goalValor = data.valor_total?.toFixed(2) || '0,00';
       const meta = data.meta || 'meta';
       return `Vamos criar sua meta "${meta}" com valor de R$ ${goalValor}?`;
+    }
     
-    case 'investment':
+    case 'investment': {
       const invValor = data.valor?.toFixed(2) || '0,00';
       const nome = data.nome || 'investimento';
       const invTipo = data.tipo || 'investimento';
       return `Vamos registrar seu investimento "${nome}" (${invTipo}) de R$ ${invValor}?`;
+    }
     
     default:
       return "Confirme as informações:";
@@ -123,7 +152,7 @@ export const friendlyLoadingMessages = {
 /**
  * Mensagens de boas-vindas personalizadas
  */
-export const getWelcomeMessage = (user: any): string => {
+export const getWelcomeMessage = (user: User | null): string => {
   const greeting = getGreeting();
   const name = getFriendlyName(user);
   return `${greeting}, ${name}!`;

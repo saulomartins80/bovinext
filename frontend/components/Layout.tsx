@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { useRouter } from 'next/router';
 import Header from './Header';
 import MobileHeader from './MobileHeader';
@@ -13,14 +13,32 @@ import { loadStripe } from '@stripe/stripe-js';
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUB_KEY!);
 
 const debounce = (func: Function, wait: number) => {
-  let timeout: NodeJS.Timeout;
-  return (...args: any[]) => {
+  let timeout: ReturnType<typeof setTimeout>;
+  return (...args: unknown[]) => {
     clearTimeout(timeout);
     timeout = setTimeout(() => func.apply(this, args), wait);
   };
 };
 
 const MD_BREAKPOINT = 768;
+
+// Context para compartilhar funções entre Layout e páginas
+interface LayoutContextType {
+  registerAddItemCallback: (callback: () => void) => void;
+  unregisterAddItemCallback: () => void;
+  registerExportPDFCallback: (callback: () => void) => void;
+  unregisterExportPDFCallback: () => void;
+}
+
+const LayoutContext = createContext<LayoutContextType | null>(null);
+
+export const useLayoutContext = () => {
+  const context = useContext(LayoutContext);
+  if (!context) {
+    throw new Error('useLayoutContext must be used within Layout');
+  }
+  return context;
+};
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -35,6 +53,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [showMobileHeader, setShowMobileHeader] = useState(false);
   const [addItemCallback, setAddItemCallback] = useState<(() => void) | null>(null);
+  const [exportPDFCallback, setExportPDFCallback] = useState<(() => void) | null>(null);
 
   // Função para obter o título da página atual
   const getPageTitle = () => {
@@ -89,6 +108,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Função para lidar com exportar PDF
+  const handleExportPDF = () => {
+    if (exportPDFCallback) {
+      exportPDFCallback();
+    }
+  };
+
   // Função para registrar callback de adição de item
   const registerAddItemCallback = useCallback((callback: () => void) => {
     setAddItemCallback(() => callback);
@@ -97,6 +123,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   // Função para remover callback de adição de item
   const unregisterAddItemCallback = useCallback(() => {
     setAddItemCallback(null);
+  }, []);
+
+  // Função para registrar callback de exportar PDF
+  const registerExportPDFCallback = useCallback((callback: () => void) => {
+    setExportPDFCallback(() => callback);
+  }, []);
+
+  // Função para remover callback de exportar PDF
+  const unregisterExportPDFCallback = useCallback(() => {
+    setExportPDFCallback(null);
   }, []);
 
   useEffect(() => {
@@ -113,14 +149,38 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   // Scroll listener para mostrar/ocultar header no mobile
   useEffect(() => {
+    let lastScrollY = 0;
+    let ticking = false;
+
     const handleScroll = () => {
-      if (isMobileView) {
-        setShowMobileHeader(window.scrollY > 100);
+      if (!ticking && isMobileView) {
+        requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY;
+          
+          // Mostrar header se rolou para baixo mais de 100px
+          // Ocultar se rolou para cima ou está no topo
+          if (currentScrollY > 100 && currentScrollY > lastScrollY) {
+            setShowMobileHeader(true);
+          } else if (currentScrollY < lastScrollY - 10 || currentScrollY < 50) {
+            setShowMobileHeader(false);
+          }
+          
+          lastScrollY = currentScrollY;
+          ticking = false;
+        });
+        ticking = true;
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    if (isMobileView) {
+      window.addEventListener('scroll', handleScroll, { passive: true });
+    } else {
+      setShowMobileHeader(false);
+    }
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, [isMobileView]);
 
   useEffect(() => {
@@ -128,6 +188,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       setIsMobileSidebarOpen(false);
     }
   }, [isMobileView, isMobileSidebarOpen]);
+
+  // Limpar callbacks quando mudar de página
+  useEffect(() => {
+    setAddItemCallback(null);
+    setExportPDFCallback(null);
+  }, [router.pathname]);
 
   const toggleMobileSidebar = useCallback(() => {
     setIsMobileSidebarOpen(prev => !prev);
@@ -144,93 +210,92 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     setIsChatOpen(prev => !prev);
   }, []);
 
-  // Expor funções para as páginas filhas
-  const layoutContext = {
+  // Context para as páginas
+  const layoutContext: LayoutContextType = {
     registerAddItemCallback,
     unregisterAddItemCallback,
-    isMobileView
+    registerExportPDFCallback,
+    unregisterExportPDFCallback,
   };
 
   return (
-    <ProtectedRoute>
-      <Elements stripe={stripePromise}>
-        <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-          {/* Sidebar para desktop */}
-          {!isMobileView && (
-            <Sidebar
-              isMobile={false}
-              initialCollapsed={isDesktopSidebarCollapsed}
-              onToggle={toggleDesktopSidebarCollapse}
-              isOpen={true}
-              onClose={() => {}}
-            />
-          )}
-          
-          {/* Sidebar para mobile */}
-          {isMobileView && (
-            <Sidebar
-              isOpen={isMobileSidebarOpen}
-              onClose={toggleMobileSidebar}
-              isMobile={true}
-            />
-          )}
-          
-          <div
-            className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${
-              !isMobileView && isDesktopSidebarCollapsed ? 'md:ml-20' : 'md:ml-64'
-            }`}
-          >
-            {/* Header para desktop */}
+    <LayoutContext.Provider value={layoutContext}>
+      <ProtectedRoute>
+        <Elements stripe={stripePromise}>
+          <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+            {/* Sidebar para desktop */}
             {!isMobileView && (
-              <Header
-                isSidebarOpen={isMobileSidebarOpen}
-                toggleMobileSidebar={toggleMobileSidebar}
+              <Sidebar
+                isMobile={false}
+                initialCollapsed={isDesktopSidebarCollapsed}
+                onToggle={toggleDesktopSidebarCollapse}
+                isOpen={true}
+                onClose={() => {}}
               />
             )}
             
-            {/* Header para mobile (aparece quando rola) */}
-            {isMobileView && showMobileHeader && (
-              <MobileHeader
-                title={getPageTitle()}
-                onMenuToggle={toggleMobileSidebar}
-                showBackButton={false}
+            {/* Sidebar para mobile */}
+            {isMobileView && (
+              <Sidebar
+                isOpen={isMobileSidebarOpen}
+                onClose={toggleMobileSidebar}
+                isMobile={true}
               />
             )}
             
-            {/* Conteúdo principal */}
-            <main className={`flex-1 overflow-y-auto ${
-              isMobileView ? 'pt-4 pb-20' : 'pt-24 md:pt-20'
-            } px-4 md:px-6`}>
-              {children}
-            </main>
-          </div>
-          
-          {/* Chatbot */}
-          <Chatbot 
-            isOpen={isChatOpen}
-            onToggle={toggleChat}
-          />
-
-          {/* Botão flutuante para abrir o chat */}
-          {!isChatOpen && (
-            <button
-              className="fixed bottom-6 right-6 z-50 p-4 rounded-full bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 transition-colors"
-              onClick={() => setIsChatOpen(true)}
-              aria-label="Abrir chat"
+            <div
+              className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${
+                !isMobileView && isDesktopSidebarCollapsed ? 'md:ml-20' : 'md:ml-64'
+              }`}
             >
-              Abrir Chat
-            </button>
-          )}
-          
-          {/* Navegação móvel */}
-          <MobileNavigation 
-            onChatToggle={toggleChat}
-            isChatOpen={isChatOpen}
-            onSidebarToggle={toggleMobileSidebar}
-            onAddItem={handleAddItem}
-          />
-        </div>
-      </Elements>
-    </ProtectedRoute>
+              {/* Header para desktop */}
+              {!isMobileView && (
+                <Header
+                  isSidebarOpen={isMobileSidebarOpen}
+                  toggleMobileSidebar={toggleMobileSidebar}
+                />
+              )}
+              
+              {/* Header para mobile (aparece quando rola) */}
+              {isMobileView && showMobileHeader && (
+                <MobileHeader
+                  title={getPageTitle()}
+                  onMenuToggle={toggleMobileSidebar}
+                  showBackButton={false}
+                />
+              )}
+              
+              {/* Conteúdo principal */}
+              <main className={`flex-1 overflow-y-auto ${
+                isMobileView 
+                  ? showMobileHeader 
+                    ? 'pt-20 pb-24' 
+                    : 'pt-4 pb-24'
+                  : 'pt-24 md:pt-20'
+              } px-4 md:px-6`}>
+                {children}
+              </main>
+            </div>
+            
+            {/* Navegação Mobile */}
+            {isMobileView && (
+              <MobileNavigation
+                onChatToggle={toggleChat}
+                isChatOpen={isChatOpen}
+                onSidebarToggle={toggleMobileSidebar}
+                onAddItem={handleAddItem}
+                onExportPDF={handleExportPDF}
+              />
+            )}
+            
+            {/* Chatbot - sempre no canto direito */}
+            <Chatbot 
+              isOpen={isChatOpen}
+              onToggle={toggleChat}
+            />
+          </div>
+        </Elements>
+      </ProtectedRoute>
+    </LayoutContext.Provider>
   );
 }

@@ -12,8 +12,7 @@ import {
   onAuthStateChanged,
   getIdToken,
   browserPopupRedirectResolver,
-  browserSessionPersistence,
-  getRedirectResult
+  browserSessionPersistence
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';

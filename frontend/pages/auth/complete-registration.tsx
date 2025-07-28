@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuthWithRegistration } from '../../src/hooks/useAuthWithRegistration';
 import { completeUserRegistration } from '../../lib/firebase/autoRegistration';
-import { auth } from '../../lib/firebase/client';
 import { FiUser, FiPhone, FiCalendar, FiCreditCard, FiLoader, FiArrowRight } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 

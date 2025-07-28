@@ -4,10 +4,6 @@ import {
   MessageCircle, 
   TrendingUp, 
   Zap, 
-  BarChart3, 
-  PieChart, 
-  Activity,
-  Clock,
   Users,
   Target,
   CheckCircle,
@@ -15,10 +11,6 @@ import {
   Crown,
   Star,
   Sparkles,
-  Cpu,
-  HardDrive,
-  Wifi,
-  Bot,
   Lightbulb,
   RefreshCw
 } from 'lucide-react';
@@ -30,7 +22,7 @@ import { useAuth } from '../context/AuthContext';
 export default function IAAndAnalyticsPage() {
   // ✅ CORREÇÃO: Usar o ThemeContext correto
   const { theme, resolvedTheme } = useTheme();
-  const { user } = useAuth();
+  useAuth();
   const { 
     metrics, 
     isLoading, 
@@ -42,7 +34,7 @@ export default function IAAndAnalyticsPage() {
     isNearLimit
   } = useIAAnalytics();
   
-  const [userPlan, setUserPlan] = React.useState('essencial');
+  const userPlan = 'essencial';
   const [selectedTimeframe, setSelectedTimeframe] = React.useState('7d');
   const [isRefreshing, setIsRefreshing] = React.useState(false);
 

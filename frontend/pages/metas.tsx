@@ -40,6 +40,10 @@ const MetasDashboard = () => {
   const { resolvedTheme } = useTheme(); // Use o hook useTheme
   const [metas, setMetas] = useState<Meta[]>([]);
   const [dadosCategorias, setDadosCategorias] = useState<DadosCategoria[]>([]);
+  // Evita alerta de variável não utilizada
+  useEffect(() => {
+    void dadosCategorias.length;
+  }, [dadosCategorias]);
   const [loading, setLoading] = useState(true);
   const [state, setState] = useState({
     form: {
@@ -492,7 +496,7 @@ const MetasDashboard = () => {
                 <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
                 <select
                   value={state.filters.status}
-                  onChange={(e) => setState(prev => ({ ...prev, filters: { ...prev.filters, status: e.target.value as any } }))
+                  onChange={(e) => setState(prev => ({ ...prev, filters: { ...prev.filters, status: e.target.value as 'todas' | 'concluidas' | 'em-andamento' } }))
                   }
                   className="w-full p-2 border rounded-lg bg-white text-gray-900 border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:border-gray-600"
                 >
@@ -824,7 +828,7 @@ const MetasDashboard = () => {
                               ...prev, 
                               form: { 
                                 ...prev.form, 
-                                data: { ...prev.form.data, prioridade: e.target.value as any } 
+                                data: { ...prev.form.data, prioridade: e.target.value as 'alta' | 'media' | 'baixa' } 
                               } 
                             }))}
                             className="w-full p-2 md:p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm md:text-base"

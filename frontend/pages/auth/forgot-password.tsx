@@ -28,10 +28,9 @@ export default function ForgotPasswordPage() {
     }
   }, [countdown]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const sendResetEmail = async () => {
     setError(null);
-    
+
     if (!isEmailValid) {
       setError('Digite um e-mail válido.');
       return;
@@ -44,20 +43,27 @@ export default function ForgotPasswordPage() {
       setSuccess(`Link de redefinição enviado para ${email}. Verifique sua caixa de entrada ou spam.`);
       setEmailSent(true);
       setCountdown(30); // 30 segundos para reenvio
-    } catch (err: any) {
-      console.error('Erro ao enviar e-mail:', err);
-      setError(err.code === 'auth/user-not-found' 
-        ? 'E-mail não cadastrado.' 
-        : 'Erro ao enviar e-mail. Tente novamente.'
-      );
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error('Erro ao enviar e-mail:', err);
+        setError(err.message === 'auth/user-not-found' 
+          ? 'E-mail não cadastrado.' 
+          : 'Erro ao enviar e-mail. Tente novamente.'
+        );
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await sendResetEmail();
+  };
+
   const handleResendEmail = async () => {
     if (countdown > 0) return;
-    await handleSubmit(new Event('submit') as any);
+    await sendResetEmail();
   };
 
   return (

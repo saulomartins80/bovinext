@@ -1,20 +1,20 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { subscriptionAPI } from '../services/api';
 import getStripe from '../lib/stripe';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { CheckCircle, Star, Gem, Rocket, Shield, TrendingUp, Crown, Lightbulb, Handshake, ChevronLeft, User, Calendar, CreditCard } from 'lucide-react';
+import { CheckCircle, Gem, Shield, TrendingUp, Crown, Lightbulb, Handshake, ChevronLeft, User, Calendar, CreditCard } from 'lucide-react';
 import { getAuth } from 'firebase/auth';
-import Checkout from '../components/Checkout';
+
 import StripeCheckout from '../components/StripeCheckout';
 
 const SubscriptionPage = () => {
-  const { user, subscription, loadingSubscription } = useAuth();
+  const { user, subscription } = useAuth();
   const { resolvedTheme } = useTheme();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState<string | null>(null);
@@ -160,8 +160,6 @@ const SubscriptionPage = () => {
       if (!currentUser) {
         throw new Error('Usuário não autenticado');
       }
-
-      const token = await currentUser.getIdToken();
 
       const { sessionId } = await subscriptionAPI.createCheckoutSession(priceId, planName);
 

@@ -27,7 +27,6 @@ interface ChartsSectionProps {
 
 const ChartsSection: React.FC<ChartsSectionProps> = ({ transacoes, theme, className }) => {
   // Cores baseadas no tema
-  const backgroundColor = theme === 'dark' ? '#1F2937' : '#FFFFFF';
   const textColor = theme === 'dark' ? '#FFFFFF' : '#111827';
   const gridColor = theme === 'dark' ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
 

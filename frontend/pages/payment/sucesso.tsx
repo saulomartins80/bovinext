@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useRouter } from 'next/router';
 import { useAuth } from '../../context/AuthContext';
 import { subscriptionAPI } from '../../services/api';
 import { toast } from 'react-toastify';
-import { CheckCircle, Crown, Star, Award, Gem, BadgeCheck, Sparkles } from 'lucide-react';
+import { CheckCircle, Crown, Star, Award, Gem, BadgeCheck } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { motion } from 'framer-motion';
 
 function randomInRange(min: number, max: number) {
   return Math.random() * (max - min) + min;
@@ -79,15 +79,6 @@ function getPlanVisual(plan?: string) {
     message: 'Sua assinatura foi ativada com sucesso. Você já pode acessar todos os recursos do seu plano.',
     features: ['Acesso completo', 'Recursos disponíveis', 'Suporte ativo', 'Atualizações incluídas']
   };
-}
-
-function getChatColor(plan?: string) {
-  const planName = (plan || '').toLowerCase();
-  if (planName.includes('top anual')) return 'bg-gradient-to-br from-purple-100 to-indigo-200';
-  if (planName.includes('top')) return 'bg-gradient-to-br from-yellow-100 to-yellow-300';
-  if (planName.includes('essencial anual')) return 'bg-gradient-to-br from-green-100 to-green-300';
-  if (planName.includes('premium')) return 'bg-gradient-to-br from-blue-200 to-blue-400';
-  return 'bg-gray-100';
 }
 
 export default function PaymentSuccess() {

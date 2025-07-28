@@ -2,7 +2,7 @@
 
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect, useMemo } from 'react';
-import { FiUser, FiMail, FiLock, FiCreditCard, FiEdit, FiCamera, FiCheck, FiX, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiEdit, FiCamera, FiCheck, FiX, FiEye, FiEyeOff, FiSettings, FiAlertCircle } from 'react-icons/fi';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { toast } from 'react-toastify';
 import Image from 'next/image';
@@ -11,7 +11,7 @@ import { getApp } from 'firebase/app';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../context/ThemeContext';
 import { motion } from 'framer-motion';
-import { User, Shield, CreditCard, Settings, LogOut, CheckCircle } from 'lucide-react';
+import { Edit, Trash2, Calendar, CreditCard, Phone, MapPin } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 
 interface AuthUserData {
@@ -276,29 +276,6 @@ export default function Profile() {
       toast.error('Não foi possível acessar o portal de assinatura');
     }
   };
-
-  const subscriptionStatus = useMemo(() => {
-    if (loadingSubscription) return 'Carregando status...';
-    if (!subscription) return 'Nenhum plano ativo';
-
-    const statusMap: Record<string, string> = {
-      active: 'Ativo',
-      inactive: 'Inativo',
-      canceled: 'Cancelado',
-      expired: 'Expirado',
-      pending: 'Pendente',
-      trialing: 'Teste Gratuito',
-      past_due: 'Pagamento Pendente'
-    };
-
-    const planName = subscription.plan ? `Plano ${subscription.plan.charAt(0).toUpperCase() + subscription.plan.slice(1)}` : '';
-    const statusText = `Status: ${statusMap[subscription.status as string] || subscription.status}`;
-    const expiresText = subscription?.expiresAt && new Date(subscription.expiresAt).getTime() > Date.now()
-      ? ` - Válido até ${new Date(subscription.expiresAt).toLocaleDateString()}`
-      : (subscription?.status === 'active' ? ' - Data de expiração não disponível' : '');
-
-    return `${planName} ${statusText}${expiresText}`;
-  }, [subscription, loadingSubscription]);
 
   const currentAvatarSrc = avatarPreview || user?.photoUrl || user?.photoURL || '/default-avatar.png';
 
@@ -685,7 +662,7 @@ export default function Profile() {
               onClick={() => router.push('/configuracoes')}
               className="w-full flex items-center p-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
-              <Settings className="w-5 h-5 text-purple-500 mr-3" />
+              <FiSettings className="w-5 h-5 text-purple-500 mr-3" />
               <span className="text-gray-700 dark:text-gray-300">Configurações</span>
             </button>
 
@@ -693,7 +670,7 @@ export default function Profile() {
               onClick={handleLogout}
               className="w-full flex items-center p-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-red-500"
             >
-              <LogOut className="w-5 h-5 mr-3" />
+              <FiAlertCircle className="w-5 h-5 mr-3" />
               <span>Sair</span>
             </button>
           </div>

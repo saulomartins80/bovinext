@@ -19,11 +19,11 @@ export default function DebugConfig() {
   };
 
   const missingFirebaseVars = Object.entries(firebaseConfig)
-    .filter(([key, value]) => !value)
+    .filter(([_, value]) => !value)
     .map(([key]) => key);
 
   const missingStripeVars = Object.entries(stripeConfig)
-    .filter(([key, value]) => !value)
+    .filter(([_, value]) => !value)
     .map(([key]) => key);
 
   return (

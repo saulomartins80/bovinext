@@ -4,11 +4,11 @@ import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { FiTrendingUp } from 'react-icons/fi';
-import { useTranslation } from 'next-i18next';
+import useI18n from '../../hooks/useI18n';
 
 export function ClientHeader() {
   const router = useRouter();
-  const { t } = useTranslation('common');
+  const { t } = useI18n('common');
   
   const menuItems = [
     { name: 'Recursos', path: '/recursos' },

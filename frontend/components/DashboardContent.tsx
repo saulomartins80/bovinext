@@ -12,17 +12,12 @@ import { ArrowUp, ArrowDown, Wallet, TrendingUp, TrendingDown, DollarSign, User 
 import { useRouter } from "next/router";
 import { getGreeting, getFriendlyName } from "../src/utils/friendlyMessages";
 
-type TransacaoAdaptada = {
-  _id: string | { $oid: string };
-  tipo: "receita" | "despesa" | "transferencia";
-  valor: number;
-};
-
-type InvestimentoAdaptado = {
-  _id: string | { $oid: string };
-  valor: number;
-  tipo: string;
-};
+// Adicione esta interface para alinhar os tipos
+interface User {
+  name?: string | null; // Aceita tanto undefined quanto null
+  email?: string | null; // Adicione esta linha
+  // ... outras propriedades necessárias pela função getFriendlyName
+}
 
 interface ApiError {
   message?: string;
@@ -50,10 +45,7 @@ const DashboardContent: React.FC = () => {
     selectedStocks,
     selectedCryptos,
     selectedCommodities = [],
-    manualAssets = [],
-    customIndices = [],
     refreshMarketData,
-    setManualAssets = () => {},
     setSelectedStocks,
     setSelectedCryptos,
     setSelectedCommodities = () => {},
@@ -241,7 +233,11 @@ const DashboardContent: React.FC = () => {
             <div>
               <h1 className="text-2xl md:text-3xl font-bold">
                 {getGreeting()}, <span className={`${resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}> {/* Cor ajustada para o nome */}
-                  {getFriendlyName(user)}
+                  {getFriendlyName({
+                    ...user,
+                    name: user?.name || undefined,
+                    email: user?.email || undefined
+                  })}
                 </span>!
               </h1>
               <p className={`text-sm ${resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}> {/* Cor ajustada para o subtítulo */}

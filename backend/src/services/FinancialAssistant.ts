@@ -11,42 +11,67 @@ interface UserMessage {
   userId: string;
   chatId: string;
   timestamp: Date;
-  metadata?: any;
+  metadata?: unknown;
 }
 
 interface AssistantResponse {
   response: string;
   action?: {
     type: string;
-    payload: any;
+    payload: unknown;
     confidence: number;
   };
   insights?: string[];
-  recommendations?: any[];
+  recommendations?: unknown[];
   followUpQuestions?: string[];
   requiresConfirmation?: boolean;
-  metadata?: any;
+  metadata?: unknown;
+}
+
+interface UserProfile {
+  id?: string;
+  name?: string;
+  preferences?: {
+    frequentActions?: string[];
+  };
+  interactionStyle?: string;
 }
 
 interface ConversationContext {
-  recentMessages: any[];
-  userProfile: any;
-  financialContext: any;
-  inferredGoals: any;
+  recentMessages: unknown[];
+  userProfile?: UserProfile;
+  financialContext: unknown;
+  inferredGoals: unknown;
   lastTopics: string[];
-  sentiment?: any;
-  last5Messages?: any[];
+  sentiment?: unknown;
+  last5Messages?: unknown[];
   recurringTopics?: string[];
   isRepetitiveQuestion?: boolean;
+}
+
+interface EntityData {
+  valor?: string | number;
+  descricao?: string;
+  tipo?: string;
+  categoria?: string;
+  meta?: string;
+  valor_total?: string | number;
+  data_conclusao?: string;
+  nome?: string;
+  response?: string;
+  [key: string]: any;
 }
 
 interface MessageAnalysis {
   intent: {
     type: string;
-    payload?: any;
+    payload?: {
+      response?: string;
+      [key: string]: any;
+    };
     confidence: number;
   };
-  entities: any;
+  entities: EntityData;
   confidence: number;
   reasoning: string;
   response: string;
@@ -375,7 +400,7 @@ export class FinancialAssistant {
     };
   }
 
-  private getGracefulFallback(message: UserMessage, error: any): AssistantResponse {
+  private getGracefulFallback(message: UserMessage, error: unknown): AssistantResponse {
     console.error('[FinancialAssistant] ❌ Erro no processamento:', error);
     return {
       response: 'Desculpe, tive um problema técnico. Pode tentar novamente?',
@@ -386,11 +411,11 @@ export class FinancialAssistant {
   }
 
   // ✅ MÉTODOS AUXILIARES NOVOS
-  private detectRecurringTopics(messages: any[]): string[] {
+  private detectRecurringTopics(messages: unknown[]): string[] {
     const topics = new Map<string, number>();
     
     messages.forEach(msg => {
-      const extractedTopics = this.extractTopicsFromMessage(msg.content);
+      const extractedTopics = this.extractTopicsFromMessage((msg as any).content || '');
       extractedTopics.forEach(topic => {
         topics.set(topic, (topics.get(topic) || 0) + 1);
       });
@@ -414,11 +439,11 @@ export class FinancialAssistant {
     return topics;
   }
 
-  private checkRepetition(currentMessage: string, lastMessages: any[]): boolean {
+  private checkRepetition(currentMessage: string, lastMessages: unknown[]): boolean {
     const currentLower = currentMessage.toLowerCase();
     
     return lastMessages.some(msg => {
-      const msgLower = msg.content.toLowerCase();
+      const msgLower = (msg as any).content.toLowerCase();
       const similarity = this.calculateSimilarity(currentLower, msgLower);
       return similarity > 0.8; // 80% de similaridade
     });
@@ -456,7 +481,11 @@ export class FinancialAssistant {
       payload: analysis.intent.payload,
       confidence: analysis.intent.confidence,
       reasoning: 'Análise de dados progressiva',
-      requiresConfirmation: false
+      entities: analysis.entities,
+      response: analysis.response,
+      requiresConfirmation: false,
+      missingFields: [],
+      collectedData: {}
     }, context);
   }
 
@@ -526,8 +555,12 @@ export class FinancialAssistant {
         context.userProfile.name = 'Saulo chagas da Silva Martins'; // Nome do usuário dos logs
       }
       
-      // 2. Análise profunda com aprendizado
-      const analysis = await this.reasoningEngine.analyze(message, context);
+  // 2. Análise profunda com aprendizado
+      const contextForEngine = {
+        ...context,
+        userProfile: context.userProfile || {}
+      };
+      const analysis = await this.reasoningEngine.analyze(message, contextForEngine);
       
       console.log(`[FinancialAssistant] 🎯 Intent detectado: ${analysis.intent.type} (confiança: ${analysis.confidence})`);
       
@@ -1099,7 +1132,18 @@ export class FinancialAssistant {
     return actionsThatNeedData.includes(intentType);
   }
 
+  private async handleCircuitBreakerError(message: UserMessage, error: unknown): Promise<AssistantResponse> {
+    this.circuitBreaker.errorCount++;
+    this.circuitBreaker.lastErrorTime = Date.now();
+    
+    if (this.circuitBreaker.errorCount >= this.circuitBreaker.threshold) {
+      this.circuitBreaker.isOpen = true;
+      console.log('[CIRCUIT_BREAKER] Circuit aberto devido a muitos erros');
+    }
+    
+    return this.getGracefulFallback(message, error);
+  }
 
 }
 
-export const financialAssistant = new FinancialAssistant(); 
+export const financialAssistant = new FinancialAssistant();

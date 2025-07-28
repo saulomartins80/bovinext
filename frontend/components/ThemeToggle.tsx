@@ -4,7 +4,7 @@ import { useIsMounted } from "../src/hooks/useIsMounted";
 
 export default function ThemeToggle() {
   const isMounted = useIsMounted();
-  const { theme, resolvedTheme, toggleTheme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
 
   if (!isMounted) {
     return (

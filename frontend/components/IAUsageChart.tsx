@@ -3,7 +3,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useTheme } from 'next-themes';
 
 interface IAUsageChartProps {
-  data: any[];
+  data: unknown[];
   type: 'line' | 'bar' | 'pie';
   title: string;
   color?: string;
@@ -82,7 +82,7 @@ export default function IAUsageChart({ data, type, title, color = '#8B5CF6', hei
           </BarChart>
         );
       
-      case 'pie':
+      case 'pie': {
         const colors = ['#8B5CF6', '#3B82F6', '#10B981', '#F59E0B', '#EF4444'];
         return (
           <PieChart>
@@ -112,6 +112,7 @@ export default function IAUsageChart({ data, type, title, color = '#8B5CF6', hei
             />
           </PieChart>
         );
+      }
       
       default:
         return null;

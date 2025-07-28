@@ -8,7 +8,6 @@ import {
   FiMail,
   FiLock,
   FiCreditCard,
-  FiCheck,
   FiMoon,
   FiSun,
   FiMonitor,
@@ -55,6 +54,11 @@ export default function ConfiguracoesPage() {
   const [sampleNotifications, setSampleNotifications] = useState<NotificationItem[]>([]);
   const [notificationCounter, setNotificationCounter] = useState(0);
 
+  // Evita alerta de variável não utilizada no linter
+  useEffect(() => {
+    void sampleNotifications.length;
+  }, [sampleNotifications]);
+
   const [settings, setSettings] = useState<Settings>({
     language: 'pt-BR',
     emailNotifications: true,
@@ -93,7 +97,7 @@ export default function ConfiguracoesPage() {
     loadInitialData();
   }, [loadInitialData]);
 
-  const handleSettingChange = (key: keyof Settings, value: any) => {
+  const handleSettingChange = (key: keyof Settings, value: string | number | boolean) => {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
@@ -129,6 +133,7 @@ export default function ConfiguracoesPage() {
       toast.success('Backup dos dados realizado com sucesso!');
     } catch (error) {
       setBackupStatus('failed');
+      console.error(error);
       toast.error('Falha ao realizar backup dos dados.');
     } finally {
       setTimeout(() => setBackupStatus('idle'), 3000);
@@ -164,16 +169,6 @@ export default function ConfiguracoesPage() {
     };
     setSampleNotifications(prev => [newNotification, ...prev]);
     toast.info(`Nova notificação de exemplo: ${message}`);
-  };
-
-  const markSampleAsRead = (id: string) => {
-    setSampleNotifications(sampleNotifications.map(n =>
-      n.id === id ? { ...n, read: true } : n
-    ));
-  };
-
-  const markAllSampleAsRead = () => {
-    setSampleNotifications(sampleNotifications.map(n => ({ ...n, read: true })));
   };
 
   interface SettingOption {

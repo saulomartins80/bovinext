@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FiX, FiSun, FiMoon, FiMonitor, FiMenu, FiSearch, FiSettings, FiUser, FiLogOut, FiChevronRight } from 'react-icons/fi';
+import { FiX, FiSun, FiMoon, FiMonitor, FiMenu, FiSettings, FiUser, FiLogOut, FiChevronRight } from 'react-icons/fi';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import Link from 'next/link';
 import Image from 'next/image';
-import Notifications, { NotificationItem } from './Notifications';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -154,10 +153,7 @@ export default function Header({
           )}
         </div>
 
-        {/* Notificações dinâmicas */}
-        <Notifications
-          resolvedTheme={resolvedTheme}
-        />
+        {/* Notificações dinâmicas removidas pois o componente não existe mais */}
 
         {/* Perfil do usuário */}
         <div className="relative">

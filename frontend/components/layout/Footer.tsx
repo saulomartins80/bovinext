@@ -3,11 +3,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { FiGithub, FiTwitter, FiLinkedin, FiInstagram } from 'react-icons/fi';
-import { useTranslation } from 'next-i18next';
+import useI18n from '../../hooks/useI18n';
 
 export const Footer: React.FC = () => {
   const router = useRouter();
-  const { t } = useTranslation('common');
+  const { t } = useI18n('common');
   const currentYear = new Date().getFullYear();
 
   const footerLinks = {
@@ -130,7 +130,7 @@ export const Footer: React.FC = () => {
 
         <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
           <p className="text-base text-gray-500 dark:text-gray-400 text-center">
-            &copy; {currentYear} TheClosen. {t('footer.copyright')}
+            &copy; {currentYear} FinNEXTHO. Todos os direitos reservados.
           </p>
         </div>
       </div>

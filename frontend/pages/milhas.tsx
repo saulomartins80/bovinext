@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Plane, CreditCard, TrendingUp, BarChart3, Plus, 
-  Download, ChevronDown, ChevronUp, ChevronRight, ChevronLeft, X, Edit3, Trash2,
-  ArrowRight, Search, Filter, PieChart, LineChart,
-  Calendar, DollarSign, CheckCircle, Clock, Zap,
-  CreditCard as CreditCardIcon, Banknote, Wallet, Gem, Award,
+  TrendingUp, BarChart3, Plus, 
+  ChevronDown, ChevronUp, ChevronRight, ChevronLeft, X, Edit3, Trash2,
+  Search, DollarSign, CheckCircle,
+  CreditCard as CreditCardIcon, Banknote, Wallet, Award,
   MoreVertical
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -15,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/router';
 import jsPDF from 'jspdf';
 import { useAddItemCallback } from '../src/hooks/useAddItemCallback';
+import Image from 'next/image';
 
 // Tipos avançados
 interface CreditCard {
@@ -140,23 +140,12 @@ const PROGRAM_DATABASE = {
   }
 };
 
-// Estilos para desktop
-const desktopStyles = {
-  card: "rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden transition-all hover:shadow-md",
-  cardHeader: "px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center",
-  cardTitle: "text-lg font-semibold text-gray-900 dark:text-white",
-  cardContent: "p-6",
-  invoiceTable: "min-w-full divide-y divide-gray-200 dark:divide-gray-700",
-  invoiceTableHeader: "bg-gray-50 dark:bg-gray-700",
-  invoiceTableRow: "hover:bg-gray-50 dark:hover:bg-gray-700",
-  invoiceTableCell: "px-6 py-4 whitespace-nowrap text-sm",
-  statusBadge: "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-};
+
 
 // Componente BankIcon
 const BankIcon = ({ url, name, className }: { url?: string; name: string; className?: string }) => {
   if (url) {
-    return <img src={url} alt={name} className={className} />;
+    return <Image src={url} alt={name} className={className} width={40} height={40} />;
   }
   
   // Fallback para ícones baseados no nome do banco
@@ -502,8 +491,7 @@ const MilhasMobileView = ({
   selectedCard,
   setSelectedInvoice,
   setShowInvoiceModal,
-  PROGRAM_DATABASE,
-  onAddItem
+  PROGRAM_DATABASE
 }: {
   creditCards: CreditCard[];
   mileagePrograms: MileageProgram[];
@@ -518,7 +506,7 @@ const MilhasMobileView = ({
   setSelectedInvoice: (invoice: Invoice | null) => void;
   setShowInvoiceModal: (show: boolean) => void;
   PROGRAM_DATABASE: any;
-  onAddItem?: () => void;
+  // onAddItem?: () => void; // Removido - não usado
 }) => {
   if (selectedCard) {
     return (
@@ -938,7 +926,6 @@ const MilhasPage = () => {
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [selectedCard, setSelectedCard] = useState<CreditCard | null>(null);
-  const [selectedProgram, setSelectedProgram] = useState<MileageProgram | null>(null);
 
   // Verificar tamanho da tela
   useEffect(() => {
@@ -961,7 +948,6 @@ const MilhasPage = () => {
       category: 'standard'
     });
     setSelectedCard(null);
-    setSelectedProgram(null);
   };
 
   // Função para abrir formulário baseado na aba ativa
@@ -1144,7 +1130,7 @@ const MilhasPage = () => {
         onClick={() => setActiveTab('cards')}
         className={`px-4 py-3 font-medium text-sm flex items-center gap-2 ${activeTab === 'cards' ? activeTabStyle : inactiveTabStyle} border-b-2 ${activeTab === 'cards' ? 'border-blue-600 dark:border-blue-400' : 'border-transparent'}`}
       >
-        <CreditCard size={16} />
+        <CreditCardIcon size={16} />
         Cartões
       </button>
       <button
@@ -1409,7 +1395,7 @@ const MilhasPage = () => {
 
     const handleEditar = () => {
       // Abrir modal de edição do programa
-      setSelectedProgram(program);
+      // setSelectedProgram(program); // Removido - função não definida
       setShowAddModal(true);
     };
     
@@ -1530,136 +1516,6 @@ const MilhasPage = () => {
             </button>
           </div>
         </div>
-      </div>
-    );
-  };
-
-  // Componente de resumo
-  const SummaryCards = () => {
-    const totalPoints = mileagePrograms.reduce((sum, p) => sum + p.pointsBalance, 0);
-    const totalValue = mileagePrograms.reduce((sum, p) => sum + p.estimatedValue, 0);
-    const activeCards = creditCards.filter(c => c.status === 'active').length;
-    const pendingInvoices = invoices.filter(i => i.status !== 'paid').length;
-    const totalPending = invoices
-      .filter(i => i.status !== 'paid')
-      .reduce((sum, i) => sum + i.amount, 0);
-
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {/* Card - Total de Pontos */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border-l-4 border-blue-500"
-        >
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Total de Pontos</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {totalPoints.toLocaleString()}
-              </p>
-            </div>
-            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-              <TrendingUp className="text-blue-600 dark:text-blue-400" size={20} />
-            </div>
-          </div>
-          <div className="mt-3 h-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-blue-500"
-              initial={{ width: 0 }}
-              animate={{ width: "100%" }}
-              transition={{ delay: 0.5, duration: 1 }}
-            />
-          </div>
-        </motion.div>
-
-        {/* Card - Valor Estimado */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border-l-4 border-green-500"
-        >
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Valor Estimado</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                R$ {totalValue.toLocaleString()}
-              </p>
-            </div>
-            <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-              <DollarSign className="text-green-600 dark:text-green-400" size={20} />
-            </div>
-          </div>
-          <div className="mt-3 h-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-green-500"
-              initial={{ width: 0 }}
-              animate={{ width: "100%" }}
-              transition={{ delay: 0.7, duration: 1.5 }}
-            />
-          </div>
-        </motion.div>
-
-        {/* Card - Cartões Ativos */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border-l-4 border-purple-500"
-        >
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Cartões Ativos</p>
-              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {activeCards}
-              </p>
-            </div>
-            <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
-              <CreditCardIcon className="text-purple-600 dark:text-purple-400" size={20} />
-            </div>
-          </div>
-          <div className="mt-3 h-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-purple-500"
-              initial={{ width: 0 }}
-              animate={{ width: "100%" }}
-              transition={{ delay: 0.9, duration: 1 }}
-            />
-          </div>
-        </motion.div>
-
-        {/* Card - Faturas Pendentes */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border-l-4 border-yellow-500"
-        >
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Faturas Pendentes</p>
-              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                {pendingInvoices}
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                R$ {totalPending.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-              </p>
-            </div>
-            <div className="p-2 rounded-lg bg-yellow-100 dark:bg-yellow-900/30">
-              <Banknote className="text-yellow-600 dark:text-yellow-400" size={20} />
-            </div>
-          </div>
-          <div className="mt-3 h-1 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-yellow-500"
-              initial={{ width: 0 }}
-              animate={{ width: "100%" }}
-              transition={{ delay: 1.1, duration: 1 }}
-            />
-          </div>
-        </motion.div>
       </div>
     );
   };
@@ -2226,131 +2082,7 @@ const MilhasPage = () => {
     </AnimatePresence>
   );
 
-  // Componente MobileProgramDetail (para visualização individual do programa)
-  const MobileProgramDetail = ({ 
-    program, 
-    cardBg, 
-    borderColor, 
-    setActiveTab,
-    setShowAddModal
-  }: {
-    program: MileageProgram;
-    cardBg: string;
-    borderColor: string;
-    setActiveTab: (tab: string) => void;
-    setShowAddModal: (show: boolean) => void;
-  }) => {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
-        {/* Cabeçalho com botão de voltar */}
-        <div className="flex items-center gap-3 mb-6">
-          <button onClick={() => setActiveTab('programs')}>
-            <ChevronLeft size={24} />
-          </button>
-          <div>
-            <h1 className="text-xl font-bold">Detalhes do Programa</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              {program.airline} • {program.name}
-            </p>
-          </div>
-        </div>
-
-        {/* Card principal */}
-        <div className={`rounded-xl ${cardBg} p-5 mb-6 shadow-sm border ${borderColor}`}>
-          <div className="flex items-center gap-3 mb-4">
-            <BankIcon 
-              url={program.programIconUrl} 
-              name={program.name} 
-              className="w-14 h-14 rounded-lg"
-            />
-            <div>
-              <h2 className="font-bold">{program.name}</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {program.airline}
-              </p>
-            </div>
-          </div>
-
-          {/* Informações principais */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Saldo de pontos</p>
-              <p className="font-medium">{program.pointsBalance.toLocaleString()} pts</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Valor estimado</p>
-              <p className="font-medium">R$ {program.estimatedValue.toLocaleString()}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Taxa de conversão</p>
-              <p className="font-medium">{program.conversionRate} pts/R$</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Status</p>
-              <span className={`px-2 py-1 rounded-full text-xs ${
-                program.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-              }`}>
-                {program.status === 'active' ? 'Ativo' : 'Inativo'}
-              </span>
-            </div>
-          </div>
-
-          {/* Melhor uso */}
-          <div className="mb-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Melhor uso</p>
-            <p className="font-medium">{program.bestUse}</p>
-          </div>
-
-          {/* Política de expiração */}
-          <div className="mb-4">
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Política de expiração</p>
-            <p className="font-medium">{program.expirationPolicy}</p>
-          </div>
-        </div>
-
-        {/* Histórico de movimentações */}
-        <div className={`rounded-xl ${cardBg} p-5 mb-6 shadow-sm border ${borderColor}`}>
-          <h3 className="font-bold mb-3">Histórico de Movimentações</h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div>
-                <p className="font-medium">Compra de passagem</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">15/06/2023</p>
-              </div>
-              <div className="text-right">
-                <p className="font-medium text-red-600">-15.000 pts</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">R$ 450</p>
-              </div>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <div>
-                <p className="font-medium">Transferência de cartão</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">10/06/2023</p>
-              </div>
-              <div className="text-right">
-                <p className="font-medium text-green-600">+25.000 pts</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">R$ 750</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Ações */}
-        <div className="flex gap-3">
-          <button 
-            onClick={() => setShowAddModal(true)}
-            className="flex-1 py-2 bg-blue-600 text-white rounded-lg font-medium"
-          >
-            Editar Programa
-          </button>
-          <button className="flex-1 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg font-medium">
-            Transferir Pontos
-          </button>
-        </div>
-      </div>
-    );
-  };
+  // Componente MobileProgramDetail - REMOVIDO - não usado
 
   // Função para gerar PDF de comprovante de fatura
   const generateInvoicePDF = (invoice: Invoice, card: CreditCard | undefined) => {
@@ -2363,7 +2095,7 @@ const MilhasPage = () => {
     const textColor: [number, number, number] = resolvedTheme === "dark" ? [229, 229, 229] : [17, 17, 17];
     const mutedTextColor: [number, number, number] = resolvedTheme === "dark" ? [156, 156, 156] : [75, 75, 75];
     const backgroundColor: [number, number, number] = resolvedTheme === "dark" ? [31, 41, 55] : [255, 255, 255];
-    const borderColor: [number, number, number] = resolvedTheme === "dark" ? [75, 85, 99] : [229, 229, 229];
+    // const borderColor: [number, number, number] = resolvedTheme === "dark" ? [75, 85, 99] : [229, 229, 229]; // Removido - não usado
 
     // Fundo da página
     doc.setFillColor(backgroundColor[0], backgroundColor[1], backgroundColor[2]);
@@ -2425,7 +2157,7 @@ const MilhasPage = () => {
           setSelectedInvoice={setSelectedInvoice}
           setShowInvoiceModal={setShowInvoiceModal}
           PROGRAM_DATABASE={PROGRAM_DATABASE}
-          onAddItem={handleAddItem}
+
         />
       ) : (
         <div className="p-4 md:p-6">
@@ -2447,7 +2179,7 @@ const MilhasPage = () => {
                       ))
                     ) : (
                       <div className={`rounded-lg ${cardBg} p-8 text-center border ${borderColor} col-span-3`}>
-                        <CreditCard className="mx-auto mb-4 text-gray-400" size={32} />
+                        <CreditCardIcon className="mx-auto mb-4 text-gray-400" size={32} />
                         <p>Nenhum cartão encontrado</p>
                         <button
                           onClick={() => setShowAddModal(true)}

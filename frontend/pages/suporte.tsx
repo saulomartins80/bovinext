@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useTheme } from '../context/ThemeContext';
-import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import { 
   MessageCircle, 
@@ -21,8 +19,6 @@ import {
 const SuportePage = () => {
   const router = useRouter();
   const { resolvedTheme } = useTheme();
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('chat');
 
   const supportChannels = [
     {

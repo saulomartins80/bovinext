@@ -1918,13 +1918,36 @@ ${JSON.stringify(userContext.metasCompletas, null, 2)}
         conversationHistoryLength: context.conversationHistory?.length || 0
       });
 
-      // ✅ OTIMIZAÇÃO: Usar OpenAI SDK em vez de axios para melhor performance
+      // ✅ CORREÇÃO: Prompt melhorado para retornar JSON válido
+      const systemPrompt = `Você é o Finn, assistente financeiro inteligente da Finnextho. 
+
+OBRIGATÓRIO: Responda SEMPRE em formato JSON válido com esta estrutura:
+{
+  "intent": {
+    "type": "FINANCIAL_ADVICE|INVESTMENT_HELP|BUDGET_ASSISTANCE|MARKET_DATA|GENERAL_HELP",
+    "confidence": 0.9,
+    "payload": {}
+  },
+  "entities": {},
+  "response": "Sua resposta aqui de forma natural e inteligente",
+  "reasoning": "Por que escolheu esta resposta"
+}
+
+Contexto do usuário:
+- Nome: ${context.userProfile?.name || 'Usuário'}
+- Plano: ${context.userProfile?.plan || 'Básico'}
+- Transações: ${context.transactions?.length || 0}
+- Investimentos: ${context.investments?.length || 0}
+- Metas: ${context.goals?.length || 0}
+
+Seja inteligente, preciso e útil. Use dados reais quando disponível.`;
+
       const completion = await openai.chat.completions.create({
           model: 'deepseek-chat',
           messages: [
             {
               role: 'system',
-              content: 'Você é o Finn, assistente financeiro da Finnextho. Ajude o usuário com suas dúvidas financeiras.'
+              content: systemPrompt
             },
             {
               role: 'user',
@@ -1932,53 +1955,54 @@ ${JSON.stringify(userContext.metasCompletas, null, 2)}
             }
           ],
           temperature: 0.7,
-        max_tokens: 500, // Reduzido de 1000 para 500
+          max_tokens: 800,
+          response_format: { type: "json_object" } // Força resposta em JSON
       });
 
       const aiResponse = completion.choices[0]?.message?.content;
       
       if (!aiResponse) {
         console.log('[FinnEngine] ⚠️ Resposta vazia da IA');
-        return null;
+        return this.createFallbackResponse('Desculpe, não consegui processar sua solicitação.');
       }
 
-      // ✅ CORREÇÃO: Tentar parsear JSON com fallback
+      // ✅ CORREÇÃO: Parse JSON melhorado
       try {
         const parsed = JSON.parse(aiResponse);
         console.log('[FinnEngine] ✅ JSON parseado com sucesso');
+        
+        // Validar estrutura mínima
+        if (!parsed.response || !parsed.intent) {
+          console.log('[FinnEngine] ⚠️ JSON inválido, usando fallback estruturado');
+          return this.createFallbackResponse(parsed.response || aiResponse);
+        }
+        
         return parsed;
       } catch (parseError) {
-        console.log('[FinnEngine] ⚠️ Resposta da IA não é JSON válido, usando fallback');
+        console.log('[FinnEngine] ⚠️ Erro no parse do JSON:', parseError.message);
         console.log('[FinnEngine] Resposta recebida:', aiResponse.substring(0, 200) + '...');
         
-        // ✅ CORREÇÃO: Retornar resposta estruturada mesmo sem JSON válido
-        return {
-          intent: {
-            type: 'UNKNOWN',
-            confidence: 0.3,
-            payload: {}
-          },
-          entities: {},
-          response: aiResponse,
-          reasoning: 'Resposta direta da IA'
-        };
+        return this.createFallbackResponse(aiResponse);
       }
 
     } catch (error) {
       console.error('[FinnEngine] ❌ Erro ao chamar IA:', error.message);
-      
-      // ✅ CORREÇÃO: Retornar resposta de fallback estruturada
-      return {
-        intent: {
-          type: 'UNKNOWN',
-          confidence: 0.1,
-          payload: {}
-        },
-        entities: {},
-        response: 'Desculpe, tive um problema técnico. Como posso te ajudar?',
-        reasoning: 'Erro na comunicação com IA'
-      };
+      return this.createFallbackResponse('Desculpe, tive um problema técnico. Como posso te ajudar?');
     }
+  }
+
+  // ✅ NOVO: Método para criar resposta de fallback estruturada
+  private createFallbackResponse(response: string): any {
+    return {
+      intent: {
+        type: 'GENERAL_HELP',
+        confidence: 0.5,
+        payload: {}
+      },
+      entities: {},
+      response: response,
+      reasoning: 'Resposta de fallback estruturada'
+    };
   }
 
   private postProcess(text: string): string {

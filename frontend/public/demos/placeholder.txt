@@ -1,0 +1,21 @@
+# Arquivos de Demo
+
+Este diretório deve conter os seguintes arquivos de demonstração:
+
+## Vídeos:
+- hero-demo.mp4 - Vídeo de demonstração da página inicial
+- dashboard.mp4 - Vídeo de demonstração do dashboard
+
+## Imagens:
+- hero-poster.jpg - Imagem de poster para o vídeo hero
+- dashboard-inteligente-poster.jpg - Imagem de poster para o vídeo do dashboard
+
+## Como resolver os 404s:
+
+1. Adicione os arquivos de mídia reais ou
+2. Remova as referências a esses arquivos nas páginas
+3. Use placeholders ou URLs de CDN externos
+
+Para desenvolvimento rápido, você pode usar:
+- Vídeos: https://sample-videos.com/
+- Imagens: https://picsum.photos/ ou https://unsplash.com/ 

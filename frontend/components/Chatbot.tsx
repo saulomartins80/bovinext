@@ -1,24 +1,15 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import { 
-  MessageCircle, X, Send, User, Bot, 
-  Sparkles, BarChart2, Lightbulb, BookOpen,
-  Copy, ThumbsUp, ThumbsDown, Paperclip, Command,
-  Star, TrendingUp, Target, Shield, Zap, Trash2,
-  AlertTriangle, Clock, BarChart3, CheckCircle, XCircle,
-  Plus, Edit3, Eye, Brain, Zap as ZapIcon, Plane,
-  CreditCard, DollarSign, Calculator, Gift, Calendar,
-  ClipboardList
+  Bot, 
+  Sparkles, ZapIcon,
+  ClipboardList, Lightbulb, Target, Plane, BarChart2, CheckCircle, Edit3, XCircle
 } from 'lucide-react';
 import { chatbotAPI } from '../services/api';
 import { chatbotDeleteAPI } from '../services/chatbotDeleteAPI';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import React from 'react';
-import DynamicDashboard from './DynamicDashboard';
 
 
 // Tipos para o sistema de automação inteligente
@@ -26,7 +17,7 @@ type AutomatedAction = {
   type: 'CREATE_TRANSACTION' | 'CREATE_INVESTMENT' | 'CREATE_GOAL' | 'ANALYZE_DATA' | 'GENERATE_REPORT' | 
         'CREATE_MILEAGE' | 'REDEEM_MILEAGE' | 'ANALYZE_MILEAGE' | 'CONNECT_PLUGGY' | 'CALCULATE_VALUE' |
         'DASHBOARD_COMMAND' | 'GREETING' | 'GENERAL_HELP' | 'FRUSTRATION' | 'CONFIRMATION' | 'UNKNOWN';
-  payload: any;
+  payload: Record<string, unknown>; // Substituído de `any`
   confidence: number;
   requiresConfirmation: boolean;
   successMessage: string;
@@ -35,17 +26,35 @@ type AutomatedAction = {
   isAutomated?: boolean;
 };
 
+interface CollectedData {
+  [key: string]: string | number | Date | null | undefined;
+}
+
+interface Recommendation {
+  title: string;
+  action: string;
+  content?: React.ReactNode; // Adicione esta linha
+}
+
+// Tipo simplificado para recomendações
+interface SimpleRecommendation {
+  title: string;
+  action: string;
+  id: string;
+}
+
+// Tipo seguro e compatível para mensagens de chat
 type ChatMessage = {
   id: string;
-  sender: 'user' | 'bot' | 'assistant'; // ✅ CORREÇÃO: Adicionar 'assistant' como tipo válido
-  content: string | React.ReactElement;
+  sender: 'user' | 'bot' | 'assistant';
+  content: string;
   timestamp: Date;
   metadata?: {
     action?: AutomatedAction;
     isAutomated?: boolean;
     processingTime?: number;
     confidence?: number;
-    analysisData?: any;
+    analysisData?: Record<string, unknown>;
     suggestions?: string[];
     isPremium?: boolean;
     expertise?: string;
@@ -55,21 +64,21 @@ type ChatMessage = {
     mileageProgram?: string;
     pointsEarned?: number;
     estimatedValue?: number;
-    followUpQuestions?: string[]; // ✅ ADICIONADO: followUpQuestions
-    recommendations?: any[]; // ✅ ADICIONADO: recommendations
-    nextSteps?: string[]; // ✅ ADICIONADO: nextSteps
-    isError?: boolean; // ✅ CORREÇÃO: Adicionar propriedade isError
-    isDataCollection?: boolean; // ✅ ADICIONADO: para coleta progressiva
-    currentField?: string; // ✅ ADICIONADO: para coleta progressiva
-    missingFields?: string[]; // ✅ ADICIONADO: para coleta progressiva
-    collectedData?: any; // ✅ ADICIONADO: para coleta progressiva
-    isComplete?: boolean; // ✅ ADICIONADO: para coleta progressiva
-    actionType?: string; // ✅ ADICIONADO: para resumo
-    isRecommendations?: boolean; // ✅ ADICIONADO: para recomendações
-    isNextSteps?: boolean; // ✅ ADICIONADO: para próximos passos
-    isSummary?: boolean; // ✅ ADICIONADO: para resumo
+    followUpQuestions?: string[];
+    recommendations?: SimpleRecommendation[];
+    nextSteps?: string[];
+    isError?: boolean;
+    isDataCollection?: boolean;
+    currentField?: string;
+    missingFields?: string[];
+    collectedData?: CollectedData;
+    isComplete?: boolean;
+    actionType?: string;
+    isRecommendations?: boolean;
+    isNextSteps?: boolean;
+    isSummary?: boolean;
   };
-  isError?: boolean; // ✅ CORREÇÃO: Adicionar propriedade isError
+  isError?: boolean;
 };
 
 type ChatSession = {
@@ -83,6 +92,33 @@ interface ChatbotProps {
   isOpen?: boolean;
   onToggle?: () => void;
 }
+
+type ThemeType = {
+  name: string;
+  primary: string;
+  secondary: string;
+  gradient: string;
+  bubbleUser: string;
+  bubbleBot: string;
+  text: string;
+  icon: string;
+  accent: string;
+  button: string;
+  border: string;
+  chatBg: string;
+  headerBg: string;
+  inputBg: string;
+};
+
+interface AutomatedActionCardProps {
+  action: AutomatedAction;
+  onConfirm: () => void;
+  onEdit: () => void;
+  onCancel: () => void;
+  theme: ThemeType;
+}
+
+type DynamicFormValues = Record<string, string | number | Date>;
 
 // Sistema de Temas Dinâmicos
 const getChatTheme = (plan?: string) => {
@@ -171,13 +207,7 @@ const AutomatedActionCard = ({
   onEdit, 
   onCancel,
   theme 
-}: {
-  action: AutomatedAction;
-  onConfirm: () => void;
-  onEdit: () => void;
-  onCancel: () => void;
-  theme: any;
-}) => {
+}: AutomatedActionCardProps) => {
   const getActionIcon = () => {
     switch (action.type) {
       case 'CREATE_TRANSACTION': return '💰';
@@ -218,7 +248,6 @@ const AutomatedActionCard = ({
           <h3 className="font-semibold text-gray-900 dark:text-white">{getActionTitle()}</h3>
           <div className="flex items-center gap-2 mt-1">
             <div className="flex items-center gap-1">
-              <Brain size={14} className="text-blue-500" />
               <span className="text-xs text-gray-500 dark:text-gray-400">
                 Confiança: {Math.round(action.confidence * 100)}%
               </span>
@@ -319,19 +348,21 @@ const AdvancedMessageBubble = ({
   onActionCancel
 }: { 
   message: ChatMessage; 
-  theme: any;
+  theme: ThemeType;
   isPremium: boolean;
   onFeedback: (messageId: string) => void;
   onActionConfirm: (action: AutomatedAction) => void;
   onActionEdit: (action: AutomatedAction) => void;
   onActionCancel: (action: AutomatedAction) => void;
 }) => {
-  const copyToClipboard = async (text: string | React.ReactElement) => {
+  const copyToClipboard = async (text: string | React.ReactElement | React.ReactNode) => {
     try {
       if (typeof text === 'string') {
         await navigator.clipboard.writeText(text);
-      } else {
+      } else if (React.isValidElement(text)) {
         await navigator.clipboard.writeText('Conteúdo copiado');
+      } else {
+        await navigator.clipboard.writeText(String(text || 'Conteúdo copiado'));
       }
     } catch (err) {
       console.error('Erro ao copiar:', err);
@@ -378,8 +409,8 @@ const AdvancedMessageBubble = ({
   };
 
   // 🏷️ FORMATAR VALOR DO CAMPO
-  const formatFieldValue = (field: string, value: any): string => {
-    if (value === null || value === undefined) return '-';
+  const formatFieldValue = (field: string, value: unknown): string => {
+    if (value === null || value === undefined || (typeof value === 'object' && Object.keys(value).length === 0)) return '-';
     
     switch (field) {
       case 'valor':
@@ -387,7 +418,7 @@ const AdvancedMessageBubble = ({
         return `R$ ${Number(value).toFixed(2)}`;
       case 'data':
       case 'data_conclusao':
-        return new Date(value).toLocaleDateString('pt-BR');
+        return new Date(value as string | number | Date).toLocaleDateString('pt-BR');
       case 'tipo':
         return value === 'receita' ? 'Receita' : 'Despesa';
       default:
@@ -396,7 +427,7 @@ const AdvancedMessageBubble = ({
   };
 
   // 🎯 HANDLER PARA CLIQUE EM RECOMENDAÇÃO
-  const handleRecommendationClick = (recommendation: any) => {
+  const handleRecommendationClick = (recommendation: Recommendation) => {
     if (recommendation.action) {
       // Simular envio de mensagem baseada na recomendação
       const message = getRecommendationMessage(recommendation.action);
@@ -407,7 +438,7 @@ const AdvancedMessageBubble = ({
 
   // 🎯 OBTER MENSAGEM BASEADA NA AÇÃO DA RECOMENDAÇÃO
   const getRecommendationMessage = (action: string): string => {
-    const messages: Record<string, string> = {
+    const recommendationMessages: Record<string, string> = {
       'VIEW_GOALS': 'Mostre minhas metas',
       'CREATE_TRANSACTION': 'Quero criar uma transação',
       'CREATE_GOAL': 'Quero criar uma meta',
@@ -415,7 +446,22 @@ const AdvancedMessageBubble = ({
       'VIEW_INVESTMENTS': 'Mostre meus investimentos'
     };
     
-    return messages[action] || action;
+    return recommendationMessages[action] || action;
+  };
+
+  // Função auxiliar para validar mensagens
+  const validateMessage = (message: any): message is ChatMessage => {
+    return (
+      typeof message.id === 'string' &&
+      (message.sender === 'user' || message.sender === 'bot' || message.sender === 'assistant') &&
+      (typeof message.content === 'string' || React.isValidElement(message.content)) &&
+      message.timestamp instanceof Date
+    );
+  };
+
+  // Implementar uma função de renderização simplificada
+  const renderMessageContent = (content: string) => {
+    return <div dangerouslySetInnerHTML={{ __html: content }} />;
   };
 
   return (
@@ -469,11 +515,15 @@ const AdvancedMessageBubble = ({
         {/* Conteúdo da mensagem */}
         <div className="p-4">
           <div className={`prose dark:prose-invert prose-sm max-w-none chat-message-content ${message.sender === 'user' ? 'text-white' : ''}`}>
-            {typeof message.content === 'string' ? (
-              <div dangerouslySetInnerHTML={{ __html: message.content }} />
-            ) : (
-              message.content
-            )}
+            {renderMessageContent(message.content)}
+            
+            {/* Para recomendações */}
+            {message.metadata?.recommendations?.map((rec) => (
+              <div key={rec.id}>
+                <strong>{rec.title}</strong>
+                <p>{rec.action}</p>
+              </div>
+            ))}
           </div>
           
           {/* ✅ NOVO: Mostrar ação apenas se realmente precisar de confirmação */}
@@ -504,7 +554,7 @@ const AdvancedMessageBubble = ({
                     <h4 className="font-bold text-sm text-blue-800 dark:text-blue-200">📋 Dados coletados:</h4>
                   </div>
                   <div className="space-y-1">
-                    {Object.entries(message.metadata.collectedData).map(([key, value]) => (
+                    {Object.entries(message.metadata.collectedData as CollectedData).map(([key, value]) => (
                       <div key={key} className="flex justify-between text-sm">
                         <span className="text-blue-700 dark:text-blue-300">{getFieldDisplayName(key)}:</span>
                         <span className="font-medium text-blue-800 dark:text-blue-200">{formatFieldValue(key, value)}</span>
@@ -550,7 +600,6 @@ const AdvancedMessageBubble = ({
                     </button>
                     <button
                       onClick={() => {
-                        // Limpar dados e recomeçar
                         console.log('Recomeçar coleta de dados');
                       }}
                       className="px-3 py-1 bg-gray-500 text-white text-xs rounded hover:bg-gray-600 transition-colors"
@@ -560,48 +609,45 @@ const AdvancedMessageBubble = ({
                   </div>
                 </div>
               )}
-
-              {/* 💡 RECOMENDAÇÕES */}
-              {message.metadata.isRecommendations && message.metadata.recommendations && (
-                <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-lg border border-purple-200 dark:border-purple-700">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Lightbulb size={16} className="text-purple-600 dark:text-purple-400" />
-                    <h4 className="font-bold text-sm text-purple-800 dark:text-purple-200">💡 Recomendações:</h4>
-                  </div>
-                  <div className="space-y-2">
+             
+              {/* 💡 RECOMENDAÇÕES SIMPLIFICADAS */}
+              {message.metadata?.isRecommendations && message.metadata?.recommendations && Array.isArray(message.metadata.recommendations) && (
+                  <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-lg border border-purple-200 dark:border-purple-700">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Lightbulb size={16} className="text-purple-600 dark:text-purple-400" />
+                      <h4 className="font-bold text-sm text-purple-800 dark:text-purple-200">💡 Recomendações:</h4>
+                    </div>
+                    <div className="space-y-2">
                     {message.metadata.recommendations.map((rec: any, index: number) => (
-                      <button
-                        key={index}
-                        onClick={() => handleRecommendationClick(rec)}
-                        className="block w-full text-left p-2 bg-purple-100 dark:bg-purple-800 rounded hover:bg-purple-200 dark:hover:bg-purple-700 transition-colors text-sm text-purple-700 dark:text-purple-300"
-                      >
-                        {rec.title}
-                      </button>
-                    ))}
+                      <div key={`rec-${index}`} className="p-2 bg-purple-100 dark:bg-purple-800 rounded text-sm text-purple-700 dark:text-purple-300">
+                        <strong>{rec?.title || 'Recomendação'}</strong>
+                        {rec?.action && <p className="text-xs mt-1">{rec.action}</p>}
+                      </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
               )}
 
               {/* 🎯 PRÓXIMOS PASSOS */}
-              {message.metadata.isNextSteps && message.metadata.nextSteps && (
-                <div className="p-3 bg-orange-50 dark:bg-orange-900/30 rounded-lg border border-orange-200 dark:border-orange-700">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Target size={16} className="text-orange-600 dark:text-orange-400" />
-                    <h4 className="font-bold text-sm text-orange-800 dark:text-orange-200">🎯 Próximos passos:</h4>
+              {message.metadata?.isNextSteps && message.metadata?.nextSteps && (
+                  <div className="p-3 bg-orange-50 dark:bg-orange-900/30 rounded-lg border border-orange-200 dark:border-orange-700">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Target size={16} className="text-orange-600 dark:text-orange-400" />
+                      <h4 className="font-bold text-sm text-orange-800 dark:text-orange-200">🎯 Próximos passos:</h4>
+                    </div>
+                    <ul className="space-y-1">
+                    {message.metadata.nextSteps.map((step, index) => (
+                      <li key={`step-${index}`} className="text-sm text-orange-700 dark:text-orange-300 flex items-center">
+                          <span className="mr-2">•</span>
+                        {String(step)}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <ul className="space-y-1">
-                    {message.metadata.nextSteps.map((step: string, index: number) => (
-                      <li key={index} className="text-sm text-orange-700 dark:text-orange-300 flex items-center">
-                        <span className="mr-2">•</span>
-                        {step}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
               )}
 
               {/* Informações específicas de milhas */}
-              {message.metadata.pointsEarned && (
+              {message.metadata?.pointsEarned && (
                 <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <Plane size={16} className="text-green-600 dark:text-green-400" />
@@ -621,7 +667,7 @@ const AdvancedMessageBubble = ({
               )}
               
               {/* Análise de dados */}
-              {message.metadata.analysisData && (
+              {message.metadata?.analysisData && (
                 <div className="p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <BarChart2 size={16} className="text-indigo-600 dark:text-indigo-400" />
@@ -636,7 +682,7 @@ const AdvancedMessageBubble = ({
               )}
               
               {/* Sugestões */}
-              {message.metadata.suggestions && (
+              {message.metadata?.suggestions && (
                 <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
                   <div className="flex items-center gap-2 mb-2">
                     <Lightbulb size={16} className="text-blue-600 dark:text-blue-400" />
@@ -670,7 +716,7 @@ const AdvancedMessageBubble = ({
               className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
               title="Copiar mensagem"
             >
-              <Copy size={14} />
+              <span className="text-gray-600 dark:text-gray-400">📋</span>
             </button>
             
             {message.sender === 'bot' && (
@@ -679,7 +725,7 @@ const AdvancedMessageBubble = ({
                 className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
                 title="Dar feedback"
               >
-                <ThumbsUp size={14} />
+                <span className="text-gray-600 dark:text-gray-400">👍</span>
               </button>
             )}
           </div>
@@ -698,7 +744,7 @@ const CommandBar = ({
 }: { 
   onSubmit: (message: string) => void; 
   isLoading: boolean;
-  theme: any;
+  theme: ThemeType;
   placeholder: string;
 }) => {
   const [message, setMessage] = useState('');
@@ -714,7 +760,10 @@ const CommandBar = ({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e as any);
+      if (message.trim() && !isLoading) {
+        onSubmit(message.trim());
+        setMessage('');
+      }
     }
   };
 
@@ -736,7 +785,7 @@ const CommandBar = ({
             onClick={() => setMessage('')}
             className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
-            <X size={16} />
+            <span className="text-gray-600 dark:text-gray-400">🗑️</span>
           </button>
         )}
       </div>
@@ -748,7 +797,7 @@ const CommandBar = ({
         {isLoading ? (
           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
         ) : (
-          <Send size={16} />
+          <span className="text-gray-600 dark:text-gray-400">💬</span>
         )}
       </button>
     </form>
@@ -756,21 +805,22 @@ const CommandBar = ({
 };
 
 // Novo: Formulário dinâmico para campos obrigatórios
-const DynamicForm = ({
-  actionType,
+interface DynamicFormProps {
+  actionType: string;
+  missingFields: string[];
+  onSubmit: (values: DynamicFormValues) => void;
+  onCancel: () => void;
+}
+
+const DynamicForm: React.FC<DynamicFormProps> = ({
   missingFields,
   onSubmit,
   onCancel
-}: {
-  actionType: string;
-  missingFields: string[];
-  onSubmit: (values: Record<string, any>) => void;
-  onCancel: () => void;
 }) => {
-  const [values, setValues] = useState<Record<string, any>>({});
+  const [values, setValues] = useState<DynamicFormValues>({});
 
-  const handleChange = (field: string, value: any) => {
-    setValues((prev) => ({ ...prev, [field]: value }));
+  const handleChange = (field: string, value: string | number | Date) => {
+    setValues((prev: DynamicFormValues) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -804,7 +854,7 @@ const DynamicForm = ({
               type={field.includes('data') ? 'date' : (field.includes('valor') ? 'number' : 'text')}
               step={field.includes('valor') ? '0.01' : undefined}
               className="w-full px-3 py-2 border rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
-              value={values[field] || ''}
+              value={typeof values[field] === 'object' && values[field] instanceof Date ? values[field].toISOString().split('T')[0] : String(values[field] || '')}
               onChange={e => handleChange(field, e.target.value)}
               required
             />
@@ -820,52 +870,44 @@ const DynamicForm = ({
 };
 
 export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotProps) {
-  const { user, subscription } = useAuth();
-  const { resolvedTheme } = useTheme();
+  const { subscription } = useAuth();
   const router = useRouter();
   
   // Estados principais
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [chatId, setChatId] = useState<string>('');
   const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [selectedSession, setSelectedSession] = useState<string | null>(null);
-  const [showSessions, setShowSessions] = useState(false);
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [selectedMessageForFeedback, setSelectedMessageForFeedback] = useState<string>('');
-  const [userPlan, setUserPlan] = useState<string>('free');
-  const [userExpertise, setUserExpertise] = useState<string>('beginner');
-  const [isPremium, setIsPremium] = useState(false);
-  const [showCommandBar, setShowCommandBar] = useState(false);
-  const [commandHistory, setCommandHistory] = useState<string[]>([]);
-  const [commandIndex, setCommandIndex] = useState(-1);
-  
-  // 🎛️ ESTADOS DO DASHBOARD DINÂMICO
-  const [showDashboard, setShowDashboard] = useState(false);
-  const [dashboardCommand, setDashboardCommand] = useState<string>('');
-  const [dashboardResponse, setDashboardResponse] = useState<any>(null);
-  
-  // 🛫 ESTADOS PARA PÁGINA DE MILHAS
-  const [isMileagePage, setIsMileagePage] = useState(false);
   const [activeSession, setActiveSession] = useState<ChatSession | null>(null);
   const [isNewSessionModalOpen, setIsNewSessionModalOpen] = useState(false);
   const [feedbackModal, setFeedbackModal] = useState<{ messageId: string; isOpen: boolean }>({ messageId: '', isOpen: false });
-  
-  // 🎯 ESTADOS PARA FORMULÁRIO DINÂMICO
+  const [isMileagePage, setIsMileagePage] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
+  const [dashboardCommand, setDashboardCommand] = useState<string>('');
   const [showDynamicForm, setShowDynamicForm] = useState(false);
   const [dynamicFormFields, setDynamicFormFields] = useState<string[]>([]);
   const [dynamicFormAction, setDynamicFormAction] = useState<string>('');
-  const [dynamicFormPayload, setDynamicFormPayload] = useState<any>({});
+  const [dynamicFormPayload, setDynamicFormPayload] = useState<Record<string, unknown>>({});
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [inputValue, setInputValue] = useState('');
-
 
   // Usar estado externo se fornecido, senão usar interno
   const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen;
-  const handleToggle = externalIsOpen !== undefined ? onToggle || (() => {}) : setInternalIsOpen;
+  
+  // ✅ CORREÇÃO: Função de toggle que funciona em ambos os casos
+  const handleToggle = () => {
+    if (onToggle) {
+      // Se há uma função onToggle fornecida, usá-la
+      onToggle();
+    } else if (externalIsOpen !== undefined) {
+      // Se controlado externamente mas sem onToggle, apenas log para debug
+      console.log('Toggle controlado externamente - isOpen:', externalIsOpen);
+    } else {
+      // Se controlado internamente, alternar o estado
+      setInternalIsOpen(prev => !prev);
+    }
+  };
 
   // Detectar se é usuário premium
   const isPremiumUser = subscription?.status === 'active' && (
@@ -950,11 +992,9 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
       title: 'Finn',
       subtitle: 'Assistente Finnextho',
       description: 'Especialista em educação financeira e uso da plataforma',
-      icon: '🤖'
+      icon: '💬'
     };
   };
-
-  const expertise = getExpertiseDisplay();
 
   // ✅ OTIMIZAÇÃO: Usar useCallback para funções que não mudam frequentemente
   const loadChatSessions = useCallback(async () => {
@@ -1099,66 +1139,6 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
     }
   };
 
-  // 🎯 HANDLER PARA RESPOSTAS DO BACKEND COM CONTEXTO
-  const handleBackendResponse = (response: any) => {
-    console.log('[FRONTEND] 🎯 handleBackendResponse chamado com:', response);
-    
-    // ✅ CORREÇÃO: Só mostrar ação automatizada se for uma ação que realmente precisa de confirmação
-    const shouldShowAction = response.metadata?.action && 
-      response.metadata.action.type !== 'GREETING' && 
-      response.metadata.action.type !== 'GENERAL_HELP' && 
-      response.metadata.action.type !== 'UNKNOWN' &&
-      response.metadata.requiresConfirmation === true;
-    
-    const botMessage: ChatMessage = {
-      id: `bot-${Date.now()}`,
-      sender: 'bot',
-      content: response.message,
-      timestamp: new Date(),
-      metadata: {
-        action: shouldShowAction ? response.metadata?.action : undefined,
-        requiresConfirmation: shouldShowAction ? response.metadata?.requiresConfirmation : false,
-        followUpQuestions: response.metadata?.followUpQuestions,
-        recommendations: response.metadata?.recommendations,
-        nextSteps: response.metadata?.nextSteps,
-        currentField: response.metadata?.currentField,
-        missingFields: response.metadata?.missingFields,
-        collectedData: response.metadata?.collectedData,
-        isDataCollection: response.metadata?.currentField ? true : false,
-        isComplete: response.metadata?.missingFields?.length === 0 && response.metadata?.collectedData
-      }
-    };
-
-    console.log('[FRONTEND] 📝 Criando mensagem do bot:', botMessage);
-    setMessages(prev => {
-      console.log('[FRONTEND] 📋 Estado anterior das mensagens:', prev.length);
-      const newMessages = [...prev, botMessage];
-      console.log('[FRONTEND] 📋 Novo estado das mensagens:', newMessages.length);
-      return newMessages;
-    });
-
-    // ✅ MODIFICADO: Mostrar confirmação para metas, transações E investimentos com dados completos
-    if (response.metadata?.action && 
-        ['CREATE_GOAL', 'CREATE_TRANSACTION', 'CREATE_INVESTMENT'].includes(response.metadata.action.type) &&
-        response.metadata?.collectedData && 
-        response.metadata?.missingFields?.length === 0) {
-      console.log('[FRONTEND] 📋 Criando mensagem de confirmação');
-      const confirmationMessage: ChatMessage = {
-        id: `confirmation-${Date.now()}`,
-        sender: 'bot',
-        content: '📋 **Confirme os dados:**',
-        timestamp: new Date(),
-        metadata: {
-          isSummary: true,
-          actionType: response.metadata.action?.type,
-          collectedData: response.metadata.collectedData,
-          requiresConfirmation: true
-        }
-      };
-      setMessages(prev => [...prev, confirmationMessage]);
-    }
-  };
-
   // 🎯 HANDLER PARA ENVIO DE MENSAGENS
   const handleSendMessage = async (message: string) => {
     if (!message.trim()) return;
@@ -1171,7 +1151,6 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
     setIsLoading(true);
 
     try {
@@ -1182,10 +1161,19 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
       
       const botMessage: ChatMessage = {
         id: `bot-${Date.now()}-${Math.random()}`,
-        content: response.message,
+        content: typeof response.message === 'string' ? 
+            response.message : 
+            String(response.message),
         timestamp: new Date(),
         sender: 'bot',
-        metadata: response.metadata
+        metadata: {
+          ...response.metadata,
+          recommendations: response.metadata?.recommendations?.map((rec: any, index: number) => ({
+            title: rec?.title || '',
+            action: rec?.action || '',
+            id: rec?.id || `rec-${index}-${Date.now()}`
+          }))
+        }
       };
 
       setMessages(prev => [...prev, botMessage]);
@@ -1289,12 +1277,12 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
       
       // ✅ CORREÇÃO: Verificar se response e response.messages existem
       if (response && response.success && response.messages && Array.isArray(response.messages)) {
-        const formattedMessages: ChatMessage[] = response.messages.map((msg: any) => ({
-          id: msg.metadata?.messageId || msg._id || `msg-${Date.now()}-${Math.random()}`,
-          sender: msg.sender === 'assistant' ? 'bot' : (msg.sender || 'bot'),
-          content: msg.content || 'Mensagem sem conteúdo',
-          timestamp: new Date(msg.timestamp || Date.now()),
-          metadata: msg.metadata || {}
+        const formattedMessages: ChatMessage[] = response.messages.map((msg: Record<string, unknown>) => ({
+          id: String((msg.metadata as Record<string, unknown>)?.messageId || msg._id || `msg-${Date.now()}-${Math.random()}`),
+          sender: (msg.sender === 'assistant' ? 'bot' : (msg.sender || 'bot')) as 'user' | 'bot' | 'assistant',
+          content: String(msg.content || 'Mensagem sem conteúdo'),
+          timestamp: new Date(msg.timestamp as string | number || Date.now()),
+          metadata: msg.metadata as ChatMessage['metadata'] || {}
         }));
         
         setMessages(formattedMessages);
@@ -1345,26 +1333,13 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
     }
   }, [activeSession]);
 
-  // ✅ OTIMIZAÇÃO: Função para lidar com tecla Enter
-  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (inputMessage.trim() && !isLoading) {
-        handleSendMessage(inputMessage); // Corrigido: passar inputMessage
-      }
-    }
-  }, [inputMessage, isLoading, handleSendMessage]);
-
-  // ✅ OTIMIZAÇÃO: Função para lidar com mudança no input
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputMessage(e.target.value);
-  }, []);
+  // ✅ REMOVIDO: Funções não utilizadas - o CommandBar tem seu próprio estado interno
 
   // Handlers para ações automatizadas
   const handleActionConfirmWithForm = async (action: AutomatedAction) => {
     // Se faltar campos obrigatórios, abrir formulário dinâmico
-    if (action.requiresConfirmation && action.payload && action.payload.missingFields) {
-      setDynamicFormFields(action.payload.missingFields);
+    if (action.requiresConfirmation && action.payload && Array.isArray(action.payload.missingFields)) {
+      setDynamicFormFields(action.payload.missingFields as string[]);
       setDynamicFormAction(action.type);
       setDynamicFormPayload(action.payload);
       setShowDynamicForm(true);
@@ -1392,7 +1367,14 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
     toast.info('Ação cancelada');
   };
 
-  const handleFeedback = async (feedbackData: any) => {
+  const handleFeedback = async (feedbackData: {
+    messageId: string;
+    rating: number;
+    helpful: boolean;
+    comment: string;
+    category: 'accuracy' | 'helpfulness' | 'clarity' | 'relevance';
+    context?: string;
+  }) => {
     try {
       await chatbotAPI.saveUserFeedback(feedbackData);
       console.log('Feedback enviado com sucesso!');
@@ -1409,58 +1391,13 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
     setFeedbackModal({ messageId: '', isOpen: false });
   };
 
-  // Funções para exclusão de sessões
-  const handleDeleteSession = async (chatId: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Evita que o clique propague para o loadSession
-    
-    if (window.confirm('Tem certeza que deseja excluir esta conversa? Esta ação não pode ser desfeita.')) {
-      try {
-        await chatbotDeleteAPI.deleteSession(chatId);
-        
-        // Remove a sessão da lista
-        setSessions(prev => prev.filter(s => s.chatId !== chatId));
-        
-        // Se a sessão ativa for a mesma que foi excluída, limpa a sessão ativa
-        if (activeSession?.chatId === chatId) {
-          setActiveSession(null);
-          setMessages([]);
-        }
-        
-        console.log('Sessão excluída com sucesso');
-      } catch (error) {
-        console.error('Erro ao excluir sessão:', error);
-        alert('Erro ao excluir a conversa. Tente novamente.');
-      }
-    }
-  };
-
-  const handleDeleteAllSessions = async () => {
-    if (window.confirm('Tem certeza que deseja excluir TODAS as conversas? Esta ação não pode ser desfeita.')) {
-      try {
-        await chatbotDeleteAPI.deleteAllSessions();
-        
-        // Limpa todas as sessões
-        setSessions([]);
-        setActiveSession(null);
-        setMessages([]);
-        
-        console.log('Todas as sessões foram excluídas com sucesso');
-      } catch (error) {
-        console.error('Erro ao excluir todas as sessões:', error);
-        alert('Erro ao excluir as conversas. Tente novamente.');
-      }
-    }
-  };
-
   // 🎛️ FUNÇÕES DO DASHBOARD DINÂMICO
   const handleDashboardCommand = (command: string) => {
     setDashboardCommand(command);
     setShowDashboard(true);
   };
 
-  const handleDashboardResponse = (response: any) => {
-    setDashboardResponse(response);
-    
+  const handleDashboardResponse = async (response: { success: boolean; message: string; data?: unknown }) => {
     // Adicionar resposta do dashboard como mensagem do bot
     if (response.success) {
       const dashboardMessage: ChatMessage = {
@@ -1471,7 +1408,7 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
         metadata: {
           action: {
             type: 'DASHBOARD_COMMAND', // ✅ CORRIGIDO: Usando tipo correto
-            payload: response.data,
+            payload: response.data as Record<string, unknown>,
             confidence: 1.0,
             requiresConfirmation: false,
             successMessage: response.message,
@@ -1490,7 +1427,6 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
   const closeDashboard = () => {
     setShowDashboard(false);
     setDashboardCommand('');
-    setDashboardResponse(null);
   };
 
   // 🎯 PROCESSAR COMANDOS ESPECIAIS DO CHATBOT
@@ -1527,7 +1463,7 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
   };
 
   // Novo: Submissão do formulário dinâmico
-  const handleDynamicFormSubmit = async (values: Record<string, any>) => {
+  const handleDynamicFormSubmit = async (values: Record<string, unknown>) => {
     setShowDynamicForm(false);
     // Mesclar valores preenchidos com o payload anterior
     const mergedPayload = { ...dynamicFormPayload, ...values };
@@ -1550,7 +1486,7 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
 
   // ✅ NOVO: Função para mostrar toast de sucesso
   const showSuccessToast = (action: string, details: string) => {
-    const messages = {
+    const successMessages = {
       'CREATE_GOAL': `🎯 Meta criada com sucesso! ${details}`,
       'CREATE_TRANSACTION': `📋 Transação registrada! ${details}`,
       'CREATE_INVESTMENT': `💼 Investimento adicionado! ${details}`,
@@ -1562,395 +1498,214 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
       'DELETE_INVESTMENT': `🗑️ Investimento removido! ${details}`
     };
 
-    const message = messages[action as keyof typeof messages] || `✅ ${action} realizado com sucesso!`;
+    const message = successMessages[action as keyof typeof successMessages] || `✅ ${action} realizado com sucesso!`;
     toast.success(message);
   };
 
   // ✅ NOVO: Função para mostrar toast de erro
   const showErrorToast = (error: string) => {
-    toast.error(`❌ ${error}`);
+    toast.error(error);
   };
-
-  // ✅ NOVO: Função para mostrar toast de informação
-  const showInfoToast = (message: string) => {
-    toast.info(message);
-  };
-
-  if (!user) return null;
 
   return (
-    <>
-      {/* Botão de toggle */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <button
-          onClick={() => handleToggle(!isOpen)}
-          className={`p-4 rounded-full shadow-lg transition-all duration-300 ${
-            isOpen ? 'bg-red-500 hover:bg-red-600' : theme.button
-          } text-white relative`}
-          aria-label={isOpen ? 'Fechar chat' : 'Abrir chat'}
-        >
-          {isOpen ? <X size={24} /> : <MessageCircle size={24} />}
-          {isPremiumUser && (
-            <span className="absolute -top-1 -right-1 bg-amber-500 text-xs rounded-full px-2 py-1">
-              <Sparkles size={12} />
-            </span>
-          )}
-        </button>
-      </div>
-
-      {/* Chat principal */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.9 }}
-            className={`fixed bottom-24 right-6 w-[90vw] max-w-md h-[70vh] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl flex flex-col z-50 border-2 ${theme.border} overflow-hidden`}
+    <div className="fixed bottom-4 right-4 z-50">
+      <ToastContainer />
+      
+      {/* Botão de toggle do chatbot - MELHORADO */}
+      {!isOpen && (
+        <div className="relative">
+          {/* Efeito de pulsação para chamar atenção */}
+          <div className="absolute inset-0 bg-blue-500 rounded-full animate-ping opacity-20"></div>
+          
+          <button
+            onClick={handleToggle}
+            className={`relative p-4 rounded-full shadow-xl ${theme.button} text-white hover:scale-110 active:scale-95 transition-all duration-300 ease-out hover:shadow-2xl group`}
+            title="Abrir Finn - Assistente Financeiro"
+            aria-label="Abrir chatbot"
           >
-            {!activeSession ? (
-              // Visualização de seleção de sessão
-              <div className="flex-1 p-4 overflow-y-auto">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                    {isMileagePage ? 'Consultas de Milhas' : 'Conversas'}
+            <Bot className="w-6 h-6 group-hover:animate-bounce" />
+            
+            {/* Badge de notificação */}
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+            
+            {/* Tooltip melhorado */}
+            <div className="absolute bottom-full right-0 mb-2 px-3 py-1 bg-gray-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+              💬 Pergunte sobre suas finanças
+              <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* Interface principal do chatbot - RESPONSIVA MELHORADA */}
+      {isOpen && (
+        <div className={`
+          w-96 max-w-[calc(100vw-2rem)] 
+          h-[600px] max-h-[calc(100vh-2rem)] 
+          bg-white dark:bg-gray-900 
+          rounded-xl shadow-2xl border ${theme.border} 
+          flex flex-col
+          animate-in slide-in-from-bottom-4 fade-in duration-300
+          md:w-96 sm:w-80
+        `}>
+          {/* Header - MELHORADO */}
+          <div className={`p-4 ${theme.headerBg} border-b ${theme.border} rounded-t-xl`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-full ${theme.bubbleBot} relative`}>
+                  <Bot className="w-5 h-5" />
+                  {/* Status online */}
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-900"></div>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    {getExpertiseDisplay().title}
+                    <Sparkles className="w-4 h-4 text-yellow-500" />
                   </h3>
-                  <button
-                    onClick={() => setIsNewSessionModalOpen(true)}
-                    className={`${theme.button} text-white px-4 py-2 rounded-lg text-sm flex items-center gap-2`}
-                  >
-                    {isMileagePage ? 'Nova Consulta' : 'Nova Conversa'}
-                  </button>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {getExpertiseDisplay().subtitle}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full font-medium">
+                  {getPlanDisplayName()}
+                </span>
+                <button
+                  onClick={handleToggle}
+                  className="p-1.5 rounded-full text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
+                  title="Fechar chat"
+                  aria-label="Fechar chatbot"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Área de mensagens - MELHORADA */}
+          <div className={`flex-1 overflow-y-auto p-4 ${theme.chatBg} scroll-smooth`}>
+            {messages.length === 0 ? (
+              <div className="text-center text-gray-500 dark:text-gray-400 mt-8 space-y-4">
+                <div className="relative mx-auto w-16 h-16">
+                  <Bot className="w-16 h-16 mx-auto opacity-50 animate-pulse" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-blue-500/20 to-transparent rounded-full"></div>
+                </div>
+                <div>
+                  <p className="text-lg font-medium mb-2">Olá! Eu sou o Finn 🤖</p>
+                  <p className="text-sm">Seu assistente financeiro inteligente</p>
+                  <p className="text-xs mt-2 opacity-75">Como posso ajudar você hoje?</p>
                 </div>
                 
-                {Array.isArray(sessions) && sessions.length > 0 ? (
-                  <div className="space-y-2">
-                    {sessions.map(session => (
-                      <div
-                        key={session.chatId}
-                        className="p-3 chat-border-bottom rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                      >
-                        <div 
-                          className="cursor-pointer"
-                          onClick={() => switchSession(session)}
-                        >
-                          <h4 className="font-medium text-gray-900 dark:text-white">{session.title}</h4>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
-                            {new Date(session.updatedAt).toLocaleString()}
-                          </p>
-                        </div>
-                        <div className="flex justify-end mt-2">
-                          <button
-                            onClick={(e) => deleteSession(session.chatId)}
-                            className="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
-                            title="Excluir conversa"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center h-full text-center">
-                    <MessageCircle className="w-12 h-12 text-gray-400 mb-4" />
-                    <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Nenhuma conversa encontrada</h4>
-                    <p className="text-gray-600 dark:text-gray-400 mb-4">
-                      Comece uma nova conversa para interagir com o assistente
-                    </p>
+                {/* Sugestões rápidas */}
+                <div className="grid grid-cols-1 gap-2 mt-6 text-left">
+                  {[
+                    { icon: "💰", text: "Como organizar meu orçamento?" },
+                    { icon: "📈", text: "Qual o melhor investimento?" },
+                    { icon: "🎯", text: "Como definir metas financeiras?" },
+                    { icon: "💱", text: "Cotação do dólar hoje" }
+                  ].map((suggestion, index) => (
                     <button
-                      onClick={startNewSession}
-                      className={`${theme.button} text-white px-6 py-2 rounded-lg flex items-center gap-2`}
+                      key={index}
+                      onClick={() => handleSendMessage(suggestion.text)}
+                      className="p-3 text-left rounded-lg bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-sm border border-gray-200 dark:border-gray-700"
                     >
-                      Iniciar Chat
+                      <span className="mr-2">{suggestion.icon}</span>
+                      {suggestion.text}
                     </button>
-                  </div>
-                )}
+                  ))}
+                </div>
               </div>
             ) : (
-              // Chat ativo
-              <>
-                <header className={`${theme.headerBg} p-4 chat-border-bottom flex justify-between items-center`}>
-                  <div>
-                    <h3 className="font-bold chat-title">{activeSession.title}</h3>
-                    <p className="text-xs chat-subtitle">
-                      {isPremiumUser ? (
-                        <span className="flex items-center gap-1">
-                          <Sparkles size={12} /> {getPlanDisplayName()}
-                        </span>
-                      ) : 'Modo Básico'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setActiveSession(null)}
-                    className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
-                  >
-                    <X size={18} />
-                  </button>
-                </header>
-
-                <div className={`flex-1 p-4 overflow-y-auto ${theme.chatBg}`}>
-                  <div className="space-y-6">
-                    {messages.map((msg) => (
-                      <AdvancedMessageBubble 
-                        key={msg.id}
-                        message={msg}
-                        theme={theme}
-                        isPremium={isPremiumUser}
-                        onFeedback={openFeedbackModal}
-                        onActionConfirm={handleActionConfirm}
-                        onActionEdit={handleActionEdit}
-                        onActionCancel={handleActionCancel}
-                      />
-                    ))}
-                    {isLoading && (
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-full">
-                          <Bot className="w-5 h-5 text-indigo-500 dark:text-indigo-300" />
-                        </div>
-                        <div className="p-3 rounded-lg bg-white dark:bg-gray-700 shadow-sm">
-                          <div className="flex items-center space-x-1">
-                            <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse"></span>
-                            <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></span>
-                            <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    <div ref={messagesEndRef} />
-                  </div>
-                </div>
-
-                <div className={`p-4 border-t border-gray-200 dark:border-gray-700 ${theme.headerBg}`}>
-                  <CommandBar 
-                    onSubmit={handleSendMessage}
-                    isLoading={isLoading}
+              <div className="space-y-4">
+                {messages.map((message) => (
+                  <AdvancedMessageBubble
+                    key={message.id}
+                    message={message}
                     theme={theme}
-                    placeholder={isMileagePage 
-                      ? "Pergunte sobre suas milhas, cartões ou resgates..."
-                      : "Como posso te ajudar hoje?"
-                    }
+                    isPremium={isPremiumUser}
+                    onFeedback={openFeedbackModal}
+                    onActionConfirm={handleActionConfirm}
+                    onActionEdit={handleActionEdit}
+                    onActionCancel={handleActionCancel}
                   />
-                </div>
-              </>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
             )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+
+          {/* Área de input */}
+          <div className={`p-4 ${theme.headerBg} border-t ${theme.border} rounded-b-lg`}>
+            <CommandBar
+              onSubmit={handleSendMessage}
+              isLoading={isLoading}
+              theme={theme}
+              placeholder="Digite sua mensagem..."
+            />
+          </div>
+        </div>
+      )}
 
       {/* Modal de nova sessão */}
       {isNewSessionModalOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4"
-          >
-            <h3 className="text-lg font-bold mb-4 dark:text-white">
-              {isMileagePage ? 'Nova Consulta de Milhas' : 'Nova Conversa'}
-            </h3>
-            <p className="mb-6 text-gray-600 dark:text-gray-300">
-              {isMileagePage
-                ? (isPremiumUser
-                    ? "Você está iniciando uma nova consulta com o especialista premium em milhas. Posso analisar seus cartões, calcular pontos e otimizar seus resgates."
-                    : "Você está iniciando uma nova consulta sobre milhas. Posso ajudar com dúvidas sobre programas de fidelidade e cartões de crédito.")
-                : (isPremiumUser
-                    ? "Você está iniciando uma nova sessão com o consultor financeiro premium. Posso executar ações automaticamente e analisar seus dados em tempo real."
-                    : "Você está iniciando uma nova conversa com o assistente básico. Posso ajudar com dúvidas sobre o app e conceitos financeiros gerais.")}
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Nova Conversa</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
+              Deseja iniciar uma nova conversa?
             </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setIsNewSessionModalOpen(false)}
-                className="px-4 py-2 border rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                Cancelar
-              </button>
+            <div className="flex gap-2">
               <button
                 onClick={startNewSession}
                 disabled={isLoading}
-                className={`px-4 py-2 ${theme.button} text-white rounded-lg disabled:opacity-50 flex items-center gap-2`}
+                className={`flex-1 ${theme.button} text-white px-4 py-2 rounded-lg disabled:opacity-50`}
               >
-                {isLoading ? 'Iniciando...' : (isMileagePage ? 'Começar Consulta' : 'Começar Conversa')}
+                {isLoading ? 'Criando...' : 'Sim, criar'}
+              </button>
+              <button
+                onClick={() => setIsNewSessionModalOpen(false)}
+                className="flex-1 bg-gray-500 text-white px-4 py-2 rounded-lg"
+              >
+                Cancelar
               </button>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
 
-      {/* Modal de feedback */}
-      <AnimatePresence>
-        {feedbackModal.isOpen && (
-          <FeedbackModal
-            messageId={feedbackModal.messageId}
-            onClose={closeFeedbackModal}
-            onSubmit={handleFeedback}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* 🎛️ Dashboard Dinâmico */}
-      <DynamicDashboard
-        isVisible={showDashboard}
-        onClose={closeDashboard}
-        chatbotCommand={dashboardCommand}
-        onCommandResponse={handleDashboardResponse}
-      />
-
-      {/* Novo: Modal de formulário dinâmico */}
+      {/* Formulário dinâmico */}
       {showDynamicForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4"
-          >
-            <h3 className="text-lg font-bold mb-4 dark:text-white">
-              Preencha os campos obrigatórios para {dynamicFormAction}
-            </h3>
-            <DynamicForm
-              actionType={dynamicFormAction}
-              missingFields={dynamicFormFields}
-              onSubmit={handleDynamicFormSubmit}
-              onCancel={handleDynamicFormCancel}
-            />
-          </motion.div>
+          <DynamicForm
+            actionType={dynamicFormAction}
+            missingFields={dynamicFormFields}
+            onSubmit={handleDynamicFormSubmit}
+            onCancel={handleDynamicFormCancel}
+          />
         </div>
       )}
 
-      {/* ToastContainer para notificações */}
-      <ToastContainer />
-    </>
+      {/* Dashboard */}
+      {showDashboard && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Dashboard</h3>
+              <button
+                onClick={closeDashboard}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="text-gray-600 dark:text-gray-300">
+              <p>Comando: {dashboardCommand}</p>
+              <p className="mt-2">Dashboard em desenvolvimento...</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
-
-// Componente de Feedback Modal
-const FeedbackModal = ({ messageId, onClose, onSubmit }: {
-  messageId: string;
-  onClose: () => void;
-  onSubmit: (feedback: any) => void;
-}) => {
-  const [feedback, setFeedback] = useState({
-    rating: 0,
-    helpful: true,
-    comment: '',
-    category: 'helpfulness' as 'accuracy' | 'helpfulness' | 'clarity' | 'relevance'
-  });
-
-  const handleSubmit = () => {
-    onSubmit({
-      messageId,
-      rating: feedback.rating,
-      helpful: feedback.helpful,
-      comment: feedback.comment,
-      category: feedback.category,
-      context: ''
-    });
-    onClose();
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-    >
-      <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4"
-      >
-        <h3 className="text-lg font-bold mb-4 dark:text-white">Avalie esta resposta</h3>
-        
-        <div className="mb-4">
-          <label className="block mb-2 dark:text-gray-300">Qualidade:</label>
-          <div className="flex gap-2">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <button 
-                key={star}
-                onClick={() => setFeedback({...feedback, rating: star})}
-                className={`p-2 rounded-full transition-colors ${
-                  feedback.rating >= star 
-                    ? 'bg-yellow-500 text-white' 
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500'
-                }`}
-              >
-                <Star size={16} fill={feedback.rating >= star ? 'currentColor' : 'none'} />
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        <div className="mb-4">
-          <label className="block mb-2 dark:text-gray-300">Foi útil?</label>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFeedback({...feedback, helpful: true})}
-              className={`px-4 py-2 rounded-lg border transition-colors ${
-                feedback.helpful 
-                  ? 'bg-green-500 text-white border-green-500' 
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'
-              }`}
-            >
-              <ThumbsUp size={16} className="mr-2" />
-              Sim
-            </button>
-            <button
-              onClick={() => setFeedback({...feedback, helpful: false})}
-              className={`px-4 py-2 rounded-lg border transition-colors ${
-                !feedback.helpful 
-                  ? 'bg-red-500 text-white border-red-500' 
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600'
-              }`}
-            >
-              <ThumbsDown size={16} className="mr-2" />
-              Não
-            </button>
-          </div>
-        </div>
-        
-        <div className="mb-4">
-          <label className="block mb-2 dark:text-gray-300">Categoria:</label>
-          <select
-            value={feedback.category}
-            onChange={(e) => setFeedback({...feedback, category: e.target.value as any})}
-            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-          >
-            <option value="helpfulness">Utilidade</option>
-            <option value="accuracy">Precisão</option>
-            <option value="clarity">Clareza</option>
-            <option value="relevance">Relevância</option>
-          </select>
-        </div>
-        
-        <div className="mb-6">
-          <label className="block mb-2 dark:text-gray-300">Comentário (opcional):</label>
-          <textarea
-            value={feedback.comment}
-            onChange={(e) => setFeedback({...feedback, comment: e.target.value})}
-            placeholder="Conte-nos mais sobre sua experiência..."
-            className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
-            rows={3}
-          />
-        </div>
-        
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={feedback.rating === 0}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-400 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
-          >
-            Enviar Feedback
-          </button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};   

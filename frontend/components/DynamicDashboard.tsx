@@ -6,20 +6,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  BarChart3, TrendingUp, Target, DollarSign, 
-  CreditCard, PiggyBank, Calendar, AlertTriangle,
-  CheckCircle, XCircle, Clock, Star, Zap,
-  Eye, Edit3, Trash2, Plus, Settings, RefreshCw,
-  X, List
+  BarChart3, DollarSign, AlertTriangle,
+  Zap, RefreshCw, X, List
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
 interface DashboardWidget {
   id: string;
   type: 'chart' | 'metric' | 'list' | 'alert' | 'action';
   title: string;
-  data: any;
+  data: MetricData | ListData | ChartData | AlertData | ActionData;
   position: { x: number; y: number; w: number; h: number };
   isVisible: boolean;
   isEditable: boolean;
@@ -38,7 +34,60 @@ interface DynamicDashboardProps {
   isVisible: boolean;
   onClose: () => void;
   chatbotCommand?: string;
-  onCommandResponse?: (response: any) => void;
+  onCommandResponse?: (response: CommandResponse) => void;
+}
+
+interface CommandResponse {
+  success: boolean;
+  message: string;
+  action?: string;
+  data?: unknown;
+  error?: string;
+}
+
+interface MetricData {
+  type: 'metric';
+  value: number;
+  currency?: string;
+  lastUpdated?: Date;
+}
+
+interface ListData {
+  type: 'list';
+  items: Array<{
+    name: string;
+    value: number;
+  }>;
+  lastUpdated?: Date;
+}
+
+interface ChartData {
+  type: 'chart';
+  data: Array<{
+    name: string;
+    value: number;
+  }>;
+  lastUpdated?: Date;
+}
+
+interface AlertData {
+  type: 'alert';
+  items: Array<{
+    message: string;
+    severity?: 'info' | 'warning' | 'error';
+  }>;
+  lastUpdated?: Date;
+}
+
+interface ActionData {
+  type: 'action';
+  actions: Array<{
+    name: string;
+    description?: string;
+    icon?: string;
+    onClick: () => void;
+  }>;
+  lastUpdated?: Date;
 }
 
 export default function DynamicDashboard({ 
@@ -47,7 +96,6 @@ export default function DynamicDashboard({
   chatbotCommand,
   onCommandResponse 
 }: DynamicDashboardProps) {
-  const { user } = useAuth();
   const { theme } = useTheme();
   const [dashboardConfig, setDashboardConfig] = useState<DashboardConfig>({
     layout: 'grid',
@@ -293,20 +341,20 @@ export default function DynamicDashboard({
     return titles[type as keyof typeof titles] || 'Widget';
   };
 
-  const getWidgetData = (type: string): any => {
+  const getWidgetData = (type: string): MetricData | ListData | ChartData | AlertData | ActionData => {
     const data = {
-      balance: { type: 'metric', value: 0, currency: 'BRL' },
-      transactions: { type: 'list', items: [] },
-      goals: { type: 'list', items: [] },
-      investments: { type: 'chart', data: [] },
-      analytics: { type: 'chart', data: [] },
-      alerts: { type: 'alert', items: [] }
+      balance: { type: 'metric' as const, value: 0, currency: 'BRL' },
+      transactions: { type: 'list' as const, items: [] },
+      goals: { type: 'list' as const, items: [] },
+      investments: { type: 'chart' as const, data: [] },
+      analytics: { type: 'chart' as const, data: [] },
+      alerts: { type: 'alert' as const, items: [] }
     };
     
-    return data[type as keyof typeof data] || { type: 'metric', value: 0 };
+    return data[type as keyof typeof data] || { type: 'metric' as const, value: 0 };
   };
 
-  // 🎨 RENDERIZAR WIDGET
+  // �� RENDERIZAR WIDGET
   const renderWidget = (widget: DashboardWidget) => {
     switch (widget.type) {
       case 'metric':
@@ -414,30 +462,39 @@ export default function DynamicDashboard({
 
 // 🎯 COMPONENTES DE WIDGET
 
-const MetricWidget = ({ widget }: { widget: DashboardWidget }) => (
+const MetricWidget = ({ widget }: { widget: DashboardWidget }) => {
+  if (widget.type !== 'metric') return null;
+  const data = widget.data as MetricData;
+
+  return (
   <div className="p-6">
     <div className="flex items-center justify-between mb-4">
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{widget.title}</h3>
       <DollarSign className="w-5 h-5 text-green-500" />
     </div>
     <div className="text-3xl font-bold text-gray-900 dark:text-white">
-      R$ {widget.data.value?.toFixed(2) || '0,00'}
+        R$ {data.value?.toFixed(2) || '0,00'}
     </div>
     <div className="text-sm text-gray-500 mt-2">
       Atualizado agora
     </div>
   </div>
 );
+};
 
-const ListWidget = ({ widget }: { widget: DashboardWidget }) => (
+const ListWidget = ({ widget }: { widget: DashboardWidget }) => {
+  if (widget.type !== 'list') return null;
+  const data = widget.data as ListData; // Type assertion
+
+  return (
   <div className="p-6">
     <div className="flex items-center justify-between mb-4">
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{widget.title}</h3>
       <List className="w-5 h-5 text-blue-500" />
     </div>
     <div className="space-y-3">
-      {widget.data.items?.length > 0 ? (
-        widget.data.items.map((item: any, index: number) => (
+        {data.items?.length > 0 ? (
+          data.items.map((item: any, index: number) => (
           <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <span className="text-sm text-gray-900 dark:text-white">{item.name}</span>
             <span className="text-sm font-medium text-gray-900 dark:text-white">
@@ -453,6 +510,7 @@ const ListWidget = ({ widget }: { widget: DashboardWidget }) => (
     </div>
   </div>
 );
+};
 
 const ChartWidget = ({ widget }: { widget: DashboardWidget }) => (
   <div className="p-6">
@@ -466,15 +524,19 @@ const ChartWidget = ({ widget }: { widget: DashboardWidget }) => (
   </div>
 );
 
-const AlertWidget = ({ widget }: { widget: DashboardWidget }) => (
+const AlertWidget = ({ widget }: { widget: DashboardWidget }) => {
+  if (widget.type !== 'alert') return null;
+  const data = widget.data as AlertData; // Type assertion
+  
+  return (
   <div className="p-6">
     <div className="flex items-center justify-between mb-4">
       <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{widget.title}</h3>
       <AlertTriangle className="w-5 h-5 text-yellow-500" />
     </div>
     <div className="space-y-3">
-      {widget.data.items?.length > 0 ? (
-        widget.data.items.map((alert: any, index: number) => (
+        {data.items?.length > 0 ? (
+          data.items.map((alert: any, index: number) => (
           <div key={index} className="flex items-center space-x-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
             <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
             <span className="text-sm text-yellow-800 dark:text-yellow-200">{alert.message}</span>
@@ -488,6 +550,7 @@ const AlertWidget = ({ widget }: { widget: DashboardWidget }) => (
     </div>
   </div>
 );
+};
 
 const ActionWidget = ({ widget }: { widget: DashboardWidget }) => (
   <div className="p-6">

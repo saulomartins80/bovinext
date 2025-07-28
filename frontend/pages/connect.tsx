@@ -3,7 +3,6 @@ import { useRouter } from 'next/router';
 import { motion } from 'framer-motion';
 import { CheckCircle, AlertCircle, RefreshCw, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { toast } from 'react-toastify';
 
 export default function ConnectCallback() {
   const router = useRouter();

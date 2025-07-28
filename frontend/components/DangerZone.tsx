@@ -1,6 +1,6 @@
 // components/DangerZone.tsx
 import { useState } from 'react';
-import { FiTrash2, FiDownload, FiAlertTriangle } from 'react-icons/fi';
+import { FiDownload, FiAlertTriangle } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { deleteUser } from 'firebase/auth';
 import { auth } from '../lib/firebase/client';
@@ -50,9 +50,9 @@ export default function DangerZone({ userId, onAccountDeleted }: DangerZoneProps
 
       toast.success('Conta excluída com sucesso. Esperamos vê-lo novamente no futuro!');
       onAccountDeleted();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting account:', error);
-      toast.error(`Erro ao excluir conta: ${error.message}`);
+      toast.error(`Erro ao excluir conta: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsDeleting(false);
     }

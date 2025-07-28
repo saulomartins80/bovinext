@@ -9,12 +9,6 @@ import { useTheme } from "../context/ThemeContext";
 import { useRouter } from 'next/router';
 import { Investimento } from '../types';
 
-interface ApiResponse<T> {
-  success: boolean;
-  data?: T;
-  message?: string;
-}
-
 // Componente dinâmico para os gráficos
 const Chart = dynamic(() => import('react-apexcharts'), {
   ssr: false,

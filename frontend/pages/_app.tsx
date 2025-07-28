@@ -1,4 +1,13 @@
 // frontend/pages/_app.tsx
+// 
+// ROUTING STRUCTURE:
+// - PUBLIC PAGES: All marketing, legal, company, blog, community pages (no authentication required)
+//   Examples: /, /recursos, /solucoes, /precos, /clientes, /contato, /sobre, /termos, 
+//             /blog, /comunidade, /carreiras, /imprensa, /privacidade, /cookies, etc.
+// - AUTH PAGES: Login, register, forgot password (no layout, just the form)
+// - PROTECTED PAGES: Only dashboard and financial features (require authentication)
+//   Examples: /dashboard, /transacoes, /investimentos, /metas, /milhas, /configuracoes, /profile
+//
 import { useRouter } from 'next/router'
 import { ThemeProvider, useTheme } from '../context/ThemeContext'
 import { AuthProvider } from '../context/AuthContext'
@@ -11,11 +20,14 @@ import '../tailwind-output.css'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import '../styles/globals.css'
-import LoadingSpinner from '../components/LoadingSpinner'
+import '../styles/splide.css'
+import 'react-tabs/style/react-tabs.css'
 import { GoogleAnalytics } from '../components/GoogleAnalytics'
 import AuthInitializer from '../components/AuthInitializer'
 import { Elements } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
+import '../i18n';
+import { PROTECTED_ROUTES, AUTH_PAGES, isProtectedRoute, isAuthPage } from '../utils/routes';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUB_KEY!);
 
@@ -29,30 +41,30 @@ function PublicLayout({ children }: { children: React.ReactNode }) {
 
 function AppContent({ Component, pageProps }: { Component: AppProps['Component']; pageProps: AppProps['pageProps'] }) {
   const router = useRouter()
-  const isPublicRoute = ['/', '/recursos', '/solucoes', '/precos', '/clientes', '/contato', '/sobre', '/termos']
-    .includes(router.pathname)
-  const isAuthRoute = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/complete-registration']
-    .includes(router.pathname)
-
-  if (isPublicRoute) {
-    return (
-      <PublicLayout>
-        <Component {...pageProps} />
-      </PublicLayout>
-    )
+  
+  // Auth pages (login, register, etc.) get no layout
+  if (isAuthPage(router.pathname)) {
+    return <Component {...pageProps} />;
   }
-
-  return (
-    <AuthInitializer>
-      {!isAuthRoute ? (
+  
+  // Protected routes need authentication and the protected layout
+  if (isProtectedRoute(router.pathname)) {
+    return (
+      <AuthInitializer>
         <Layout>
           <Component {...pageProps} />
         </Layout>
-      ) : (
-        <Component {...pageProps} />
-      )}
-    </AuthInitializer>
-  )
+      </AuthInitializer>
+    );
+  }
+  
+  // All other routes are public and use the public layout
+  // This includes: marketing pages, legal pages, company info, blog, community, etc.
+  return (
+    <PublicLayout>
+      <Component {...pageProps} />
+    </PublicLayout>
+  );
 }
 
 function ProtectedAppContent({ Component, pageProps }: AppProps) {
@@ -97,15 +109,15 @@ function ToastContainerWithTheme() {
 
 function MyApp(props: AppProps) {
   const router = useRouter()
-  const isPublicRoute = ['/', '/recursos', '/solucoes', '/precos', '/clientes', '/contato', '/sobre', '/termos']
-    .includes(router.pathname)
-  const isAuthRoute = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/complete-registration']
-    .includes(router.pathname)
+  
+  // Check if current route requires authentication (dashboard and financial features only)
+  // All other routes are public (including auth routes, marketing pages, legal pages, etc.)
+  const routeNeedsAuth = isProtectedRoute(router.pathname);
 
   return (
     <ThemeProvider>
       <AuthProvider>
-        {isPublicRoute || isAuthRoute ? (
+        {!routeNeedsAuth ? (
           <>
             <GoogleAnalytics />
             <ToastContainerWithTheme />

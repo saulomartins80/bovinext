@@ -10,7 +10,6 @@ import { FiLock, FiAlertCircle, FiCheckCircle } from 'react-icons/fi';
 export default function ChangePasswordPage() {
   const { user, loading: authLoading, authChecked } = useAuth();
   const router = useRouter();
-  const [currentPassword, setCurrentPassword] = useState(''); // Opcional, mas bom para reautenticação
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -51,13 +50,13 @@ export default function ChangePasswordPage() {
         setSuccess('Senha alterada com sucesso!');
         setNewPassword('');
         setConfirmPassword('');
-        setCurrentPassword(''); // Limpar se estiver usando
-      } catch (err: any) {
+        // setCurrentPassword(''); // Limpar se estiver usando
+      } catch (err: unknown) {
         console.error('Erro ao alterar senha:', err);
-        if (err.code === 'auth/requires-recent-login') {
+        if ((err as { code?: string }).code === 'auth/requires-recent-login') {
           setError('Esta operação é sensível e requer login recente. Por favor, faça login novamente e tente de novo.');
           // Opcionalmente, redirecionar para login aqui ou pedir a senha atual para reautenticar.
-        } else if (err.code === 'auth/weak-password') {
+        } else if ((err as { code?: string }).code === 'auth/weak-password') {
           setError('A nova senha é muito fraca.');
         } else {
           setError('Ocorreu um erro ao alterar a senha. Tente novamente.');
