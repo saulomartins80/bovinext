@@ -9,6 +9,7 @@ import automatedActions from './automatedActions';
 import subscriptionRoutes from './subscriptionRoutes';
 import pluggyRoutes from './pluggyRoutes';
 import mileageRoutes from './mileageRoutes';
+import rpaRoutes from './rpaRoutes';
 
 const router = express.Router();
 
@@ -25,5 +26,6 @@ router.use('/automated-actions', automatedActions);
 router.use('/subscriptions', subscriptionRoutes);
 router.use('/pluggy', pluggyRoutes);
 router.use('/mileage', mileageRoutes);
+router.use('/rpa', rpaRoutes);
 
 export default router; 

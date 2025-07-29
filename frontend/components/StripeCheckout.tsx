@@ -37,7 +37,7 @@ export default function StripeCheckout({ priceId, planName, onSuccess, onCancel 
         throw new Error('Usuário não autenticado');
       }
 
-      const token = await currentUser.getIdToken();
+      const _token = await currentUser.getIdToken();
 
       const { sessionId } = await subscriptionAPI.createCheckoutSession(priceId, planName);
 

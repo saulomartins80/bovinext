@@ -12,7 +12,7 @@ if (!process.env.DEEPSEEK_API_KEY) {
 const openai = new OpenAI({
   apiKey: process.env.DEEPSEEK_API_KEY,
   baseURL: 'https://api.deepseek.com/v1',
-  timeout: 10000,
+  timeout: 5000, // ✅ REDUZIDO: De 10s para 5s
 });
 
 // ===== SISTEMA DE PERSONALIDADE APRIMORADO =====
@@ -2060,6 +2060,71 @@ Seja inteligente, preciso e útil. Use dados reais quando disponível.`;
     
     return Array.from(topics);
   }
+
+  // ✅ NOVO: Sistema de respostas pré-definidas
+  public getPredefinedResponse(message: string, userContext?: any): string | null {
+    const lowerMessage = message.toLowerCase().trim();
+    const plan = userContext?.plan || 'Gratuito';
+    const userName = userContext?.name?.split(' ')[0] || 'amigo';
+    
+    // Respostas para cumprimentos
+    const greetings = {
+      'oi': `Oi ${userName}! 👋 Como posso te ajudar hoje?`,
+      'olá': `Olá ${userName}! 👋 Tudo bem? Como posso te ajudar?`,
+      'ola': `Oi ${userName}! 👋 Tudo bem? Como posso te ajudar?`,
+      'hey': `Hey ${userName}! 👋 O que você precisa?`,
+      'hi': `Hi ${userName}! 👋 Como posso te ajudar?`,
+      'hello': `Hello ${userName}! 👋 Como posso te ajudar?`,
+      'tudo bem': `Tudo bem sim! 😊 E com você ${userName}? Como posso te ajudar hoje?`,
+      'beleza': `Beleza! 😎 E aí ${userName}, o que você precisa?`,
+      'tranquilo': `Tranquilo! 😌 Como posso te ajudar ${userName}?`
+    };
+    
+    for (const [greeting, response] of Object.entries(greetings)) {
+      if (lowerMessage.includes(greeting)) {
+        return plan.includes('Top') ? 
+          `${response} Com seu plano Top, você tem acesso a análises avançadas e consultoria personalizada!` : 
+          response;
+      }
+    }
+    
+    // Respostas para ajuda
+    if (lowerMessage.includes('ajuda') || lowerMessage.includes('help') || 
+        lowerMessage.includes('como funciona') || lowerMessage.includes('o que você pode fazer')) {
+      
+      if (plan.includes('Top')) {
+        return `Com seu plano Top, você tem acesso a tudo! 🎯 Criar metas, 💰 registrar transações, 📈 acompanhar investimentos, 📊 análises avançadas, 🤖 IA personalizada, 📱 suporte prioritário e muito mais. O que você gostaria de fazer?`;
+      } else {
+        return `Posso te ajudar com várias coisas! 🎯 Criar metas, 💰 registrar transações, 📈 acompanhar investimentos, 📊 fazer análises financeiras e muito mais. O que você gostaria de fazer?`;
+      }
+    }
+    
+    // Respostas para status
+    if (lowerMessage.includes('como estou') || lowerMessage.includes('meu status') || 
+        lowerMessage.includes('minhas finanças') || lowerMessage.includes('resumo')) {
+      
+      const hasData = userContext?.hasTransactions || userContext?.hasInvestments || userContext?.hasGoals;
+      if (!hasData) {
+        return `Vejo que você ainda não tem dados registrados. Que tal começarmos criando sua primeira transação ou meta? Posso te ajudar com isso!`;
+      } else {
+        return `Vou buscar um resumo completo das suas finanças para você! 📊`;
+      }
+    }
+    
+    // Respostas para agradecimentos
+    if (lowerMessage.includes('obrigado') || lowerMessage.includes('valeu') || 
+        lowerMessage.includes('thanks') || lowerMessage.includes('thank you')) {
+      return `Por nada! 😊 Fico feliz em ajudar. Precisa de mais alguma coisa?`;
+    }
+    
+    // Respostas para despedidas
+    if (lowerMessage.includes('tchau') || lowerMessage.includes('até logo') || 
+        lowerMessage.includes('bye') || lowerMessage.includes('até mais')) {
+      return `Até logo ${userName}! 👋 Foi um prazer te ajudar. Volte sempre!`;
+    }
+    
+    return null;
+  }
 }
 
 // ===== SISTEMA DE APRENDIZADO CONTÍNUO =====
@@ -2133,17 +2198,19 @@ class FeedbackLearner {
 
 export default class AIService {
   private marketService: MarketService;
-  private responseCache: Map<string, any> = new Map();
+  private responseCache: ResponseCache;
   private learningCache: Map<string, number> = new Map();
   private feedbackDatabase: Map<string, any[]> = new Map();
   private userPreferences: Map<string, any> = new Map();
   private finnEngine: FinnEngine;
   private feedbackLearner: FeedbackLearner;
-  
-  // ✅ NOVO: Cache otimizado com TTL
-  private cacheTTL: Map<string, number> = new Map();
-  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
-  private readonly MAX_CACHE_SIZE = 50;
+  private brazilianContext: BrazilianCulturalContext;
+  private humorSystem: HumorSystem;
+  private relationshipMemory: RelationshipMemory;
+  private emotionalMemory: EmotionalMemory;
+  private longTermMemory: LongTermMemory;
+  private rewardSystem: RewardSystem;
+  private conversationManager: ConversationManager;
 
   private PREMIUM_SYSTEM_PROMPT = `
     Você é o Finn, um consultor financeiro certificado (CFA, CFP, CNAI, CNPI) da plataforma Finnextho.
@@ -2161,8 +2228,16 @@ export default class AIService {
 
   constructor() {
     this.marketService = new MarketService();
+    this.responseCache = new ResponseCache();
     this.finnEngine = new FinnEngine();
     this.feedbackLearner = new FeedbackLearner();
+    this.brazilianContext = new BrazilianCulturalContext();
+    this.humorSystem = new HumorSystem();
+    this.relationshipMemory = new RelationshipMemory();
+    this.emotionalMemory = new EmotionalMemory();
+    this.longTermMemory = new LongTermMemory();
+    this.rewardSystem = new RewardSystem();
+    this.conversationManager = new ConversationManager();
   }
 
   // ===== MÉTODOS PARA GESTÃO DE CONQUISTAS E EXPERIÊNCIA =====
@@ -2431,70 +2506,201 @@ export default class AIService {
     const startTime = Date.now();
     
     try {
-      // ✅ OTIMIZAÇÃO: Se não há contexto específico, usar o novo sistema Finn
-      if (!systemPrompt || systemPrompt.includes('Finn')) {
-        const response = await this.finnEngine.generateResponse(
-          userContext?.userId || 'anonymous',
-          userMessage,
-          userContext,
-          conversationHistory // ✅ CORREÇÃO: Passar o histórico da conversa
-        );
-
-        // ✅ CORREÇÃO: Garantir que a resposta seja uma string
-        const responseText = typeof response === 'string' ? response : JSON.stringify(response);
-
-        return {
-          text: responseText,
-          analysisData: {
-            responseTime: Date.now() - startTime,
-            engine: 'finn',
-            confidence: 0.9
-          }
-        };
+      // ✅ OTIMIZAÇÃO: Verificar cache primeiro
+      const cacheKey = this.getCacheKey(systemPrompt, userMessage);
+      const cached = this.responseCache.get(cacheKey);
+      if (cached) {
+        console.log(`[AIService] ⚡ Cache hit - resposta em ${Date.now() - startTime}ms`);
+        return cached;
       }
 
-      // ✅ FALLBACK: Se não for Finn, usar OpenAI
-      const messages = [
-        { role: 'system', content: systemPrompt },
-        ...conversationHistory.map(msg => ({
-          role: msg.sender === 'user' ? 'user' : 'assistant',
-          content: msg.content
-        })),
-        { role: 'user', content: userMessage }
-      ];
+      // ✅ OTIMIZAÇÃO: Usar FinnEngine para respostas mais rápidas
+      if (!systemPrompt || systemPrompt.trim() === '') {
+        console.log(`[FinnEngine] Gerando resposta para usuário ${userContext?.name || 'unknown'}`);
+        console.log(`[FinnEngine] Contexto disponível:`, {
+          hasUserContext: !!userContext,
+          userName: userContext?.name,
+          userPlan: userContext?.plan,
+          hasTransactions: userContext?.hasTransactions,
+          hasInvestments: userContext?.hasInvestments,
+          hasGoals: userContext?.hasGoals,
+          stressLevel: userContext?.stressLevel || 0,
+          recentEmotions: userContext?.recentEmotions || [],
+          conversationHistoryLength: conversationHistory.length
+        });
 
-      // ✅ OTIMIZAÇÃO: Configurações otimizadas
-      const completion = await openai.chat.completions.create({
-        model: 'deepseek-chat',
-        messages: messages as any,
-        temperature: 0.7,
-        max_tokens: 300, // Reduzido de 400 para 300
-      });
+        // ✅ NOVO: Resposta rápida baseada no contexto
+        const quickResponse = this.getQuickResponse(userMessage, userContext);
+        if (quickResponse) {
+          const response = {
+            text: quickResponse,
+            analysisData: {
+              confidence: 0.9,
+              intent: 'QUICK_RESPONSE',
+              requiresConfirmation: false
+            }
+          };
+          
+          // Cache da resposta
+          this.responseCache.set(cacheKey, response);
+          
+          console.log(`[FinnEngine] ✅ Resposta rápida gerada em ${Date.now() - startTime}ms`);
+          return response;
+        }
 
-      const aiResponse = completion.choices[0]?.message?.content || 'Desculpe, não consegui processar sua mensagem.';
+        // ✅ NOVO: Respostas pré-definidas
+        const predefinedResponse = this.finnEngine.getPredefinedResponse(userMessage, userContext);
+        if (predefinedResponse) {
+          const response = {
+            text: predefinedResponse,
+            analysisData: {
+              confidence: 0.95,
+              intent: 'PREDEFINED_RESPONSE',
+              requiresConfirmation: false
+            }
+          };
+          
+          // Cache da resposta
+          this.responseCache.set(cacheKey, response);
+          
+          console.log(`[FinnEngine] ✅ Resposta pré-definida gerada em ${Date.now() - startTime}ms`);
+          return response;
+        }
 
+        // ✅ OTIMIZAÇÃO: Prompt mais enxuto para IA
+        const optimizedPrompt = this.buildOptimizedPrompt(userMessage, userContext, conversationHistory);
+        
+        const aiResponse = await this.callDeepSeekAPI(optimizedPrompt);
+        const parsedResponse = this.parseAIResponse(aiResponse);
+        
+        const response = {
+          text: parsedResponse.text || 'Olá! Como posso te ajudar hoje?',
+          analysisData: {
+            confidence: parsedResponse.confidence || 0.8,
+            intent: parsedResponse.intent || 'CONVERSATION',
+            requiresConfirmation: parsedResponse.requiresConfirmation || false
+          }
+        };
+
+        // Cache da resposta
+        this.responseCache.set(cacheKey, response);
+        
+        console.log(`[FinnEngine] ✅ JSON parseado com sucesso`);
+        return response;
+      }
+
+      // Fallback para prompts customizados
+      const prompt = this.buildContextPrompt(userContext, conversationHistory);
+      const aiResponse = await this.callDeepSeekAPI(prompt);
+      
       return {
         text: aiResponse,
         analysisData: {
-          responseTime: Date.now() - startTime,
-          engine: 'openai',
-          confidence: 0.8
+          confidence: 0.8,
+          intent: 'CUSTOM_RESPONSE',
+          requiresConfirmation: false
         }
       };
 
     } catch (error) {
-      console.error('[AIService] ❌ Erro no generateContextualResponse:', error);
+      console.error('[AIService] ❌ Erro na geração de resposta:', error);
       
       // ✅ FALLBACK: Resposta de emergência
       return {
-        text: 'Olá! Como posso te ajudar hoje?',
+        text: 'Olá! Como posso te ajudar hoje? Posso criar metas, transações, investimentos e muito mais!',
         analysisData: {
-          responseTime: Date.now() - startTime,
-          engine: 'fallback',
-          confidence: 0.5
+          confidence: 0.5,
+          intent: 'FALLBACK',
+          requiresConfirmation: false
         }
       };
     }
+  }
+
+  // ✅ NOVO: Respostas rápidas baseadas no contexto
+  private getQuickResponse(message: string, userContext?: any): string | null {
+    const lowerMessage = message.toLowerCase().trim();
+    
+    // Cumprimentos
+    if (lowerMessage.match(/\b(oi|olá|ola|hey|hi|hello)\b/)) {
+      const userName = userContext?.name?.split(' ')[0] || 'amigo';
+      const plan = userContext?.plan || 'Gratuito';
+      
+      if (plan.includes('Top')) {
+        return `Oi ${userName}! 👋 Sou o Finn, seu assistente financeiro premium. Como posso te ajudar hoje? Tenho acesso a análises avançadas, consultoria personalizada e muito mais!`;
+      } else {
+        return `Oi ${userName}! 👋 Sou o Finn, seu assistente financeiro. Como posso te ajudar hoje?`;
+      }
+    }
+    
+    // Ajuda
+    if (lowerMessage.includes('ajuda') || lowerMessage.includes('help') || 
+        lowerMessage.includes('como funciona') || lowerMessage.includes('o que você pode fazer')) {
+      
+      const plan = userContext?.plan || 'Gratuito';
+      if (plan.includes('Top')) {
+        return `Com seu plano Top, você tem acesso a tudo! 🎯 Criar metas, 💰 registrar transações, 📈 acompanhar investimentos, 📊 análises avançadas, 🤖 IA personalizada, 📱 suporte prioritário e muito mais. O que você gostaria de fazer?`;
+      } else {
+        return `Posso te ajudar com várias coisas! 🎯 Criar metas, 💰 registrar transações, 📈 acompanhar investimentos, 📊 fazer análises financeiras e muito mais. O que você gostaria de fazer?`;
+      }
+    }
+    
+    // Status do usuário
+    if (lowerMessage.includes('como estou') || lowerMessage.includes('meu status') || 
+        lowerMessage.includes('minhas finanças') || lowerMessage.includes('resumo')) {
+      
+      const hasData = userContext?.hasTransactions || userContext?.hasInvestments || userContext?.hasGoals;
+      if (!hasData) {
+        return `Vejo que você ainda não tem dados registrados. Que tal começarmos criando sua primeira transação ou meta? Posso te ajudar com isso!`;
+      } else {
+        return `Vou buscar um resumo completo das suas finanças para você! 📊`;
+      }
+    }
+    
+    return null;
+  }
+
+  // ✅ NOVO: Prompt otimizado para IA
+  private buildOptimizedPrompt(message: string, userContext?: any, conversationHistory: ChatMessage[] = []): string {
+    const plan = userContext?.plan || 'Gratuito';
+    const userName = userContext?.name?.split(' ')[0] || 'usuário';
+    const hasData = userContext?.hasTransactions || userContext?.hasInvestments || userContext?.hasGoals;
+    
+    let contextInfo = '';
+    if (hasData) {
+      contextInfo = `\n\nContexto do usuário ${userName}:
+- Plano: ${plan}
+- Tem transações: ${userContext.hasTransactions ? 'Sim' : 'Não'}
+- Tem investimentos: ${userContext.hasInvestments ? 'Sim' : 'Não'}
+- Tem metas: ${userContext.hasGoals ? 'Sim' : 'Não'}`;
+    } else {
+      contextInfo = `\n\nContexto do usuário ${userName}:
+- Plano: ${plan}
+- É um novo usuário sem dados registrados ainda`;
+    }
+
+    const recentMessages = conversationHistory.slice(-3).map(msg => 
+      `${msg.sender === 'user' ? 'Usuário' : 'Finn'}: ${msg.content}`
+    ).join('\n');
+
+    const conversationContext = recentMessages ? `\n\nConversa recente:\n${recentMessages}` : '';
+
+    return `Você é o Finn, assistente financeiro inteligente e natural. Responda de forma conversacional e humanizada.
+
+${contextInfo}${conversationContext}
+
+Mensagem do usuário: "${message}"
+
+REGRAS IMPORTANTES:
+1. Seja natural e conversacional como um amigo experiente
+2. Use linguagem brasileira natural ("beleza", "valeu", "tranquilo")
+3. Se o usuário quer criar algo (transação, meta, investimento), ajude com perguntas específicas
+4. Se é um novo usuário, seja mais explicativo e acolhedor
+5. Se é plano Top, mencione os benefícios premium quando apropriado
+6. NUNCA invente informações que não foram fornecidas
+7. SEMPRE pergunte detalhes quando faltar informação
+
+Responda de forma natural e útil:`;
   }
 
   // MÉTODO PARA ANÁLISE FINANCEIRA AVANÇADA
@@ -3261,3 +3467,45 @@ const improvements = await aiService.getSuggestedImprovements();
 7. Coleta feedback (opcional)
 8. Aprende e melhora continuamente
 */
+
+// ✅ NOVO: Cache mais eficiente
+class ResponseCache {
+  private cache = new Map<string, { response: any; timestamp: number; ttl: number }>();
+  private readonly MAX_SIZE = 100;
+  private readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minutos
+
+  set(key: string, response: any, ttl: number = this.DEFAULT_TTL): void {
+    // Limpar cache se estiver cheio
+    if (this.cache.size >= this.MAX_SIZE) {
+      const oldestKey = this.cache.keys().next().value;
+      this.cache.delete(oldestKey);
+    }
+
+    this.cache.set(key, {
+      response,
+      timestamp: Date.now(),
+      ttl
+    });
+  }
+
+  get(key: string): any | null {
+    const item = this.cache.get(key);
+    if (!item) return null;
+
+    // Verificar se expirou
+    if (Date.now() - item.timestamp > item.ttl) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return item.response;
+  }
+
+  clear(): void {
+    this.cache.clear();
+  }
+
+  size(): number {
+    return this.cache.size;
+  }
+}

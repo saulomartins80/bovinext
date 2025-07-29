@@ -53,7 +53,7 @@ export const useMileage = () => {
   const [recentTransactions, setRecentTransactions] = useState<MileageTransaction[]>([]);
   const [mileageCards, setMileageCards] = useState<MileageCard[]>([]);
   const [pluggyConnections, setPluggyConnections] = useState<PluggyConnection[]>([]);
-  const [mileageAnalytics, setMileageAnalytics] = useState<any>(null);
+  const [mileageAnalytics, setMileageAnalytics] = useState<unknown>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

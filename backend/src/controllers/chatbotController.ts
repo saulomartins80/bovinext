@@ -72,24 +72,110 @@ export class ChatbotController {
 
       console.log(`[ChatbotController] 🧠 Mensagem recebida: "${message}" (ChatId: ${realChatId})`);
 
-      // ✅ CORREÇÃO: PROCESSAMENTO SIMPLIFICADO - APENAS 1 CHAMADA IA
-      const userMessage = {
-        content: message,
-        userId,
-        chatId: realChatId,
-        timestamp: new Date()
-      };
+      // ✅ OTIMIZAÇÃO: Verificar cache primeiro (0.1s)
+      const cacheKey = `${userId}_${message.toLowerCase().trim()}`;
+      const cachedResponse = this.responseCache.get(cacheKey);
+      if (cachedResponse) {
+        console.log(`[ChatbotController] ⚡ Cache hit - resposta em ${Date.now() - startTime}ms`);
+        res.json({
+          success: true,
+          text: cachedResponse.response,
+          messageId: uuidv4(),
+          cached: true
+        });
+        return;
+      }
 
-      // ✅ NOVO: Processamento direto com AIService (sem camadas extras)
-      console.log(`[ChatbotController] 🧠 Processando com IA direta...`);
+      // ✅ OTIMIZAÇÃO: Detecção rápida de intenções (0.2s)
+      const quickIntent = this.detectQuickIntent(message);
+      if (quickIntent) {
+        console.log(`[ChatbotController] ⚡ Intent detectado rapidamente: ${quickIntent.type}`);
+        
+        const response = {
+          success: true,
+          text: quickIntent.response,
+          messageId: uuidv4(),
+          automatedAction: quickIntent,
+          quickResponse: true
+        };
+
+        // Cache da resposta rápida
+        this.responseCache.set(cacheKey, { response: quickIntent.response });
+        
+        res.json(response);
+        return;
+      }
+
+      // ✅ OTIMIZAÇÃO: Processamento paralelo
+      console.log(`[ChatbotController] 🧠 Processando com IA otimizada...`);
       
-      // 1. Buscar contexto real do usuário
-      const userContext = await this.getRealUserContext(userId);
+      // 1. Buscar contexto real do usuário (em paralelo)
+      const userContextPromise = this.getRealUserContext(userId);
       
-      // 2. Buscar histórico da conversa
-      const conversationHistory = await this.chatHistoryService.getConversation(realChatId).catch(() => ({ messages: [] }));
+      // 2. Buscar histórico da conversa (em paralelo)
+      const historyPromise = this.chatHistoryService.getConversation(realChatId).catch(() => ({ messages: [] }));
       
-      // 3. UMA ÚNICA CHAMADA PARA IA
+      // 3. Aguardar ambos em paralelo
+      const [userContext, conversationHistory] = await Promise.all([userContextPromise, historyPromise]);
+      
+      // 4. ✅ NOVO: Detecção inteligente de intenções antes da IA
+      const detectedAction = await detectUserIntent(message, userContext, conversationHistory.messages || []);
+      
+      if (detectedAction && detectedAction.confidence > 0.7) {
+        console.log(`[ChatbotController] 🎯 Ação detectada: ${detectedAction.type} (confiança: ${detectedAction.confidence})`);
+        
+        // Se confiança alta, executar automaticamente
+        if (detectedAction.confidence > 0.85 && !detectedAction.requiresConfirmation) {
+          try {
+            let result;
+            switch (detectedAction.type) {
+              case 'CREATE_TRANSACTION':
+                result = await createTransaction(userId, detectedAction.payload);
+                break;
+              case 'CREATE_INVESTMENT':
+                result = await createInvestment(userId, detectedAction.payload);
+                break;
+              case 'CREATE_GOAL':
+                result = await createGoal(userId, detectedAction.payload);
+                break;
+              default:
+                break;
+            }
+            
+            const response = {
+              success: true,
+              text: detectedAction.response,
+              messageId: uuidv4(),
+              automatedAction: {
+                ...detectedAction,
+                executed: true,
+                result
+              }
+            };
+            
+            this.responseCache.set(cacheKey, { response: detectedAction.response });
+            res.json(response);
+            return;
+          } catch (error) {
+            console.error('[ChatbotController] ❌ Erro ao executar ação:', error);
+          }
+        } else {
+          // Confiança média - retornar para confirmação
+          const response = {
+            success: true,
+            text: detectedAction.response,
+            messageId: uuidv4(),
+            automatedAction: detectedAction,
+            requiresConfirmation: true
+          };
+          
+          this.responseCache.set(cacheKey, { response: detectedAction.response });
+          res.json(response);
+          return;
+        }
+      }
+      
+      // 5. ✅ OTIMIZAÇÃO: UMA ÚNICA CHAMADA PARA IA (otimizada)
       const aiResponse = await this.aiService.generateContextualResponse(
         '', // systemPrompt vazio ativa o FinnEngine
         message,
@@ -97,43 +183,32 @@ export class ChatbotController {
         userContext
       );
 
-      // 4. Salvar no histórico
-      await this.saveMessageToHistory(realChatId, userId, message, aiResponse.text);
-
-      const totalTime = Date.now() - startTime;
-      console.log(`🧠 Resposta IA processada em ${totalTime}ms`);
-
-      const response = {
+      // 6. ✅ NOVO: Processar resposta da IA
+      const finalResponse = {
         success: true,
-        message: aiResponse.text,
-        metadata: {
-          action: { type: 'TEXT_RESPONSE', payload: {}, confidence: 0.9 },
-          requiresConfirmation: false,
-          followUpQuestions: [
-            'Posso te ajudar com algo mais?',
-            'Quer ver um resumo desta categoria?'
-          ],
-          recommendations: undefined,
-          insights: undefined,
-          messageId: `msg-${Date.now()}-${Math.random()}`,
-          processingTime: totalTime
-        }
+        text: aiResponse.text || 'Olá! Como posso te ajudar hoje?',
+        messageId: uuidv4(),
+        analysisData: aiResponse.analysisData
       };
 
-      console.log(`[ChatbotController] 📤 Enviando resposta simplificada:`, response);
-      res.json(response);
+      // Cache da resposta
+      this.responseCache.set(cacheKey, { response: finalResponse.text });
+      
+      // Salvar no histórico
+      await this.saveMessageToHistory(realChatId, userId, message, finalResponse.text);
+      
+      // Analytics
+      await this.analyticsService.updateUserAnalytics(userId, 'basic');
+      
+      console.log(`🧠 Resposta IA processada em ${Date.now() - startTime}ms`);
+      res.json(finalResponse);
 
     } catch (error) {
-      console.error('[ChatbotController] ❌ Erro no processamento simplificado:', error);
-      
-      const totalTime = Date.now() - startTime;
+      console.error('[ChatbotController] ❌ Erro no processamento:', error);
       res.status(500).json({
         success: false,
-        message: 'Desculpe, tive um problema técnico. Pode tentar novamente?',
-        metadata: {
-          processingTime: totalTime,
-          error: error.message
-        }
+        text: 'Desculpe, tive um problema técnico. Pode tentar novamente?',
+        messageId: uuidv4()
       });
     }
   }
@@ -463,6 +538,66 @@ export class ChatbotController {
     const ativas = goals.filter(g => g.status === 'ativa');
     
     return { total, status, ativas };
+  }
+
+  // ✅ NOVO: Detecção rápida de intenções sem IA
+  private detectQuickIntent(message: string): any {
+    const lowerMessage = message.toLowerCase().trim();
+    
+    // Cumprimentos
+    if (lowerMessage.match(/\b(oi|olá|ola|hey|hi|hello)\b/)) {
+      return {
+        type: 'GREETING',
+        response: 'Oi! 👋 Sou o Finn, seu assistente financeiro. Como posso te ajudar hoje?',
+        confidence: 0.95
+      };
+    }
+    
+    // Criar transação
+    if (lowerMessage.includes('criar transação') || lowerMessage.includes('criar transacao') || 
+        lowerMessage.includes('nova transação') || lowerMessage.includes('nova transacao') ||
+        lowerMessage.includes('adicionar transação') || lowerMessage.includes('adicionar transacao')) {
+      return {
+        type: 'CREATE_TRANSACTION',
+        response: 'Perfeito! Vou te ajudar a criar uma transação. Qual foi o valor e o que foi essa transação?',
+        confidence: 0.9,
+        requiresConfirmation: true
+      };
+    }
+    
+    // Criar meta
+    if (lowerMessage.includes('criar meta') || lowerMessage.includes('nova meta') || 
+        lowerMessage.includes('adicionar meta') || lowerMessage.includes('quero juntar')) {
+      return {
+        type: 'CREATE_GOAL',
+        response: 'Ótimo! Vou te ajudar a criar uma meta. Qual é o objetivo e quanto você quer juntar?',
+        confidence: 0.9,
+        requiresConfirmation: true
+      };
+    }
+    
+    // Criar investimento
+    if (lowerMessage.includes('criar investimento') || lowerMessage.includes('novo investimento') || 
+        lowerMessage.includes('adicionar investimento') || lowerMessage.includes('investir')) {
+      return {
+        type: 'CREATE_INVESTMENT',
+        response: 'Excelente! Vou te ajudar a registrar um investimento. Qual o valor e tipo do investimento?',
+        confidence: 0.9,
+        requiresConfirmation: true
+      };
+    }
+    
+    // Ajuda
+    if (lowerMessage.includes('ajuda') || lowerMessage.includes('help') || 
+        lowerMessage.includes('como funciona') || lowerMessage.includes('o que você pode fazer')) {
+      return {
+        type: 'HELP',
+        response: 'Posso te ajudar com várias coisas! 🎯 Criar metas, 💰 registrar transações, 📈 acompanhar investimentos, 📊 fazer análises financeiras e muito mais. O que você gostaria de fazer?',
+        confidence: 0.95
+      };
+    }
+    
+    return null;
   }
 }
 

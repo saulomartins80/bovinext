@@ -73,8 +73,6 @@ function ProtectedAppContent({ Component, pageProps }: AppProps) {
       <FinanceProvider>
         <NotificationProvider>
           <Elements stripe={stripePromise}>
-            <GoogleAnalytics />
-            <ToastContainerWithTheme />
             <AppContent Component={Component} pageProps={pageProps} />
           </Elements>
         </NotificationProvider>
@@ -102,7 +100,8 @@ function ToastContainerWithTheme() {
       toastStyle={{ zIndex: 9999 }}
       theme={theme === 'dark' ? 'dark' : 'light'}
       closeButton={true}
-      onClick={() => {}}
+      enableMultiContainer={false}
+      containerId="main-toast-container"
     />
   );
 }
@@ -117,12 +116,10 @@ function MyApp(props: AppProps) {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <GoogleAnalytics />
+        <ToastContainerWithTheme />
         {!routeNeedsAuth ? (
-          <>
-            <GoogleAnalytics />
-            <ToastContainerWithTheme />
-            <AppContent {...props} />
-          </>
+          <AppContent {...props} />
         ) : (
           <ProtectedAppContent {...props} />
         )}

@@ -1,12 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
-import { AuthRequest } from '../types/auth';
 
-type AsyncFunction = (req: Request | AuthRequest, res: Response) => Promise<Response | void>;
+type AsyncFunction = (req: Request, res: Response, next: NextFunction) => Promise<any>;
 
-export const asyncHandler = (fn: AsyncFunction) => (
-  req: Request | AuthRequest,
-  res: Response,
-  next: NextFunction
-): void => {
-  Promise.resolve(fn(req, res)).catch(next);
+export const asyncHandler = (fn: AsyncFunction) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
 }; 

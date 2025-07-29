@@ -18,6 +18,7 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { useIAAnalytics } from '../src/hooks/useIAAnalytics';
 import { useAuth } from '../context/AuthContext';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export default function IAAndAnalyticsPage() {
   // ✅ CORREÇÃO: Usar o ThemeContext correto
@@ -70,10 +71,12 @@ export default function IAAndAnalyticsPage() {
 
   if (isLoading) {
     return (
-      <div className={`p-6 ${bgClass} min-h-screen transition-colors duration-300`}>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-          <span className={`ml-2 ${textClass} transition-colors duration-300`}>Carregando métricas de IA...</span>
+      <div className={`${bgClass} min-h-screen transition-colors duration-300`}>
+        <div className="flex flex-col items-center justify-center h-screen">
+          <LoadingSpinner size="lg" />
+          <span className={`mt-4 text-lg ${textClass} transition-colors duration-300`}>
+            Carregando métricas de IA...
+          </span>
         </div>
       </div>
     );
@@ -107,7 +110,11 @@ export default function IAAndAnalyticsPage() {
             disabled={isRefreshing}
             className={`p-2 rounded-lg border ${borderClass} ${textClass} hover:bg-gray-100 ${isDark ? 'hover:bg-gray-700' : ''} disabled:opacity-50 transition-colors duration-300`}
           >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? (
+              <LoadingSpinner size="sm" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
           </button>
           <select 
             value={selectedTimeframe}

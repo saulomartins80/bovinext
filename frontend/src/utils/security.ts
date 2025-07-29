@@ -120,7 +120,7 @@ export const validateUrl = (url: string): boolean => {
 };
 
 // Log de atividades suspeitas
-export const logSuspiciousActivity = (activity: string, details?: any) => {
+export const logSuspiciousActivity = (activity: string, details?: unknown) => {
   console.warn(`[SECURITY] Atividade suspeita detectada: ${activity}`, details);
   
   // Em produção, enviar para serviço de monitoramento

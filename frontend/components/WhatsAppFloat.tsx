@@ -8,10 +8,9 @@ import {
   FaHeadset, 
   FaShoppingCart,
   FaClock,
-  FaCheck,
   FaCheckDouble
 } from 'react-icons/fa';
-import { FiSend, FiMinimize2, FiMaximize2 } from 'react-icons/fi';
+import { FiSend, FiMinimize2 } from 'react-icons/fi';
 import Image from 'next/image';
 
 interface ContactOption {

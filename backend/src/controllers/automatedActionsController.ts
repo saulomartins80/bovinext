@@ -212,97 +212,309 @@ export async function detectUserIntent(message: string, userContext: any, conver
 function detectQuickIntent(message: string): DetectedAction | null {
   const lowerMessage = message.toLowerCase();
   
-  // 🎯 Metas - Só detectar se for muito específico
-  if ((lowerMessage.includes('quero criar uma meta') || lowerMessage.includes('criar meta de')) && 
-      lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i)) {
-    const valorMatch = lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i);
-    const valor = valorMatch ? parseFloat(valorMatch[1].replace(',', '.')) : null;
+  // ✅ MELHORIA: Detecção mais precisa de transações
+  const transactionKeywords = [
+    'criar transação', 'criar transacao', 'nova transação', 'nova transacao',
+    'adicionar transação', 'adicionar transacao', 'registrar transação', 'registrar transacao',
+    'gastei', 'recebi', 'paguei', 'transferi', 'compra de', 'compra no',
+    'despesa', 'receita', 'nova transação', 'quero registrar', 'quero adicionar'
+  ];
+  
+  if (transactionKeywords.some(keyword => lowerMessage.includes(keyword))) {
+    // Regex para valor monetário
+    const valorRegex = /(?:r\$|rs|reais|real|\$)?\s*([\d\.\,]+)(?:\s*(mil|milhao|milhões|milhares))?/i;
+    const valorMatch = lowerMessage.match(valorRegex);
+    let valor = valorMatch ? parseFloat(valorMatch[1].replace(',', '.')) : null;
     
-    return {
-      type: 'CREATE_GOAL',
-      payload: {
-        meta: 'Nova meta',
-        valor_total: valor || 0,
-        data_conclusao: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        categoria: 'Geral'
-      },
-      confidence: valor ? 0.8 : 0.6,
-      requiresConfirmation: true, // Sempre pedir confirmação
-      successMessage: 'Meta criada com sucesso!',
-      errorMessage: 'Erro ao criar meta',
-      response: valor ? 
-        `🎯 Perfeito! Vou criar uma meta de R$ ${valor.toFixed(2)}. Qual é o objetivo desta meta?` :
-        '🎯 Que legal! Qual valor você quer juntar e para qual objetivo?'
-    };
-  }
-
-  // 💰 Transações - Só detectar se for muito específico
-  if ((lowerMessage.includes('gastei r$') || lowerMessage.includes('recebi r$') || lowerMessage.includes('paguei r$')) && 
-      lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i)) {
-    const valorMatch = lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i);
-    const valor = valorMatch ? parseFloat(valorMatch[1].replace(',', '.')) : null;
+    if (valorMatch && valorMatch[2]) {
+      if (valorMatch[2].startsWith('mil')) valor *= 1000;
+      if (valorMatch[2].startsWith('milhao') || valorMatch[2].startsWith('milh')) valor *= 1000000;
+    }
     
+    // Descrição
+    let descricao = '';
+    const descMatch = lowerMessage.match(/no ([\w\s]+)/) || lowerMessage.match(/de ([\w\s]+)/);
+    if (descMatch) descricao = descMatch[1].trim();
+    
+    // Tipo
+    let tipo = 'despesa';
+    if (lowerMessage.includes('recebi') || lowerMessage.includes('receita')) tipo = 'receita';
+    
+    // Se tem valor e descrição, automatiza
+    if (valor && descricao) {
+      return {
+        type: 'CREATE_TRANSACTION',
+        payload: {
+          valor,
+          descricao,
+          tipo,
+          categoria: 'Geral',
+          conta: 'Principal',
+          data: new Date().toISOString().split('T')[0]
+        },
+        confidence: 0.95,
+        requiresConfirmation: false,
+        successMessage: 'Transação registrada!',
+        errorMessage: 'Erro ao criar transação',
+        response: `💰 Transação de R$ ${valor.toFixed(2)} registrada: ${descricao}`
+      };
+    }
+    
+    // Tem valor mas não descrição
+    if (valor && !descricao) {
+      return {
+        type: 'CREATE_TRANSACTION',
+        payload: {
+          valor,
+          descricao: '',
+          tipo,
+          categoria: 'Geral',
+          conta: 'Principal',
+          data: new Date().toISOString().split('T')[0]
+        },
+        confidence: 0.8,
+        requiresConfirmation: true,
+        successMessage: '',
+        errorMessage: '',
+        response: `💰 Qual foi a descrição dessa transação de R$ ${valor.toFixed(2)}?`
+      };
+    }
+    
+    // Não tem valor
     return {
       type: 'CREATE_TRANSACTION',
       payload: {
-        valor: valor || 0,
-        descricao: 'Nova transação',
-        tipo: lowerMessage.includes('recebi') ? 'receita' : 'despesa',
+        valor: 0,
+        descricao: '',
+        tipo,
         categoria: 'Geral',
         conta: 'Principal',
         data: new Date().toISOString().split('T')[0]
       },
-      confidence: valor ? 0.8 : 0.6,
-      requiresConfirmation: true, // Sempre pedir confirmação
-      successMessage: 'Transação criada com sucesso!',
-      errorMessage: 'Erro ao criar transação',
-      response: valor ? 
-        `💰 Perfeito! Vou registrar uma transação de R$ ${valor.toFixed(2)}. O que foi essa transação?` :
-        '💰 Perfeito! Qual valor e o que foi essa transação?'
+      confidence: 0.7,
+      requiresConfirmation: true,
+      successMessage: '',
+      errorMessage: '',
+      response: '💰 Para registrar uma transação, preciso do valor e da descrição. Pode informar?'
     };
   }
 
-  // 📈 Investimentos - Só detectar se for muito específico
-  if ((lowerMessage.includes('comprei ações') || lowerMessage.includes('investi r$')) && 
-      lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i)) {
-    const valorMatch = lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i);
-    const valor = valorMatch ? parseFloat(valorMatch[1].replace(',', '.')) : null;
+  // ✅ MELHORIA: Detecção mais precisa de metas
+  const goalKeywords = [
+    'criar meta', 'nova meta', 'adicionar meta', 'quero juntar', 'quero economizar',
+    'quero guardar', 'preciso juntar', 'preciso economizar', 'preciso guardar',
+    'objetivo', 'meta de', 'meta para', 'juntar dinheiro', 'economizar dinheiro'
+  ];
+  
+  if (goalKeywords.some(keyword => lowerMessage.includes(keyword))) {
+    // Regex para valor monetário
+    const valorRegex = /(?:r\$|rs|reais|real|\$)?\s*([\d\.\,]+)(?:\s*(mil|milhao|milhões|milhares))?/i;
+    const valorMatch = lowerMessage.match(valorRegex);
+    let valor = valorMatch ? parseFloat(valorMatch[1].replace(',', '.')) : null;
     
+    if (valorMatch && valorMatch[2]) {
+      if (valorMatch[2].startsWith('mil')) valor *= 1000;
+      if (valorMatch[2].startsWith('milhao') || valorMatch[2].startsWith('milh')) valor *= 1000000;
+    }
+    
+    // Tentar extrair nome/meta
+    let metaNome = '';
+    const nomeMatch = lowerMessage.match(/para ([\w\s]+)/);
+    if (nomeMatch) metaNome = nomeMatch[1].trim();
+    if (!metaNome) {
+      const nome2 = lowerMessage.match(/meta (?:de|para)?\s*([\w\s]+)/);
+      if (nome2) metaNome = nome2[1].trim();
+    }
+    
+    // Se tem valor e nome, pode automatizar
+    if (valor && metaNome) {
+      return {
+        type: 'CREATE_GOAL',
+        payload: {
+          meta: metaNome,
+          valor_total: valor,
+          data_conclusao: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          categoria: 'Geral'
+        },
+        confidence: 0.95,
+        requiresConfirmation: false,
+        successMessage: 'Meta criada com sucesso!',
+        errorMessage: 'Erro ao criar meta',
+        response: `🎯 Meta "${metaNome}" criada com valor de R$ ${valor.toFixed(2)}!`
+      };
+    }
+    
+    // Se só tem valor OU nome, pedir o que falta
+    if (valor && !metaNome) {
+      return {
+        type: 'CREATE_GOAL',
+        payload: {
+          meta: '',
+          valor_total: valor,
+          data_conclusao: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          categoria: 'Geral'
+        },
+        confidence: 0.8,
+        requiresConfirmation: true,
+        successMessage: '',
+        errorMessage: '',
+        response: `🎯 Qual o objetivo dessa meta de R$ ${valor.toFixed(2)}?`
+      };
+    }
+    
+    if (!valor && metaNome) {
+      return {
+        type: 'CREATE_GOAL',
+        payload: {
+          meta: metaNome,
+          valor_total: 0,
+          data_conclusao: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          categoria: 'Geral'
+        },
+        confidence: 0.7,
+        requiresConfirmation: true,
+        successMessage: '',
+        errorMessage: '',
+        response: `🎯 Qual valor você quer juntar para "${metaNome}"?`
+      };
+    }
+    
+    // Se não tem nada, pedir os dois
+    return {
+      type: 'CREATE_GOAL',
+      payload: {
+        meta: '',
+        valor_total: 0,
+        data_conclusao: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        categoria: 'Geral'
+      },
+      confidence: 0.5,
+      requiresConfirmation: true,
+      successMessage: '',
+      errorMessage: '',
+      response: '🎯 Para criar uma meta, preciso saber o objetivo e o valor. Pode me dizer?'
+    };
+  }
+
+  // ✅ MELHORIA: Detecção mais precisa de investimentos
+  const investmentKeywords = [
+    'criar investimento', 'novo investimento', 'adicionar investimento', 'investir',
+    'aplicar', 'comprar ações', 'comprar acoes', 'tesouro direto', 'cdb', 'fii',
+    'fundos', 'criptomoedas', 'criptomoeda', 'bitcoin', 'etf'
+  ];
+  
+  if (investmentKeywords.some(keyword => lowerMessage.includes(keyword))) {
+    // Regex para valor monetário
+    const valorRegex = /(?:r\$|rs|reais|real|\$)?\s*([\d\.\,]+)(?:\s*(mil|milhao|milhões|milhares))?/i;
+    const valorMatch = lowerMessage.match(valorRegex);
+    let valor = valorMatch ? parseFloat(valorMatch[1].replace(',', '.')) : null;
+    
+    if (valorMatch && valorMatch[2]) {
+      if (valorMatch[2].startsWith('mil')) valor *= 1000;
+      if (valorMatch[2].startsWith('milhao') || valorMatch[2].startsWith('milh')) valor *= 1000000;
+    }
+    
+    // Nome do investimento
+    let nome = '';
+    const nomeMatch = lowerMessage.match(/em ([\w\s]+)/);
+    if (nomeMatch) nome = nomeMatch[1].trim();
+    
+    let tipo = 'Outro';
+    if (nome.includes('tesouro')) tipo = 'Tesouro Direto';
+    if (nome.includes('ação') || nome.includes('ações')) tipo = 'Ações';
+    if (nome.includes('fundo')) tipo = 'Fundo';
+    if (nome.includes('cripto') || nome.includes('bitcoin')) tipo = 'Criptomoedas';
+    
+    // Se tem valor e nome, automatiza
+    if (valor && nome) {
+      return {
+        type: 'CREATE_INVESTMENT',
+        payload: {
+          nome,
+          valor,
+          tipo,
+          data: new Date().toISOString().split('T')[0],
+          instituicao: ''
+        },
+        confidence: 0.95,
+        requiresConfirmation: false,
+        successMessage: 'Investimento registrado!',
+        errorMessage: 'Erro ao criar investimento',
+        response: `📈 Investimento de R$ ${valor.toFixed(2)} em "${nome}" registrado!`
+      };
+    }
+    
+    // Tem valor mas não nome
+    if (valor && !nome) {
+      return {
+        type: 'CREATE_INVESTMENT',
+        payload: {
+          nome: '',
+          valor,
+          tipo,
+          data: new Date().toISOString().split('T')[0],
+          instituicao: ''
+        },
+        confidence: 0.8,
+        requiresConfirmation: true,
+        successMessage: '',
+        errorMessage: '',
+        response: `📈 Qual o nome/tipo do investimento de R$ ${valor.toFixed(2)}?`
+      };
+    }
+    
+    // Tem nome mas não valor
+    if (!valor && nome) {
+      return {
+        type: 'CREATE_INVESTMENT',
+        payload: {
+          nome,
+          valor: 0,
+          tipo,
+          data: new Date().toISOString().split('T')[0],
+          instituicao: ''
+        },
+        confidence: 0.7,
+        requiresConfirmation: true,
+        successMessage: '',
+        errorMessage: '',
+        response: `📈 Qual o valor que você investiu em "${nome}"?`
+      };
+    }
+    
+    // Não tem nada
     return {
       type: 'CREATE_INVESTMENT',
       payload: {
-        nome: 'Novo investimento',
-        valor: valor || 0,
-        tipo: 'Ações',
-        data: new Date().toISOString().split('T')[0]
+        nome: '',
+        valor: 0,
+        tipo,
+        data: new Date().toISOString().split('T')[0],
+        instituicao: ''
       },
-      confidence: valor ? 0.8 : 0.6,
-      requiresConfirmation: true, // Sempre pedir confirmação
-      successMessage: 'Investimento criado com sucesso!',
-      errorMessage: 'Erro ao criar investimento',
-      response: valor ? 
-        `📈 Perfeito! Vou registrar um investimento de R$ ${valor.toFixed(2)}. Qual o nome e tipo do investimento?` :
-        '📈 Ótimo! Qual valor, tipo e nome do investimento?'
+      confidence: 0.5,
+      requiresConfirmation: true,
+      successMessage: '',
+      errorMessage: '',
+      response: '📈 Para registrar um investimento, preciso do valor e do nome/tipo. Pode informar?'
     };
   }
 
-  // 📊 Análise - Só detectar se for muito específico
-  if (lowerMessage.includes('fazer análise') || lowerMessage.includes('analisar minhas finanças')) {
+  // ----------- ANÁLISE -----------
+  if (lowerMessage.includes('fazer análise') || lowerMessage.includes('analisar minhas finanças') || lowerMessage.includes('análise completa')) {
     return {
       type: 'ANALYZE_DATA',
       payload: { analysisType: 'comprehensive' },
       confidence: 0.7,
-      requiresConfirmation: true, // Sempre pedir confirmação
+      requiresConfirmation: true,
       successMessage: 'Análise concluída!',
       errorMessage: 'Erro na análise',
       response: '📊 Vou fazer uma análise completa das suas finanças. Isso pode levar alguns segundos...'
     };
   }
 
-  // Cumprimentos e dúvidas - SEMPRE retornar UNKNOWN para conversa natural
-  if (lowerMessage.includes('oi') || lowerMessage.includes('olá') || lowerMessage.includes('tudo bem') || 
-      lowerMessage.includes('como funciona') || lowerMessage.includes('boa noite') || lowerMessage.includes('bom dia') ||
-      lowerMessage.includes('beleza') || lowerMessage.includes('tudo certo') || lowerMessage.includes('tudo joia')) {
+  // ----------- CUMPRIMENTOS E DÚVIDAS -----------
+  if (lowerMessage.match(/\b(oi|olá|tudo bem|como funciona|boa noite|bom dia|beleza|tudo certo|tudo joia)\b/)) {
     return {
       type: 'UNKNOWN',
       payload: {},
@@ -313,10 +525,8 @@ function detectQuickIntent(message: string): DetectedAction | null {
       response: 'Olá! Sou o Finn, seu assistente financeiro. Posso ajudar com metas, transações, investimentos e muito mais! Como posso te ajudar hoje?'
     };
   }
-
-  // Perguntas gerais - SEMPRE retornar UNKNOWN para conversa natural
-  if (lowerMessage.includes('o que você pode fazer') || lowerMessage.includes('como você funciona') || 
-      lowerMessage.includes('quais são suas funções') || lowerMessage.includes('me ajude')) {
+  
+  if (lowerMessage.match(/(o que você pode fazer|como você funciona|quais são suas funções|me ajude)/)) {
     return {
       type: 'UNKNOWN',
       payload: {},
@@ -327,7 +537,7 @@ function detectQuickIntent(message: string): DetectedAction | null {
       response: 'Posso te ajudar com várias coisas! 🎯 Criar metas financeiras, 📈 acompanhar investimentos, 📊 fazer análises financeiras e muito mais. O que você gostaria de fazer?'
     };
   }
-
+  
   return null;
 }
 
