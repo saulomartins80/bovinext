@@ -120,13 +120,13 @@ export class ReasoningEngine {
         { userId: message.userId }
       );
       
-      // O AIService retorna um objeto com propriedade 'text'
-      const response = aiResponse.text || aiResponse;
+      // O AIService retorna uma string diretamente
+      const response = aiResponse || '';
       
       // Parsear a resposta como JSON se possível
       let parsedResponse;
       try {
-        const responseText = typeof response === 'string' ? response : response.text;
+        const responseText = typeof response === 'string' ? response : String(response);
         parsedResponse = JSON.parse(responseText);
       } catch {
         // Se não for JSON válido, usar a detecção por palavras-chave

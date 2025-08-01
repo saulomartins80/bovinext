@@ -1,4 +1,4 @@
-import { adminFirestore } from '@config/firebaseAdmin';
+import { adminFirestore } from '../config/firebaseAdmin';
 
 const db = adminFirestore;
 
@@ -18,5 +18,5 @@ export const getBudgets = async (userId: string): Promise<Budget[]> => {
   return querySnapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data() as Budget
-  }));
+  })) as Budget[];
 };

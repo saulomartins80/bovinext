@@ -198,45 +198,54 @@ export class ConversationMemory {
         if (content.includes('estudar') || content.includes('curso') || content.includes('faculdade')) {
           goals.inferredFromConversation.push({
             type: 'education',
-            description: 'Meta educacional',
-            priority: 'high'
-          });
-        }
-        
-        // Detectar metas de aposentadoria
-        if (content.includes('aposentadoria') || content.includes('aposentar')) {
-          goals.inferredFromConversation.push({
-            type: 'retirement',
-            description: 'Meta de aposentadoria',
-            priority: 'long'
+            description: 'Meta de educação',
+            priority: 'medium'
           });
         }
       }
     });
 
-    // Classificar metas existentes por prazo
-    if (financialContext.goals) {
-      financialContext.goals.forEach((goal: any) => {
-        const daysToGoal = this.calculateDaysToGoal(goal.data_conclusao);
-        
-        if (daysToGoal <= 90) {
-          goals.shortTerm.push(goal);
-        } else if (daysToGoal <= 365) {
-          goals.mediumTerm.push(goal);
-        } else {
-          goals.longTerm.push(goal);
-        }
-      });
-    }
-
     return goals;
   }
 
-  private calculateDaysToGoal(targetDate: string): number {
-    const target = new Date(targetDate);
-    const today = new Date();
-    const diffTime = target.getTime() - today.getTime();
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  async getRecentMessages(userId: string, limit: number = 10): Promise<any[]> {
+    try {
+      const sessions = await this.chatHistoryService.getSessions(userId);
+      if (sessions.length === 0) return [];
+      
+      // Get messages from most recent session
+      const mostRecentSession = sessions[0];
+      const conversation = await this.chatHistoryService.getConversation(mostRecentSession.chatId);
+      
+      return conversation.messages.slice(-limit);
+    } catch (error) {
+      console.error('Error getting recent messages:', error);
+      return [];
+    }
+  }
+
+
+  private extractTopicsFromMessages(messages: any[]): string[] {
+    const topics: string[] = [];
+    const topicKeywords = {
+      'investimentos': ['investir', 'investimento', 'ações', 'bolsa', 'fundo'],
+      'economia': ['economizar', 'poupança', 'reserva', 'guardar'],
+      'metas': ['meta', 'objetivo', 'plano', 'sonho'],
+      'transações': ['gasto', 'compra', 'pagamento', 'transação']
+    };
+
+    messages.forEach(msg => {
+      if (msg.sender === 'user') {
+        const content = msg.content.toLowerCase();
+        Object.entries(topicKeywords).forEach(([topic, keywords]) => {
+          if (keywords.some(keyword => content.includes(keyword)) && !topics.includes(topic)) {
+            topics.push(topic);
+          }
+        });
+      }
+    });
+
+    return topics;
   }
 
   private inferPreferences(user: any): UserPreferences {
@@ -263,6 +272,13 @@ export class ConversationMemory {
     }
 
     return preferences;
+  }
+
+  private calculateDaysToGoal(targetDate: string): number {
+    const target = new Date(targetDate);
+    const today = new Date();
+    const diffTime = target.getTime() - today.getTime();
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
   async storeInteraction(message: any, response: any): Promise<void> {
@@ -312,48 +328,6 @@ export class ConversationMemory {
     };
   }
 
-  // ✅ NOVO: Método para extrair tópicos das mensagens
-  private extractTopicsFromMessages(messages: any[]): string[] {
-    const topics: string[] = [];
-    
-    messages.forEach((msg: any) => {
-      if (msg.sender === 'user') {
-        const content = msg.content.toLowerCase();
-        
-        // Detectar tópicos baseados em palavras-chave
-        if (content.includes('meta') || content.includes('objetivo') || content.includes('poupar')) {
-          topics.push('metas');
-        }
-        if (content.includes('transação') || content.includes('gastei') || content.includes('recebi')) {
-          topics.push('transações');
-        }
-        if (content.includes('investimento') || content.includes('investir') || content.includes('ações')) {
-          topics.push('investimentos');
-        }
-        if (content.includes('orçamento') || content.includes('economizar')) {
-          topics.push('orçamento');
-        }
-        if (content.includes('dúvida') || content.includes('ajuda') || content.includes('como')) {
-          topics.push('suporte');
-        }
-      }
-    });
-    
-    // Remover duplicatas e retornar os últimos 5 tópicos
-    return [...new Set(topics)].slice(-5);
-  }
-
-  // ✅ NOVO: Método público para obter mensagens recentes
-  async getRecentMessages(userId: string, limit: number = 5): Promise<any[]> {
-    try {
-      // ✅ CORREÇÃO: Retornar array vazio por enquanto para evitar erros
-      console.log('[ConversationMemory] Buscando mensagens recentes para usuário:', userId);
-      return [];
-    } catch (error) {
-      console.error('[ConversationMemory] ❌ Erro ao buscar mensagens recentes:', error);
-      return [];
-    }
-  }
 
   // ✅ NOVO: Método para armazenar fluxo de conversa
   async storeConversationFlow(userId: string, flow: any): Promise<void> {

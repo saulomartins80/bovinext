@@ -8,8 +8,10 @@ export class SelfHealingBot {
     if (analysis.isCorrection) {
       const correctedResponse = await this.rebuildResponse(analysis.correctIntent);
       return {
-        ...correctedResponse,
-        apology: 'Ah, entendi agora! Vamos corrigir... 😊'
+        response: correctedResponse || 'Resposta corrigida',
+        apology: 'Ah, entendi agora! Vamos corrigir... 😊',
+        timestamp: new Date(),
+        corrected: true
       };
     }
     return null;

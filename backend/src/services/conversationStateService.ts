@@ -198,18 +198,94 @@ export class ConversationStateService {
         tipo: 'É uma receita ou despesa?',
         categoria: 'Qual categoria? (ex: Alimentação, Transporte, Lazer)',
         conta: 'De qual conta? (ex: Nubank, Itaú)',
-        data: 'Quando foi essa transação? (ex: 2025-01-15)'
+        data: 'Para qual data? (ex: 2024-01-15)'
       },
       CREATE_INVESTMENT: {
+        nome: 'Qual o nome do investimento? (ex: Tesouro Direto)',
         valor: 'Qual valor você investiu? (ex: 1000)',
-        nome: 'Qual o nome do investimento? (ex: PETR4, Tesouro Direto)',
-        tipo: 'Que tipo de investimento? (ex: Ações, Renda Fixa, Fundos)',
-        instituicao: 'Em qual instituição? (ex: Clear, XP)',
-        data: 'Quando você fez esse investimento? (ex: 2025-01-15)'
+        tipo: 'Qual tipo de investimento? (ex: Renda Fixa, Ações)',
+        data: 'Quando foi feito o investimento? (ex: 2024-01-15)'
       }
     };
 
-    return questions[actionType]?.[field] || `Por favor, informe o ${field}:`;
+    return questions[actionType]?.[field] || `Por favor, informe o valor para ${field}`;
+  }
+
+  // Obter campos obrigatórios para cada tipo de ação
+  private getRequiredFields(actionType: string): string[] {
+    const fields: Record<string, string[]> = {
+      CREATE_GOAL: ['meta', 'valor_total', 'data_conclusao'],
+      CREATE_TRANSACTION: ['valor', 'descricao', 'tipo'],
+      CREATE_INVESTMENT: ['nome', 'valor', 'tipo']
+    };
+    
+    return fields[actionType] || [];
+  }
+
+  // Limpar estado
+  clearState(userId: string, chatId: string): void {
+    const key = `${userId}_${chatId}`;
+    this.states.delete(key);
+  }
+
+  // Obter estatísticas
+  getStats(): { totalStates: number; activeActions: number } {
+    const totalStates = this.states.size;
+    const activeActions = Array.from(this.states.values())
+      .filter(state => state.currentAction)
+      .length;
+    
+    return { totalStates, activeActions };
+  }
+
+  // Missing methods that are called by controllers
+  async createSession(userId: string): Promise<{ chatId: string }> {
+    try {
+      const chatId = uuidv4();
+      this.getOrCreateState(userId, chatId);
+      
+      return { chatId };
+    } catch (error) {
+      console.error('Error creating session:', error);
+      throw error;
+    }
+  }
+
+  async getUserSessions(userId: string): Promise<any[]> {
+    try {
+      const userSessions = [];
+      
+      // Find all sessions for this user
+      for (const [key, state] of this.states.entries()) {
+        if (state.userId === userId) {
+          userSessions.push({
+            chatId: state.chatId,
+            createdAt: state.createdAt,
+            updatedAt: state.updatedAt,
+            messageCount: state.context.conversationHistory.length,
+            lastActivity: state.updatedAt,
+            isActive: true
+          });
+        }
+      }
+      
+      return userSessions.sort((a, b) => 
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
+    } catch (error) {
+      console.error('Error getting user sessions:', error);
+      return [];
+    }
+  }
+
+  async deleteSession(sessionId: string, userId: string): Promise<void> {
+    try {
+      const key = `${userId}_${sessionId}`;
+      this.states.delete(key);
+    } catch (error) {
+      console.error('Error deleting session:', error);
+      throw error;
+    }
   }
 
   // Extrair valor de uma mensagem baseado no campo
@@ -461,15 +537,6 @@ Está correto? Posso registrar esse investimento?`;
     }
   }
 
-  private getRequiredFields(actionType: string): string[] {
-    const requiredFields: Record<string, string[]> = {
-      CREATE_GOAL: ['meta', 'valor_total', 'data_conclusao'],
-      CREATE_TRANSACTION: ['valor', 'descricao', 'tipo', 'categoria', 'conta', 'data'],
-      CREATE_INVESTMENT: ['valor', 'nome', 'tipo', 'instituicao', 'data']
-    };
-
-    return requiredFields[actionType] || [];
-  }
 
   // Limpar estados antigos (mais de 1 hora)
   cleanupOldStates(): void {

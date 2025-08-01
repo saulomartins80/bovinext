@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 
 const pluggyService = new PluggyService();
 
-export async function getConnectToken(req: Request, res: Response) {
+export async function getConnectToken(req: Request, res: Response): Promise<void> {
   try {
     const userId = (req as any).user._id || (req as any).user.id;
     const redirectUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/connect`;
@@ -26,14 +26,15 @@ export async function getConnectToken(req: Request, res: Response) {
   }
 }
 
-export async function handleItemCreation(req: Request, res: Response) {
+export async function handleItemCreation(req: Request, res: Response): Promise<void> {
   try {
     const userId = (req as any).user._id || (req as any).user.id;
     const { itemId } = req.body;
     
-    if (!itemId) {
-      return res.status(400).json({ success: false, error: 'itemId é obrigatório' });
-    }
+  if (!itemId) {
+    res.status(400).json({ success: false, error: 'itemId é obrigatório' });
+    return;
+  }
     
     // Processamento assíncrono das contas e transações
     setImmediate(async () => {
@@ -75,7 +76,7 @@ export async function handleItemCreation(req: Request, res: Response) {
   }
 }
 
-export async function getMileageSummary(req: Request, res: Response) {
+export async function getMileageSummary(req: Request, res: Response): Promise<void> {
   try {
     const userId = (req as any).user._id || (req as any).user.id;
     

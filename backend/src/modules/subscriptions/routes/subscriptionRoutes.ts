@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { SubscriptionController } from '../controllers/SubscriptionController';
 import { authenticate } from '../../../middlewares/authMiddleware';
-import { container } from '@core/container';
-import { TYPES } from '@core/types';
+import { container } from '../../../core/container';
+import { TYPES } from '../../../core/types';
 
 const router = Router();
 const subscriptionController = container.get<SubscriptionController>(TYPES.SubscriptionController);

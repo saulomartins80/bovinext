@@ -1,5 +1,5 @@
 import { stripe, STRIPE_CONFIG } from '../config/stripe';
-import { adminAuth, adminFirestore } from '@config/firebaseAdmin';
+import { adminAuth, adminFirestore } from '../config/firebaseAdmin';
 import { AppError } from '../core/errors/AppError';
 import { logSubscriptionEvent, logError } from './loggerService';
 import type { Stripe } from 'stripe';

@@ -1,7 +1,7 @@
 // src/config/firebaseAdmin.ts
 import * as admin from 'firebase-admin';
 
-function loadCredentials() {
+function loadCredentials(): any {
   // 1. Tenta carregar das variáveis de ambiente
   if (process.env.FIREBASE_ADMIN_CREDENTIALS) {
     try {

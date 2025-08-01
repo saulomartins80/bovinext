@@ -11,10 +11,10 @@ export class VoiceOfCustomer {
   }
 
   async processLiveFeedback(userId: string, feedback: string) {
-    const insights = await AIService.extractInsights(feedback);
+    const insights = await AIService.extractInsights([feedback]);
     const superMemory = new SuperMemory();
     await superMemory.storeUserInsight(userId, insights);
-    if (insights.urgent) {
+    if (insights.length > 0 && insights.some((insight: any) => insight.priority === 'high')) {
       await this.triggerLiveAgentCall(userId);
     }
   }

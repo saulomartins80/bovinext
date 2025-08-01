@@ -1,7 +1,7 @@
 // src/middlewares/authMiddleware.ts
 import { Request, Response, NextFunction } from 'express';
 import { adminAuth } from '../config/firebaseAdmin';
-import { AppError } from '@core/errors/AppError';
+import { AppError } from '../core/errors/AppError';
 import { User } from '../models/User';
 
 // ✅ CORREÇÃO: Simplificar autenticação para resolver erro 401
@@ -97,7 +97,7 @@ export const authenticate = authMiddleware;
 export const authenticateWithLayers = authMiddleware;
 
 // Middleware para verificação de permissões específicas
-export const requirePermission = (permission: string) => {
+export const requirePermission = (permission: string): (req: Request, res: Response, next: NextFunction) => void => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return next(new AppError(401, 'Usuário não autenticado'));
@@ -123,7 +123,7 @@ export const requirePermission = (permission: string) => {
 };
 
 // Middleware para verificação de assinatura ativa
-export const requireActiveSubscription = async (req: Request, res: Response, next: NextFunction) => {
+export const requireActiveSubscription = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   if (!req.user) {
     return next(new AppError(401, 'Usuário não autenticado'));
   }
@@ -150,7 +150,7 @@ export const requireActiveSubscription = async (req: Request, res: Response, nex
   }
 };
 
-async function verifyToken(token: string) {
+async function verifyToken(token: string): Promise<{ uid: string; email: string; name: string }> {
   // Implemente a verificação do token aqui
   // Por exemplo, usando o Firebase Admin SDK
   return {

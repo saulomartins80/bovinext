@@ -5,7 +5,7 @@ import path from 'path';
 // Carrega variáveis de ambiente
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-async function cleanupDatabase() {
+async function cleanupDatabase(): Promise<void> {
   try {
     console.log('Conectando ao MongoDB...');
     const mongoUri = process.env.MONGO_URI;

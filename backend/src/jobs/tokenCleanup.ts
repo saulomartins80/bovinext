@@ -1,5 +1,5 @@
 import * as cron from 'node-cron';
-import { User } from '@models/User';
+import { User } from '../models/User';
 
 cron.schedule('0 3 * * *', async () => {
   await User.updateMany(

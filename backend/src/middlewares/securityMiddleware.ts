@@ -1,10 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
-import { AppError } from '../errors/AppError';
+import { AppError } from '../core/errors/AppError';
 
 // Rate Limiting para diferentes endpoints
-export const createRateLimiters = () => {
+interface RateLimiters {
+  generalLimiter: any;
+  chatbotLimiter: any;
+  streamingLimiter: any;
+}
+
+export const createRateLimiters = (): RateLimiters => {
   // Rate limit geral para API
   const generalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
@@ -76,7 +82,7 @@ export const securityHeaders = helmet({
 });
 
 // Validação de input sanitizada
-export const sanitizeInput = (req: Request, res: Response, next: NextFunction) => {
+export const sanitizeInput = (req: Request, res: Response, next: NextFunction): void => {
   const sanitizeString = (str: string): string => {
     if (typeof str !== 'string') return '';
     
@@ -124,7 +130,7 @@ export const sanitizeInput = (req: Request, res: Response, next: NextFunction) =
 };
 
 // Validação de tamanho de mensagem
-export const validateMessageSize = (req: Request, res: Response, next: NextFunction) => {
+export const validateMessageSize = (req: Request, res: Response, next: NextFunction): void => {
   const maxMessageLength = 2000; // 2KB máximo
   
   if (req.body?.message && req.body.message.length > maxMessageLength) {
@@ -135,7 +141,7 @@ export const validateMessageSize = (req: Request, res: Response, next: NextFunct
 };
 
 // Verificação de origem segura
-export const validateOrigin = (req: Request, res: Response, next: NextFunction) => {
+export const validateOrigin = (req: Request, res: Response, next: NextFunction): void => {
   const allowedOrigins = [
     process.env.FRONTEND_URL,
     'http://localhost:3000',
@@ -153,7 +159,7 @@ export const validateOrigin = (req: Request, res: Response, next: NextFunction) 
 };
 
 // Middleware de auditoria
-export const auditMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const auditMiddleware = (req: Request, res: Response, next: NextFunction): void => {
   const startTime = Date.now();
   
   res.on('finish', () => {
@@ -172,7 +178,7 @@ export const auditMiddleware = (req: Request, res: Response, next: NextFunction)
 };
 
 // Middleware de proteção contra ataques comuns
-export const attackProtection = (req: Request, res: Response, next: NextFunction) => {
+export const attackProtection = (req: Request, res: Response, next: NextFunction): void => {
   // Verificar User-Agent
   const userAgent = req.headers['user-agent'];
   if (!userAgent || userAgent.length < 10) {

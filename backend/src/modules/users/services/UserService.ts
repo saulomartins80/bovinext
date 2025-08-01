@@ -3,13 +3,13 @@ import jwt from 'jsonwebtoken';
 import { injectable, inject } from 'inversify';
 import bcrypt from 'bcryptjs';
 import { getAuth } from 'firebase-admin/auth';
-import { AppError } from '@core/errors/AppError';
+import { AppError } from '../../../core/errors/AppError';
 import { UserRepository } from '../repositories/UserRepository';
-import { IUser, ISubscription } from '@models/User';
+import { IUser, ISubscription } from '../../../models/User';
 import { IUserProfile, IUserWithTokens } from '../interfaces/user.interface';
-import { TYPES } from '@core/types';
+import { TYPES } from '../../../core/types';
 import { User } from '../types/User';
-import { adminAuth, adminFirestore } from '@config/firebaseAdmin';
+import { adminAuth, adminFirestore } from '../../../config/firebaseAdmin';
 import logger, { logError } from '../../../services/loggerService';
 import { SubscriptionStatus } from '../types/User';
 

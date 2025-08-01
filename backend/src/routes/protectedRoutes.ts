@@ -3,7 +3,7 @@ import { Router } from 'express';
 import { authenticate } from '../middlewares/authMiddleware';
 import { container } from '../core/container';
 import { UserService } from '../modules/users/services/UserService';
-import { AppError } from '../errors/AppError';
+import { AppError } from '../core/errors/AppError';
 import { TYPES } from '../core/types';
 import { asyncHandler } from '../utils/asyncHandler';
 

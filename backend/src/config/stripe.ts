@@ -1,16 +1,16 @@
 import Stripe from 'stripe';
-import { AppError } from '../utils/AppError';
+import { AppError } from '../core/errors/AppError';
 
 if (!process.env.STRIPE_SECRET_KEY) {
-    throw new AppError('STRIPE_SECRET_KEY não configurada', 500);
+    throw new AppError(500, 'STRIPE_SECRET_KEY não configurada');
 }
 
 if (!process.env.STRIPE_WEBHOOK_SECRET) {
-    throw new AppError('STRIPE_WEBHOOK_SECRET não configurada', 500);
+    throw new AppError(500, 'STRIPE_WEBHOOK_SECRET não configurada');
 }
 
 if (!process.env.FRONTEND_URL) {
-    throw new AppError('FRONTEND_URL não configurada', 500);
+    throw new AppError(500, 'FRONTEND_URL não configurada');
 }
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
@@ -34,13 +34,18 @@ export const STRIPE_PRICES = {
 };
 
 // Função para validar a assinatura
-export const validateSubscription = (subscription: any) => {
+interface StripeSubscription {
+  status: string;
+  [key: string]: any;
+}
+
+export const validateSubscription = (subscription: StripeSubscription | null): boolean => {
     if (!subscription) return false;
     return subscription.status === 'active' || subscription.status === 'trialing';
 };
 
 // Função para formatar a data de expiração
-export const formatExpirationDate = (date: Date) => {
+export const formatExpirationDate = (date: Date): string => {
     return date.toLocaleDateString('pt-BR', {
         day: '2-digit',
         month: '2-digit',

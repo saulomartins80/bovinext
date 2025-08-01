@@ -23,7 +23,7 @@ export const validateStripeWebhook = (req: Request, res: Response, next: NextFun
   return;
 };
 
-export const stripeWebhookMiddlewareHandler = async (req: Request, res: Response, next: NextFunction) => {
+export const stripeWebhookMiddlewareHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         console.log('Webhook recebido - Headers:', {
             'stripe-signature': req.headers['stripe-signature'],

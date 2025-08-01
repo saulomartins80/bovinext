@@ -1,16 +1,16 @@
 // BACKEND: SRC/ROUTES/AUTHROUTES.TS
 import express, { Request, Response, NextFunction } from 'express';
-import { container } from '@core/container';
-import { TYPES } from '@core/types';
-import { UserController } from '@modules/users/controllers/UserController';
-import { UserService } from '@modules/users/services/UserService'; // Import UserService
-import { authenticate } from '@middlewares/authMiddleware';
-import { AppError } from '@core/errors/AppError';
-import { validate } from '@modules/users/middlewares/validate';
-import { userValidators } from '@modules/users/validators/userValidators';
+import { container } from '../core/container';
+import { TYPES } from '../core/types';
+import { UserController } from '../modules/users/controllers/UserController';
+import { UserService } from '../modules/users/services/UserService'; // Import UserService
+import { authenticate } from '../middlewares/authMiddleware';
+import { AppError } from '../core/errors/AppError';
+import { validate } from '../modules/users/middlewares/validate';
+import { userValidators } from '../modules/users/validators/userValidators';
 import { getAuth } from 'firebase-admin/auth';
 // Imports corrigidos para usar aliases do tsconfig para firebase/admin e types/Subscription
-import { adminAuth } from '@config/firebaseAdmin'; 
+import { adminAuth } from '../config/firebaseAdmin';
 
 const router = express.Router();
 const userController = container.get<UserController>(TYPES.UserController);

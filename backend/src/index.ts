@@ -6,11 +6,11 @@ import cors from 'cors';
 import helmet from 'helmet';
 import mongoose from 'mongoose';
 import rateLimit from 'express-rate-limit';
-import { container } from '@core/container';
+import { container } from './core/container';
 import { errorHandler } from './middlewares/errorHandler';
-import { AppError } from '@core/errors/AppError';
+import { AppError } from './core/errors/AppError';
 
-import { adminAuth } from '@config/firebaseAdmin';
+import { adminAuth } from './config/firebaseAdmin';
 import { Server } from 'http';
 import morgan from 'morgan';
 import compression from 'compression';

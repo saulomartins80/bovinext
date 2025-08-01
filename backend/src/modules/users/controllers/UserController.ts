@@ -3,8 +3,8 @@ import { injectable, inject } from 'inversify';
 import { Request, Response, NextFunction } from 'express';
 import { UserService } from '../services/UserService';
 // Importação modificada para caminho relativo
-import { TYPES } from '@core/types';
-import { AppError } from '@core/errors/AppError';
+import { TYPES } from '../../../core/types';
+import { AppError } from '../../../core/errors/AppError';
 import { User } from '../../../models/User';
 import { stripe } from '../../../config/stripe';
 

@@ -1,5 +1,5 @@
 // backend/src/modules/users/interfaces/user.interface.ts
-import { ISubscription } from '@models/User'; // Importar ISubscription do modelo
+import { ISubscription } from '../../../models/User'; // Importar ISubscription do modelo
 
 export interface IUserProfile {
   id: string; 

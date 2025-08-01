@@ -17,7 +17,7 @@ const logger = winston.createLogger({
     ]
 });
 
-export const logSubscriptionEvent = (event: string, data: Record<string, any>) => {
+export const logSubscriptionEvent = (event: string, data: Record<string, any>): void => {
     console.log('Subscription Event:', {
         event,
         data,
@@ -25,7 +25,7 @@ export const logSubscriptionEvent = (event: string, data: Record<string, any>) =
     });
 };
 
-export const logError = (error: Error, context?: Record<string, any>) => {
+export const logError = (error: Error, context?: Record<string, any>): void => {
     console.error('Error:', {
         message: error.message,
         stack: error.stack,

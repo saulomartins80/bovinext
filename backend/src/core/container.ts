@@ -5,7 +5,7 @@ import { UserService } from '../modules/users/services/UserService';
 import { SubscriptionService } from '../services/subscriptionService';
 import { UserController } from '../modules/users/controllers/UserController';
 import { SubscriptionController } from '../modules/subscriptions/controllers/SubscriptionController';
-import { StripeService } from '../services/StripeService';
+import { StripeService } from '../modules/subscriptions/services/StripeService';
 import { EnterpriseService } from '../modules/enterprise/services/EnterpriseService';
 import { EnterpriseController } from '../modules/enterprise/controllers/EnterpriseController';
 
@@ -21,7 +21,7 @@ container.bind<SubscriptionController>(TYPES.SubscriptionController).to(Subscrip
 container.bind<StripeService>(TYPES.StripeService).to(StripeService).inSingletonScope();
 
 // Registrar EnterpriseService e EnterpriseController
-container.bind<EnterpriseService>('EnterpriseService').to(EnterpriseService).inSingletonScope();
-container.bind<EnterpriseController>('EnterpriseController').to(EnterpriseController).inSingletonScope();
+container.bind<EnterpriseService>(TYPES.EnterpriseService).to(EnterpriseService).inSingletonScope();
+container.bind<EnterpriseController>(TYPES.EnterpriseController).to(EnterpriseController).inSingletonScope();
 
 export { container }; 

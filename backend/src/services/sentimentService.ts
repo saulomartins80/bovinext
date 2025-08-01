@@ -137,7 +137,7 @@ export class SentimentService {
       );
       
       try {
-        const responseText = typeof response === 'string' ? response : response.text;
+        const responseText = typeof response === 'string' ? response : (response as any)?.text || '';
         const analysis = JSON.parse(responseText);
         return {
           sentiment: analysis.sentiment,

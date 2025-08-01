@@ -1,7 +1,5 @@
-/***************************************
- * 🎨 CONSTRUTOR DE RESPOSTAS
- * Gerencia templates e constrói respostas personalizadas
- ***************************************/
+// ResponseBuilder manages templates and builds personalized responses.
+// See more details at: docs/response-builder.md.
 
 import * as fs from 'fs';
 import * as path from 'path';

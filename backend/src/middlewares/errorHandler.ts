@@ -1,6 +1,6 @@
 // src/middlewares/errorHandler.ts
 import { Request, Response, NextFunction } from 'express';
-import { AppError } from '../errors/AppError';
+import { AppError } from '../core/errors/AppError';
 import mongoose from 'mongoose';
 
 export function errorHandler(

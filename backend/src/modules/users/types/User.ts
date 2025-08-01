@@ -1,5 +1,5 @@
 import { Document } from 'mongoose';
-import { ISubscription } from '@models/User';
+import { ISubscription } from '../../../models/User';
 
 export type SubscriptionStatus = 
     | 'active' 

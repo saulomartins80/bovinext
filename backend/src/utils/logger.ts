@@ -18,7 +18,7 @@ const logger = winston.createLogger({
   ]
 });
 
-export const logError = (message: string, error: any) => {
+export const logError = (message: string, error: Error | any): void => {
   logger.error(message, {
     error: error instanceof Error ? error.message : error,
     stack: error instanceof Error ? error.stack : undefined,
@@ -26,21 +26,21 @@ export const logError = (message: string, error: any) => {
   });
 };
 
-export const logInfo = (message: string, data?: any) => {
+export const logInfo = (message: string, data?: any): void => {
   logger.info(message, {
     data,
     timestamp: new Date().toISOString()
   });
 };
 
-export const logWarning = (message: string, data?: any) => {
+export const logWarning = (message: string, data?: any): void => {
   logger.warn(message, {
     data,
     timestamp: new Date().toISOString()
   });
 };
 
-export const logSubscriptionEvent = (event: string, data: any) => {
+export const logSubscriptionEvent = (event: string, data: any): void => {
   logger.info(`Subscription Event: ${event}`, {
     event,
     data,
