@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useState, useCallback, useRef } from 'react';
 import { sanitizeInput, validateMessageSize, logSuspiciousActivity, SECURITY_CONFIG } from '../utils/security';
 

@@ -1,5 +1,45 @@
 import api from './api';
 
+// Tipos específicos para o progresso do usuário e jornada
+export interface UserProgress {
+  completedSteps: number;
+  totalSteps: number;
+  currentStep: string;
+  progressPercentage: number;
+  lastUpdated: Date;
+  achievements: string[];
+}
+
+export interface ActiveJourney {
+  id: string;
+  name: string;
+  description: string;
+  status: 'active' | 'completed' | 'paused';
+  currentStep: number;
+  totalSteps: number;
+  estimatedCompletion: Date;
+  category: string;
+}
+
+export interface InteractionResult {
+  success: boolean;
+  message: string;
+  data?: Record<string, unknown>;
+  nextStep?: string;
+}
+
+export interface ActionResult {
+  success: boolean;
+  message: string;
+  result?: Record<string, unknown>;
+  status: string;
+}
+
+export interface ChartDataPoint {
+  name: string;
+  value: number;
+}
+
 export interface IAMetrics {
   ai: {
     status: string;
@@ -64,7 +104,7 @@ export class IAAnalyticsService {
   }
 
   // Buscar progresso da jornada do usuário
-  static async getUserProgress(userId?: string): Promise<any> {
+  static async getUserProgress(userId?: string): Promise<UserProgress | null> {
     try {
       if (!userId) {
         console.warn('userId não fornecido para getUserProgress');
@@ -80,7 +120,7 @@ export class IAAnalyticsService {
   }
 
   // Buscar jornada ativa do usuário
-  static async getActiveJourney(userId?: string): Promise<any> {
+  static async getActiveJourney(userId?: string): Promise<ActiveJourney | null> {
     try {
       if (!userId) {
         console.warn('userId não fornecido para getActiveJourney');
@@ -96,7 +136,7 @@ export class IAAnalyticsService {
   }
 
   // Processar interação do usuário
-  static async processInteraction(type: string, data: any, userId?: string): Promise<any> {
+  static async processInteraction(type: string, data: Record<string, unknown>, userId?: string): Promise<InteractionResult | null> {
     try {
       if (!userId) {
         console.warn('userId não fornecido para processInteraction');
@@ -112,7 +152,7 @@ export class IAAnalyticsService {
   }
 
   // Executar ação de orientação
-  static async executeGuidanceAction(action: any, userId?: string): Promise<any> {
+  static async executeGuidanceAction(action: Record<string, unknown>, userId?: string): Promise<ActionResult | null> {
     try {
       if (!userId) {
         console.warn('userId não fornecido para executeGuidanceAction');
@@ -205,7 +245,7 @@ export class IAAnalyticsService {
   }
 
   // Gerar dados para gráficos
-  static generateChartData(usage: number[], labels: string[]): any[] {
+  static generateChartData(usage: number[], labels: string[]): ChartDataPoint[] {
     return usage.map((value, index) => ({
       name: labels[index] || `Dia ${index + 1}`,
       value

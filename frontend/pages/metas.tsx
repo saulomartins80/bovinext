@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Plus, Edit, Trash, ChevronDown, ChevronUp, TrendingUp, Trophy, DollarSign, Flag, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';

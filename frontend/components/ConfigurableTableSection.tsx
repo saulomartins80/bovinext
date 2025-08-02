@@ -101,7 +101,7 @@ const ConfigurableTableSection: React.FC<ConfigurableTableSectionProps> = ({
   })();
 
   // Melhorar a função defaultDisplayFormatter
-  const defaultDisplayFormatter = (symbol: any) => {
+  const defaultDisplayFormatter = (symbol: string) => {
     // Removed unused variable _symbol and unused function getIndexInfo
     if (category === 'indices') {
       return symbol.replace('^', '');

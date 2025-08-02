@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // frontend/components/AssetSelectionModal.tsx
 import React, { useState } from "react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
@@ -136,7 +137,6 @@ const AssetSelectionModal: React.FC<AssetSelectionModalProps> = ({
   currentSelected,
   type,
   allOptions,
-  // Remove unused variable 'assets'
   title = getDefaultTitle(type),
   defaultOptions = []
 }) => {

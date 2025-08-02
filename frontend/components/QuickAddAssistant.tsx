@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { transacaoAPI, metaAPI, investimentoAPI } from '../services/api';

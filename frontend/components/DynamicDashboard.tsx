@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /***************************************
  * 🎛️ DYNAMIC DASHBOARD - CONTROLADO PELO CHATBOT
  * (Dashboard que responde aos comandos do chatbot)
@@ -216,7 +217,7 @@ export default function DynamicDashboard({
   };
 
   // 🎯 ADICIONAR WIDGET
-  const addWidget = async (type: string, title: string, data: any) => {
+  const addWidget = async (type: string, title: string, data: Record<string, unknown>) => {
     const newWidget: DashboardWidget = {
       id: `${type}_${Date.now()}`,
       type: getWidgetType(type),
@@ -494,7 +495,7 @@ const ListWidget = ({ widget }: { widget: DashboardWidget }) => {
     </div>
     <div className="space-y-3">
         {data.items?.length > 0 ? (
-          data.items.map((item: any, index: number) => (
+          data.items.map((item: { name: string; value: number }, index: number) => (
           <div key={index} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
             <span className="text-sm text-gray-900 dark:text-white">{item.name}</span>
             <span className="text-sm font-medium text-gray-900 dark:text-white">
@@ -536,7 +537,7 @@ const AlertWidget = ({ widget }: { widget: DashboardWidget }) => {
     </div>
     <div className="space-y-3">
         {data.items?.length > 0 ? (
-          data.items.map((alert: any, index: number) => (
+          data.items.map((alert: { message: string; severity?: 'info' | 'warning' | 'error' }, index: number) => (
           <div key={index} className="flex items-center space-x-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
             <AlertTriangle className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
             <span className="text-sm text-yellow-800 dark:text-yellow-200">{alert.message}</span>

@@ -1,10 +1,31 @@
 import { useState, useEffect } from 'react';
 import { IAAnalyticsService, IAMetrics, PlanLimits } from '../services/iaAnalyticsService';
 
+// Tipos específicos para o progresso do usuário e jornada
+interface UserProgress {
+  completedSteps: number;
+  totalSteps: number;
+  currentStep: string;
+  progressPercentage: number;
+  lastUpdated: Date;
+  achievements: string[];
+}
+
+interface ActiveJourney {
+  id: string;
+  name: string;
+  description: string;
+  status: 'active' | 'completed' | 'paused';
+  currentStep: number;
+  totalSteps: number;
+  estimatedCompletion: Date;
+  category: string;
+}
+
 export function useIAAnalytics() {
   const [metrics, setMetrics] = useState<IAMetrics | null>(null);
-  const [userProgress, setUserProgress] = useState<any>(null);
-  const [activeJourney, setActiveJourney] = useState<any>(null);
+  const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
+  const [activeJourney, setActiveJourney] = useState<ActiveJourney | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userPlan, setUserPlan] = useState('essencial');
@@ -46,7 +67,7 @@ export function useIAAnalytics() {
   };
 
   // Processar interação
-  const processInteraction = async (type: string, data: any) => {
+  const processInteraction = async (type: string, data: Record<string, unknown>) => {
     try {
       const result = await IAAnalyticsService.processInteraction(type, data);
       if (result) {
@@ -62,7 +83,7 @@ export function useIAAnalytics() {
   };
 
   // Executar ação de orientação
-  const executeGuidanceAction = async (action: any) => {
+  const executeGuidanceAction = async (action: Record<string, unknown>) => {
     try {
       const result = await IAAnalyticsService.executeGuidanceAction(action);
       if (result) {

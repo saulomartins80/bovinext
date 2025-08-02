@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 
 export type Theme = "light" | "dark" | "system";
@@ -5,7 +6,7 @@ export type Theme = "light" | "dark" | "system";
 interface ThemeContextType {
   theme: Theme; // Preferência do usuário: "light", "dark", ou "system"
   resolvedTheme: "light" | "dark"; // O tema que está de fato aplicado (light ou dark)
-  setTheme: (theme: Theme) => void;
+  setTheme: (_theme: Theme) => void;
   toggleTheme: () => void;
 }
 

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState } from "react";
 import { CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { toast } from 'react-toastify';

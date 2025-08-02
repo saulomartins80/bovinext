@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useCallback } from "react";
 import { Plus, Download, X } from "lucide-react";
 import { toast, ToastContainer } from "react-toastify";

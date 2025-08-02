@@ -135,38 +135,41 @@ export const loginWithGoogle = async (): Promise<UserCredential> => {
     const result = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
     console.log('Google sign-in successful');
     return result;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Google sign-in error:', error);
-    console.error('Error code:', error.code);
-    console.error('Error message:', error.message);
+    
+    // Type guard para verificar se é um erro do Firebase
+    const firebaseError = error as { code?: string; message?: string };
+    console.error('Error code:', firebaseError.code);
+    console.error('Error message:', firebaseError.message);
     
     // ✅ CORREÇÃO: Tratamento específico de erros
-    if (error.code === 'auth/popup-blocked' || error.code === 'auth/popup-closed-by-user') {
+    if (firebaseError.code === 'auth/popup-blocked' || firebaseError.code === 'auth/popup-closed-by-user') {
       console.log('Popup blocked or closed, trying redirect method...');
       throw new Error('Popup bloqueado. Por favor, permita popups para este site.');
     }
     
     // ✅ CORREÇÃO: Tratar erro de argumento inválido
-    if (error.code === 'auth/argument-error') {
+    if (firebaseError.code === 'auth/argument-error') {
       console.error('Firebase configuration error detected');
       console.error('Current config:', firebaseConfig);
       throw new Error('Erro de configuração do Firebase. Verifique as variáveis de ambiente.');
     }
     
     // ✅ CORREÇÃO: Tratar erro de credenciais inválidas
-    if (error.code === 'auth/invalid-credential') {
+    if (firebaseError.code === 'auth/invalid-credential') {
       console.error('Invalid credential error - possible configuration issue');
       throw new Error('Credenciais inválidas. Verifique a configuração do Firebase.');
     }
     
     // ✅ CORREÇÃO: Tratar erro de domínio não autorizado
-    if (error.code === 'auth/unauthorized-domain') {
+    if (firebaseError.code === 'auth/unauthorized-domain') {
       console.error('Unauthorized domain error');
       throw new Error('Domínio não autorizado. Verifique a configuração do Firebase.');
     }
     
     // ✅ CORREÇÃO: Tratar erro de operação não permitida
-    if (error.code === 'auth/operation-not-allowed') {
+    if (firebaseError.code === 'auth/operation-not-allowed') {
       console.error('Operation not allowed error');
       throw new Error('Login com Google não está habilitado. Verifique a configuração do Firebase.');
     }

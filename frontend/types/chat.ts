@@ -2,14 +2,14 @@
 
 export type AutomatedAction = {
   type: string;
-  payload?: any;
+  payload?: Record<string, unknown>;
   confidence?: number;
   requiresConfirmation?: boolean;
   successMessage?: string;
   errorMessage?: string;
   followUpQuestions?: string[];
   isAutomated?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export type ChatMessage = {
@@ -20,7 +20,7 @@ export type ChatMessage = {
   metadata?: {
     action?: AutomatedAction;
     isError?: boolean;
-    [key: string]: any;
+    [key: string]: unknown;
   };
 };
 
@@ -41,6 +41,6 @@ export type ChatState = {
     showSessions: boolean;
     showFeedbackModal: boolean;
     // outros estados de UI...
-    [key: string]: any;
+    [key: string]: unknown;
   };
 }; 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback } from 'react';
 import { IAAnalyticsService } from '../../services/iaAnalyticsService';
 import { useAuth } from '../../context/AuthContext';

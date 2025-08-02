@@ -32,9 +32,12 @@ export const subscriptionService = {
         ...subscriptionData,
         expiresAt: new Date(subscriptionData.expiresAt).toISOString(),
       };
-    } catch (error: any) {
-      if (error.response && error.response.status === 404) {
-        return null;
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response: { status: number } };
+        if (axiosError.response && axiosError.response.status === 404) {
+          return null;
+        }
       }
       console.error("Error fetching subscription:", error);
       throw error;

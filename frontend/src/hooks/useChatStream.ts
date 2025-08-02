@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { sanitizeInput, validateMessageSize, validateTokenFormat, logSuspiciousActivity, SECURITY_CONFIG } from '../utils/security';

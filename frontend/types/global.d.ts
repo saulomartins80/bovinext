@@ -16,12 +16,12 @@ interface GtagConfigParams {
   send_page_view?: boolean;
   cookie_domain?: string;
   cookie_flags?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 interface GtagEventParams {
   event_category?: string;
   event_label?: string;
   value?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }

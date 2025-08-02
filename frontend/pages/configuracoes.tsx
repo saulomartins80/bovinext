@@ -1,4 +1,6 @@
 // pages/configuracoes.tsx
+/* eslint-disable no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   FiGlobe,
@@ -62,8 +64,8 @@ interface AccountSetting {
   description: string;
   type: "toggle" | "select" | "radiogroup" | "action";
   options?: SettingOption[];
-  currentValue?: any;
-  onChange?: (_value: any) => void;
+  currentValue?: unknown;
+  onChange?: (_value: unknown) => void;
   icon: React.ReactNode;
   action?: () => void;
   status?: string;

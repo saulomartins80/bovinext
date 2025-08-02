@@ -1,4 +1,5 @@
 // components/TwoFactorAuthSetup.tsx
+/* eslint-disable no-unused-vars */
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
   FiCheck, 

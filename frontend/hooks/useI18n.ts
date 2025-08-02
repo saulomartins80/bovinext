@@ -7,7 +7,7 @@ import { useCallback } from 'react';
 export const useI18n = (namespace: string = 'common') => {
   const { t, i18n, ready } = useTranslation(namespace);
 
-  const translate = useCallback((key: string, fallback?: string, options?: any): string => {
+  const translate = useCallback((key: string, fallback?: string, options?: Record<string, unknown>): string => {
     try {
       if (!ready) {
         return fallback || key;

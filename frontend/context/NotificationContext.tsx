@@ -1,11 +1,12 @@
+/* eslint-disable no-unused-vars */
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { NotificationItem } from '../components/Notifications';
 
 interface NotificationContextType {
   notifications: NotificationItem[];
-  addNotification: (notification: Omit<NotificationItem, 'id' | 'createdAt'>) => void;
-  removeNotification: (id: string) => void;
-  markAsRead: (id: string) => void;
+  addNotification: (_notification: Omit<NotificationItem, 'id' | 'createdAt'>) => void;
+  removeNotification: (_id: string) => void;
+  markAsRead: (_id: string) => void;
   markAllAsRead: () => void;
   clearAll: () => void;
   unreadCount: number;

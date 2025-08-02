@@ -83,9 +83,10 @@ export const loginWithGoogleAuth = async () => {
       }
 
       return await response.json();
-    } catch (popupError: any) {
+    } catch (popupError: unknown) {
       // Se popup falhar, tentar com redirect
-      if (popupError.code === 'auth/popup-blocked' || popupError.code === 'auth/popup-closed-by-user') {
+      const firebaseError = popupError as { code?: string };
+      if (firebaseError.code === 'auth/popup-blocked' || firebaseError.code === 'auth/popup-closed-by-user') {
         console.log('Popup failed, trying redirect method...');
         
         const provider = new GoogleAuthProvider();

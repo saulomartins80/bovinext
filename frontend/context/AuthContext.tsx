@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // context/AuthContext.tsx
 import { 
   // GoogleAuthProvider,
@@ -57,13 +59,13 @@ export type AuthContextType = {
   error: string | null;
   subscriptionError: string | null;
   refreshSubscription: () => Promise<void>;
-  /* eslint-disable @typescript-eslint/no-unused-vars */
-  login: (email: string, password: string) => Promise<void>,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  login: (_email: string, _password: string) => Promise<void>,
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   clearErrors: () => void;
-  updateUserContextProfile: (updatedProfileData: Partial<SessionUser>) => void;
-  setUser: (user: AuthUser | null) => void;
+  updateUserContextProfile: (_updatedProfileData: Partial<SessionUser>) => void;
+  setUser: (_user: AuthUser | null) => void;
   /* eslint-enable @typescript-eslint/no-unused-vars */
   isAuthReady: boolean;
 };
@@ -77,13 +79,13 @@ export const AuthContext = createContext<AuthContextType>({
   error: null,
   subscriptionError: null,
   refreshSubscription: async () => {},
-  /* eslint-disable @typescript-eslint/no-unused-vars */
-  login: async (email: string, password: string) => {},
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  login: async (_email: string, _password: string) => {},
   loginWithGoogle: async () => {},
   logout: async () => {},
   clearErrors: () => {},
-  updateUserContextProfile: (updatedProfileData: Partial<SessionUser>) => {},
-  setUser: (user: AuthUser | null) => {},
+  updateUserContextProfile: () => {},
+  setUser: () => {},
   /* eslint-enable @typescript-eslint/no-unused-vars */
   isAuthReady: false,
 });

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { useRouter } from 'next/router';
 import Header from './Header';
@@ -12,11 +13,11 @@ import { loadStripe } from '@stripe/stripe-js';
 // Inicializa o Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUB_KEY!);
 
-const debounce = <T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void => {
+const debounce = <T extends (...args: unknown[]) => unknown>(func: T, wait: number): (...args: Parameters<T>) => void => {
   let timeout: ReturnType<typeof setTimeout>;
-  return (...args: Parameters<T>) => {
+  return (..._args: Parameters<T>) => {
     clearTimeout(timeout);
-    timeout = setTimeout(() => func(...args), wait);
+    timeout = setTimeout(() => func(..._args), wait);
   };
 };
 
@@ -24,9 +25,9 @@ const MD_BREAKPOINT = 768;
 
 // Context para compartilhar funções entre Layout e páginas
 interface LayoutContextType {
-  registerAddItemCallback: (callback: () => void) => void;
+  registerAddItemCallback: (_callback: () => void) => void;
   unregisterAddItemCallback: () => void;
-  registerExportPDFCallback: (callback: () => void) => void;
+  registerExportPDFCallback: (_callback: () => void) => void;
   unregisterExportPDFCallback: () => void;
 }
 

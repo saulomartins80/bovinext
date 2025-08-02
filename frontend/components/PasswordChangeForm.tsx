@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // components/PasswordChangeForm.tsx
 import { useState, useCallback, useMemo } from 'react';
 import { 
@@ -229,7 +230,7 @@ export default function PasswordChangeForm({ onSuccess, onCancel }: PasswordChan
       
       setCurrentPasswordVerified(true);
       toast.success('Senha atual verificada com sucesso!');
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error verifying current password:', err);
       setError('Senha atual incorreta. Verifique e tente novamente.');
       setCurrentPasswordVerified(false);
@@ -274,9 +275,10 @@ export default function PasswordChangeForm({ onSuccess, onCancel }: PasswordChan
       await updatePassword(user, newPassword);
       toast.success('Senha alterada com sucesso!');
       onSuccess();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating password:', err);
-      setError(err.message || 'Erro ao alterar senha. Tente novamente.');
+      const errorMessage = err instanceof Error ? err.message : 'Erro ao alterar senha. Tente novamente.';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

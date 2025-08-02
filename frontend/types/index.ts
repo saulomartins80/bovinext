@@ -29,12 +29,19 @@ export interface UserProfile {
   uid: string;
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   message?: string;
   data?: T;
   error?: string;
 // Removed duplicate Subscription interface userId?: string;
+}
+
+export interface CommandResponse {
+  success: boolean;
+  message: string;
+  data?: Record<string, unknown>;
+  error?: string;
 }
 
 export interface MarketDataRequest {

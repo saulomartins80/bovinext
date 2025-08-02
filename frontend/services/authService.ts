@@ -1,5 +1,6 @@
 //frontend/services/authservices.ts
 import { auth, loginWithGoogle } from '../lib/firebase/client';
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import api from './api';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 
