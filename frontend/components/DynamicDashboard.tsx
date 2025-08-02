@@ -11,12 +11,27 @@ import {
   Zap, RefreshCw, X, List
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { StockData, MarketData } from '../context/DashboardContext';
+import { StockItem, CryptoItem, MarketIndices } from '../types/market';
 
-interface DashboardWidget {
+// Tipo union consolidado para todos os tipos de dados suportados pelo widget
+export type WidgetData = 
+  | MetricData 
+  | ListData 
+  | ChartData 
+  | AlertData 
+  | ActionData 
+  | StockData 
+  | MarketData 
+  | StockItem 
+  | CryptoItem 
+  | MarketIndices;
+
+export interface DashboardWidget {
   id: string;
   type: 'chart' | 'metric' | 'list' | 'alert' | 'action';
   title: string;
-  data: MetricData | ListData | ChartData | AlertData | ActionData;
+  data: WidgetData;
   position: { x: number; y: number; w: number; h: number };
   isVisible: boolean;
   isEditable: boolean;
@@ -217,7 +232,7 @@ export default function DynamicDashboard({
   };
 
   // 🎯 ADICIONAR WIDGET
-  const addWidget = async (type: string, title: string, data: Record<string, unknown>) => {
+  const addWidget = async (type: string, title: string, data: WidgetData) => {
     const newWidget: DashboardWidget = {
       id: `${type}_${Date.now()}`,
       type: getWidgetType(type),
