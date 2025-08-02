@@ -16,7 +16,7 @@ interface UseChatStreamReturn {
   streamData: string;
   isStreaming: boolean;
   error: string | null;
-  startStream: (_message: string, _chatId: string) => Promise<void>;
+  startStream: (message: string, chatId: string) => Promise<void>;
   stopStream: () => void;
   resetStream: () => void;
 }
