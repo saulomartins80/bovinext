@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "build:no-lint": "DISABLE_ESLINT_PLUGIN=true next build",
-    "build:render": "next build",
+    "build:render": "DISABLE_ESLINT_PLUGIN=true next build",
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

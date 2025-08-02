@@ -40,7 +40,8 @@ export interface ApiResponse<T = unknown> {
 export interface CommandResponse {
   success: boolean;
   message: string;
-  data?: Record<string, unknown>;
+  action?: string;
+  data?: unknown;
   error?: string;
 }
 
