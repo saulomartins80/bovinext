@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 
 interface ToggleProps {
   checked: boolean;
-  onChange: (_checked: boolean) => void;
+  onChange: (checked: boolean) => void;
   label?: string;
   description?: string;
   disabled?: boolean;

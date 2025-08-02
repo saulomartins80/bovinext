@@ -3,9 +3,9 @@ import { NotificationItem } from '../components/Notifications';
 
 interface NotificationContextType {
   notifications: NotificationItem[];
-  addNotification: (_notification: Omit<NotificationItem, 'id' | 'createdAt'>) => void;
-  removeNotification: (_id: string) => void;
-  markAsRead: (_id: string) => void;
+  addNotification: (notification: Omit<NotificationItem, 'id' | 'createdAt'>) => void;
+  removeNotification: (id: string) => void;
+  markAsRead: (id: string) => void;
   markAllAsRead: () => void;
   clearAll: () => void;
   unreadCount: number;

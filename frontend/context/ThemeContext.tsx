@@ -5,7 +5,7 @@ export type Theme = "light" | "dark" | "system";
 interface ThemeContextType {
   theme: Theme; // Preferência do usuário: "light", "dark", ou "system"
   resolvedTheme: "light" | "dark"; // O tema que está de fato aplicado (light ou dark)
-  setTheme: (_theme: Theme) => void;
+  setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
 }
 
