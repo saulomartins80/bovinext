@@ -10,7 +10,7 @@ type AssetCategory = 'stocks' | 'cryptos' | 'commodities' | 'fiis' | 'etfs' | 'c
 interface ConfigurableTableSectionProps {
   title: string;
   category: AssetCategory;
-  displayFormatter?: () => string;
+  displayFormatter?: (item: string) => string;
   showVolume?: boolean;
 }
 
