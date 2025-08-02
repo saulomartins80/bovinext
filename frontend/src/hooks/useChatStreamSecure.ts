@@ -17,7 +17,7 @@ interface UseChatStreamReturn {
   streamData: StreamData | null;
   isStreaming: boolean;
   error: string | null;
-  startStream: (message: string, chatId: string) => Promise<void>;
+  startStream: (_message: string, _chatId: string) => Promise<void>;
   stopStream: () => void;
   resetStream: () => void;
 }
@@ -108,7 +108,8 @@ export const useChatStreamSecure = (): UseChatStreamReturn => {
       const startTime = Date.now();
 
       try {
-        while (true) {
+        let streaming = true;
+        while (streaming) {
           const { done, value } = await reader.read();
 
           if (done) {
@@ -121,6 +122,7 @@ export const useChatStreamSecure = (): UseChatStreamReturn => {
                 chunkCount: chunkCount
               }
             } : null);
+            streaming = false;
             break;
           }
 

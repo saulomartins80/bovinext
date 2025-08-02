@@ -4,7 +4,7 @@ import { transacaoAPI, metaAPI, investimentoAPI } from '../services/api';
 
 interface QuickAddAssistantProps {
   onClose: () => void;
-  onSuccess?: (type: 'transaction' | 'goal' | 'investment', data: any) => void;
+onSuccess?: (type: 'transaction' | 'goal' | 'investment', data: Record<string, string | number>) => void;
 }
 
 interface FormStep {
@@ -20,7 +20,7 @@ interface FormStep {
     minLength?: number;
     maxLength?: number;
     pattern?: RegExp;
-    custom?: (value: any) => string | null;
+custom?: (value: string | number) => string | null;
   };
 }
 
@@ -39,7 +39,7 @@ export const QuickAddAssistant = ({
   onSuccess
 }: QuickAddAssistantProps) => {
   const [activeTab, setActiveTab] = useState<'transaction' | 'goal' | 'investment'>('transaction');
-  const [formData, setFormData] = useState<any>({});
+  const [formData, setFormData] = useState<Record<string, string | number>>({});
   const [step, setStep] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
@@ -57,9 +57,9 @@ export const QuickAddAssistant = ({
           validation: {
             required: true,
             min: 0.01,
-            custom: (value) => {
-              if (!value || value <= 0) return "Valor deve ser maior que zero";
-              if (value > 1000000) return "Valor muito alto";
+          custom: (value) => {
+              if (!value || (value as number) <= 0) return "Valor deve ser maior que zero";
+              if ((value as number) > 1000000) return "Valor muito alto";
               return null;
             }
           }
@@ -90,9 +90,9 @@ export const QuickAddAssistant = ({
             required: true,
             minLength: 3,
             maxLength: 100,
-            custom: (value) => {
-              if (!value || value.trim().length < 3) return "Descrição deve ter pelo menos 3 caracteres";
-              if (value.trim().length > 100) return "Descrição muito longa";
+          custom: (value) => {
+              if (!value || (value as string).trim().length < 3) return "Descrição deve ter pelo menos 3 caracteres";
+              if ((value as string).trim().length > 100) return "Descrição muito longa";
               return null;
             }
           }
@@ -119,9 +119,9 @@ export const QuickAddAssistant = ({
             required: true,
             minLength: 3,
             maxLength: 50,
-            custom: (value) => {
-              if (!value || value.trim().length < 3) return "Nome da meta deve ter pelo menos 3 caracteres";
-              if (value.trim().length > 50) return "Nome da meta muito longo";
+          custom: (value) => {
+              if (!value || (value as string).trim().length < 3) return "Nome da meta deve ter pelo menos 3 caracteres";
+              if ((value as string).trim().length > 50) return "Nome da meta muito longo";
               return null;
             }
           }
@@ -134,9 +134,9 @@ export const QuickAddAssistant = ({
             required: true,
             min: 1,
             max: 10000000,
-            custom: (value) => {
-              if (!value || value <= 0) return "Valor deve ser maior que zero";
-              if (value > 10000000) return "Valor muito alto";
+          custom: (value) => {
+              if (!value || (value as number) <= 0) return "Valor deve ser maior que zero";
+              if ((value as number) > 10000000) return "Valor muito alto";
               return null;
             }
           }
@@ -147,9 +147,9 @@ export const QuickAddAssistant = ({
           type: "date",
           validation: {
             required: true,
-            custom: (value) => {
+          custom: (value) => {
               if (!value) return "Data é obrigatória";
-              const selectedDate = new Date(value);
+              const selectedDate = new Date(value as string);
               const today = new Date();
               today.setHours(0, 0, 0, 0);
               
@@ -181,9 +181,9 @@ export const QuickAddAssistant = ({
             required: true,
             minLength: 2,
             maxLength: 50,
-            custom: (value) => {
-              if (!value || value.trim().length < 2) return "Nome deve ter pelo menos 2 caracteres";
-              if (value.trim().length > 50) return "Nome muito longo";
+          custom: (value) => {
+              if (!value || (value as string).trim().length < 2) return "Nome deve ter pelo menos 2 caracteres";
+              if ((value as string).trim().length > 50) return "Nome muito longo";
               return null;
             }
           }
@@ -205,9 +205,9 @@ export const QuickAddAssistant = ({
             required: true,
             min: 1,
             max: 10000000,
-            custom: (value) => {
-              if (!value || value <= 0) return "Valor deve ser maior que zero";
-              if (value > 10000000) return "Valor muito alto";
+          custom: (value) => {
+              if (!value || (value as number) <= 0) return "Valor deve ser maior que zero";
+              if ((value as number) > 10000000) return "Valor muito alto";
               return null;
             }
           }
@@ -218,9 +218,9 @@ export const QuickAddAssistant = ({
           type: "date",
           validation: {
             required: true,
-            custom: (value) => {
+          custom: (value) => {
               if (!value) return "Data é obrigatória";
-              const selectedDate = new Date(value);
+              const selectedDate = new Date(value as string);
               const today = new Date();
               const oneYearAgo = new Date(today.getTime() - 365 * 24 * 60 * 60 * 1000);
               
@@ -236,8 +236,8 @@ export const QuickAddAssistant = ({
 
   const currentStep = formModels[activeTab].steps[step - 1];
 
-  // Função de validação
-  const validateField = (field: string, value: any, validation?: any): string | null => {
+// Função de validação
+const validateField = (value: string | number | undefined, validation?: FormStep['validation']): string | null => {
     if (!validation) return null;
 
     // Validação required
@@ -269,7 +269,7 @@ export const QuickAddAssistant = ({
     }
 
     // Validação pattern (regex)
-    if (validation.pattern && !validation.pattern.test(value)) {
+    if (validation.pattern && typeof value === 'string' && !validation.pattern.test(value)) {
       return "Formato inválido";
     }
 
@@ -284,7 +284,7 @@ export const QuickAddAssistant = ({
   // Validar campo atual
   const validateCurrentField = (): boolean => {
     const currentValue = formData[currentStep.field];
-    const error = validateField(currentStep.field, currentValue, currentStep.validation);
+    const error = validateField(currentValue, currentStep.validation);
     
     if (error) {
       setValidationErrors([{ field: currentStep.field, message: error }]);
@@ -320,7 +320,7 @@ export const QuickAddAssistant = ({
     
     formModels[activeTab].steps.forEach(step => {
       if (step.validation?.required || !step.optional) {
-        const error = validateField(step.field, formData[step.field], step.validation);
+        const error = validateField(formData[step.field], step.validation);
         if (error) {
           errors.push({ field: step.field, message: error });
         }
@@ -379,7 +379,7 @@ export const QuickAddAssistant = ({
     resetForm();
   };
 
-  const handleFieldChange = (field: string, value: any) => {
+  const handleFieldChange = (field: string, value: string | number) => {
     setFormData({...formData, [field]: value});
     
     // Limpar erro do campo quando o usuário começa a digitar
@@ -434,7 +434,7 @@ export const QuickAddAssistant = ({
           
           {currentStep.type === 'select' ? (
             <select
-              value={formData[currentStep.field] || ''}
+            value={String(formData[currentStep.field] || '')}
               onChange={(e) => handleFieldChange(currentStep.field, e.target.value)}
               className={`w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
                 getCurrentFieldError() ? 'border-red-500' : ''
@@ -448,7 +448,7 @@ export const QuickAddAssistant = ({
           ) : currentStep.type === 'date' ? (
             <input
               type="date"
-              value={formData[currentStep.field] || ''}
+            value={String(formData[currentStep.field] || '')}
               onChange={(e) => handleFieldChange(currentStep.field, e.target.value)}
               className={`w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
                 getCurrentFieldError() ? 'border-red-500' : ''
@@ -457,7 +457,7 @@ export const QuickAddAssistant = ({
           ) : (
             <input
               type={currentStep.type}
-              value={formData[currentStep.field] || ''}
+            value={String(formData[currentStep.field] || '')}
               onChange={(e) => handleFieldChange(currentStep.field, e.target.value)}
               className={`w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
                 getCurrentFieldError() ? 'border-red-500' : ''

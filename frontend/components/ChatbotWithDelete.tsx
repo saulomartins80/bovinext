@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   MessageSquare, X, Send, Bot, Sparkles, Trash2 
@@ -6,7 +6,6 @@ import {
 import { chatbotAPI } from '../services/api';
 import { chatbotDeleteAPI } from '../services/chatbotDeleteAPI';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import { useNotifications } from '../context/NotificationContext';
 import React from 'react';
 

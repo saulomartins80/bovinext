@@ -49,24 +49,24 @@ export interface DashboardContextType {
   selectedCurrencies: string[];
   manualAssets: ManualAsset[];
   customIndices: CustomIndex[]; // Único estado para índices
-  setCustomIndices: (indices: CustomIndex[]) => void; // Substitui setSelectedIndices
-  refreshMarketData: (options?: { silent?: boolean }) => Promise<void>;
-  addCustomIndex: (index: { symbol: string; name: string }) => void;
-  removeCustomIndex: (symbol: string) => void;
-  updateCustomIndex: (oldSymbol: string, newIndex: CustomIndex) => void;
-  removeStock: (symbol: string) => void;
-  removeCrypto: (symbol: string) => void;
-  removeCommodity: (symbol: string) => void;
-  removeFii: (symbol: string) => void;
-  removeEtf: (symbol: string) => void;
-  removeCurrency: (symbol: string) => void;
-  setManualAssets: (assets: ManualAsset[]) => void;
-  setSelectedStocks: (stocks: string[]) => void;
-  setSelectedCryptos: (cryptos: string[]) => void;
-  setSelectedCommodities: (commodities: string[]) => void;
-  setSelectedFiis: (fiis: string[]) => void;
-  setSelectedEtfs: (etfs: string[]) => void;
-  setSelectedCurrencies: (currencies: string[]) => void;
+  setCustomIndices: (_: CustomIndex[]) => void; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+  refreshMarketData: (_?: { silent?: boolean }) => Promise<void>; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+  addCustomIndex: (_: { symbol: string; name: string }) => void; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+  removeCustomIndex: (_: string) => void; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+  updateCustomIndex: (_oldSymbol: string, _newIndex: CustomIndex) => void; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+  removeStock: (_: string) => void; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+  removeCrypto: (_: string) => void; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+  removeCommodity: (_: string) => void; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+  removeFii: (_: string) => void; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+  removeEtf: (_: string) => void; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+  removeCurrency: (_: string) => void; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+  setManualAssets: (_: ManualAsset[]) => void; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+  setSelectedStocks: (_: string[]) => void; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+  setSelectedCryptos: (_: string[]) => void; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+  setSelectedCommodities: (_: string[]) => void; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+  setSelectedFiis: (_: string[]) => void; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+  setSelectedEtfs: (_: string[]) => void; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
+  setSelectedCurrencies: (_: string[]) => void; // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
   availableStocks: string[];
   availableCryptos: string[];
   availableCommodities: string[];
@@ -149,13 +149,13 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [customIndices, setCustomIndices] = useState<CustomIndex[]>(DEFAULT_CUSTOM_INDICES);
 
   // Estados para ativos disponíveis
-  const [availableStocks, setAvailableStocks] = useState<string[]>(EXAMPLE_AVAILABLE_STOCKS);
-  const [availableCryptos, setAvailableCryptos] = useState<string[]>(EXAMPLE_AVAILABLE_CRYPTOS);
-  const [availableCommodities, setAvailableCommodities] = useState<string[]>(EXAMPLE_AVAILABLE_COMMODITIES);
-  const [availableFiis, setAvailableFiis] = useState<string[]>(EXAMPLE_AVAILABLE_FIIS);
-  const [availableEtfs, setAvailableEtfs] = useState<string[]>(EXAMPLE_AVAILABLE_ETFS);
-  const [availableCurrencies, setAvailableCurrencies] = useState<string[]>(EXAMPLE_AVAILABLE_CURRENCIES);
-  const [availableIndices, setAvailableIndices] = useState<string[]>(EXAMPLE_AVAILABLE_INDICES);
+  const [availableStocks] = useState<string[]>(EXAMPLE_AVAILABLE_STOCKS);
+  const [availableCryptos] = useState<string[]>(EXAMPLE_AVAILABLE_CRYPTOS);
+  const [availableCommodities] = useState<string[]>(EXAMPLE_AVAILABLE_COMMODITIES);
+  const [availableFiis] = useState<string[]>(EXAMPLE_AVAILABLE_FIIS);
+  const [availableEtfs] = useState<string[]>(EXAMPLE_AVAILABLE_ETFS);
+  const [availableCurrencies] = useState<string[]>(EXAMPLE_AVAILABLE_CURRENCIES);
+  const [availableIndices] = useState<string[]>(EXAMPLE_AVAILABLE_INDICES);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const router = useRouter();
@@ -196,10 +196,11 @@ export const DashboardProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       setMarketData(data);
       console.log('[DashboardContext] Market data after setMarketData:', data);
 
-    } catch (error: any) {
-      if (error.name === 'AbortError') return;
+    } catch (error) {
+      const err = error as Error;
+      if (err.name === 'AbortError') return;
       if (!silent) {
-        setMarketError(error instanceof Error ? error.message : 'Erro ao buscar dados do mercado.');
+        setMarketError(err.message || 'Erro ao buscar dados do mercado.');
         setMarketData(null);
       }
     } finally {

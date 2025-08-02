@@ -32,7 +32,7 @@ import PasswordChangeForm from "../components/PasswordChangeForm";
 import TwoFactorAuthSetup from "../components/TwoFactorAuthSetup";
 import { useRouter } from 'next/router';
 import Notifications, { NotificationItem } from '../components/Notifications';
-import Input from '../components/ui/Input';
+// import Input from '../components/ui/Input'; // Currently unused
 import Select from '../components/ui/Select';
 
 // Tipos e interfaces
@@ -63,7 +63,7 @@ interface AccountSetting {
   type: "toggle" | "select" | "radiogroup" | "action";
   options?: SettingOption[];
   currentValue?: any;
-  onChange?: (value: any) => void;
+  onChange?: (_value: any) => void;
   icon: React.ReactNode;
   action?: () => void;
   status?: string;
@@ -132,7 +132,7 @@ export default function ConfiguracoesPage() {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [show2FAModal, setShow2FAModal] = useState(false);
   const [backupStatus, setBackupStatus] = useState<BackupStatus>('idle');
-  const [sampleNotifications, setSampleNotifications] = useState<NotificationItem[]>([]);
+  const [_sampleNotifications, setSampleNotifications] = useState<NotificationItem[]>([]);
   const [notificationCounter, setNotificationCounter] = useState(0);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [originalSettings, setOriginalSettings] = useState<Settings>(DEFAULT_SETTINGS);
@@ -231,7 +231,7 @@ export default function ConfiguracoesPage() {
       
       // Reset status after 3 seconds
       setTimeout(() => setBackupStatus('idle'), 3000);
-    } catch (error) {
+    } catch (_error) {
       setBackupStatus('failed');
       toast.error('Erro ao realizar backup.');
       setTimeout(() => setBackupStatus('idle'), 3000);

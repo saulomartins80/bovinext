@@ -34,19 +34,19 @@ interface WhatsAppFloatProps {
 
 const WhatsAppFloat = ({ 
   phoneNumber = '5511999999999',
-  message = 'Olá! Gostaria de saber mais sobre o FinNEXTHO.',
+  // message = 'Olá! Gostaria de saber mais sobre o FinNEXTHO.',
   position = 'bottom-right',
   companyName = 'FinNEXTHO',
-  brandColor = '#10B981'
+  // brandColor = '#10B981'
 }: WhatsAppFloatProps) => {
   const { resolvedTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [typingMessage, setTypingMessage] = useState('');
+  // const [typingMessage, setTypingMessage] = useState('');
   const [showTyping, setShowTyping] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(1);
+  // const [unreadCount, setUnreadCount] = useState(1);
   const chatRef = useRef<HTMLDivElement>(null);
 
   // Opções de contato profissionais com fotos reais
@@ -104,7 +104,7 @@ const WhatsAppFloat = ({
     if (isOpen && !showTyping) {
       const timer = setTimeout(() => {
         setShowTyping(true);
-        setTypingMessage('Olá! Como posso ajudá-lo hoje?');
+        // setTypingMessage('Olá! Como posso ajudá-lo hoje?');
         setTimeout(() => setShowTyping(false), 3000);
       }, 1000);
       return () => clearTimeout(timer);
@@ -126,14 +126,14 @@ const WhatsAppFloat = ({
       });
     }
     
-    setUnreadCount(0);
+    // setUnreadCount(0);
     setIsOpen(false);
   };
 
   const toggleChat = () => {
     setIsOpen(!isOpen);
     if (!isOpen) {
-      setUnreadCount(0);
+      // setUnreadCount(0);
     }
   };
 

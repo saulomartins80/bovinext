@@ -17,7 +17,7 @@ interface StripeCheckoutProps {
   onCancel?: () => void;
 }
 
-export default function StripeCheckout({ priceId, planName, onSuccess, onCancel }: StripeCheckoutProps) {
+export default function StripeCheckout({ priceId, planName, onCancel }: StripeCheckoutProps) {
   const router = useRouter();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -37,7 +37,7 @@ export default function StripeCheckout({ priceId, planName, onSuccess, onCancel 
         throw new Error('Usuário não autenticado');
       }
 
-      const _token = await currentUser.getIdToken();
+      // const _token = await currentUser.getIdToken();
 
       const { sessionId } = await subscriptionAPI.createCheckoutSession(priceId, planName);
 

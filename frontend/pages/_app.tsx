@@ -27,7 +27,7 @@ import AuthInitializer from '../components/AuthInitializer'
 import { Elements } from '@stripe/react-stripe-js'
 import { loadStripe } from '@stripe/stripe-js'
 import '../i18n';
-import { PROTECTED_ROUTES, AUTH_PAGES, isProtectedRoute, isAuthPage } from '../utils/routes';
+import { isProtectedRoute, isAuthPage } from '../utils/routes';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUB_KEY!);
 

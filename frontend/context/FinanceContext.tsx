@@ -29,27 +29,36 @@ interface FinanceContextProps {
   loading: boolean;
   error: string | null;
   fetchTransactions: () => Promise<void>;
+  // eslint-disable-next-line no-unused-vars
   addTransaction: (novaTransacao: Omit<Transacao, "_id">) => Promise<void>;
+  // eslint-disable-next-line no-unused-vars
   editTransaction: (id: string, updatedTransaction: Partial<Transacao>) => Promise<void>;
+  // eslint-disable-next-line no-unused-vars
   deleteTransaction: (id: string) => Promise<void>;
   fetchInvestimentos: () => Promise<void>;
+  // eslint-disable-next-line no-unused-vars
   addInvestimento: (novoInvestimento: Omit<Investimento, "_id">) => Promise<void>;
+  // eslint-disable-next-line no-unused-vars
   editInvestimento: (id: string, updatedInvestimento: Partial<Investimento>) => Promise<void>;
+  // eslint-disable-next-line no-unused-vars
   deleteInvestimento: (id: string) => Promise<void>;
   fetchMetas: () => Promise<void>;
+  // eslint-disable-next-line no-unused-vars
   addMeta: (novaMeta: Omit<Meta, "_id" | "createdAt">) => Promise<void>;
+  // eslint-disable-next-line no-unused-vars
   editMeta: (id: string, updatedMeta: Partial<Meta>) => Promise<void>;
+  // eslint-disable-next-line no-unused-vars
   deleteMeta: (id: string) => Promise<void>;
   fetchData: () => Promise<void>;
   getMetas: () => Promise<Meta[]>;
 }
 
 // 2. Depois declare os type guards
-function isMongoId(id: any): id is MongoId {
+function isMongoId(id: unknown): id is MongoId {
   return id && typeof id === 'object' && '$oid' in id;
 }
 
-function isMongoDate(date: any): date is MongoDate {
+function isMongoDate(date: unknown): date is MongoDate {
   return date && typeof date === 'object' && '$date' in date;
 }
 
@@ -358,9 +367,11 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       })));
       
       console.log(`[fetchData CALL ${fetchDataCallId}] All data updated successfully. Path: ${router.pathname}`);
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as Error;
+      const apiError = error as { response?: { data?: { message?: string } } };
       console.error(`[fetchData CALL ${fetchDataCallId}] Error fetching data:`, error, "Path:", router.pathname);
-      setError(error?.response?.data?.message || error?.message || "Erro desconhecido");
+      setError(apiError.response?.data?.message || err.message || "Erro desconhecido");
     } finally {
       setLoading(false);
       console.log(`[fetchData CALL ${fetchDataCallId}] Finished fetching all data. Path: ${router.pathname}`);

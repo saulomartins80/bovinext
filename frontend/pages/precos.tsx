@@ -13,7 +13,7 @@ import Link from 'next/link';
 export default function Precos() {
   const { resolvedTheme } = useTheme();
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  // const [_selectedPlan, _setSelectedPlan] = useState<string | null>(null);
 
   const plans = [
     {

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  TrendingUp, BarChart3, Plus, 
+  BarChart3, Plus, 
   ChevronDown, ChevronUp, ChevronRight, ChevronLeft, X, Edit3, Trash2,
-  Search, DollarSign, CheckCircle,
+  Search, CheckCircle,
   CreditCard as CreditCardIcon, Banknote, Wallet, Award,
   MoreVertical
 } from 'lucide-react';
@@ -179,14 +179,19 @@ const MobileCardsList = ({
   borderColor, 
   setShowAddModal, 
   setActiveTab,
-  PROGRAM_DATABASE 
+  PROGRAM_DATABASE
 }: {
   creditCards: CreditCard[];
   cardBg: string;
   borderColor: string;
-  setShowAddModal: (show: boolean) => void;
-  setActiveTab: (tab: string) => void;
-  PROGRAM_DATABASE: any;
+  setShowAddModal: (_value: boolean) => void;
+  setActiveTab: (_value: string) => void;
+  PROGRAM_DATABASE: Record<string, {
+    airline: string;
+    icon: string;
+    bestUse: string;
+    colors: string[];
+  }>;
 }) => {
   const detectProgramInfo = (programName: string) => {
     const programInfo = PROGRAM_DATABASE[programName as keyof typeof PROGRAM_DATABASE] || {
@@ -347,9 +352,9 @@ const MobileCardDetail = ({
   card: CreditCard;
   cardBg: string;
   borderColor: string;
-  setActiveTab: (tab: string) => void;
-  setSelectedInvoice: (invoice: Invoice | null) => void;
-  setShowInvoiceModal: (show: boolean) => void;
+  setActiveTab: (_value: string) => void;
+  setSelectedInvoice: (_invoice: Invoice | null) => void;
+  setShowInvoiceModal: (_value: boolean) => void;
   invoices: Invoice[];
 }) => {
   return (
@@ -499,13 +504,18 @@ const MilhasMobileView = ({
   cardBg: string;
   borderColor: string;
   activeTab: string;
-  setActiveTab: (tab: string) => void;
-  setShowAddModal: (show: boolean) => void;
-  setSelectedCard: (card: CreditCard | null) => void;
+  setActiveTab: (_value: string) => void;
+  setShowAddModal: (_value: boolean) => void;
+  setSelectedCard: (_card: CreditCard | null) => void;
   selectedCard: CreditCard | null;
-  setSelectedInvoice: (invoice: Invoice | null) => void;
-  setShowInvoiceModal: (show: boolean) => void;
-  PROGRAM_DATABASE: any;
+  setSelectedInvoice: (_invoice: Invoice | null) => void;
+  setShowInvoiceModal: (_value: boolean) => void;
+  PROGRAM_DATABASE: Record<string, {
+    airline: string;
+    icon: string;
+    bestUse: string;
+    colors: string[];
+  }>;
   // onAddItem?: () => void; // Removido - não usado
 }) => {
   if (selectedCard) {
@@ -936,11 +946,10 @@ const MilhasPage = () => {
   }, []);
 
   // Hook para gerenciar o callback de adição
-  const { openAddForm } = useAddItemCallback({
+  useAddItemCallback({
     onAddItem: () => openForm(),
     isMobileView: isMobile
   });
-
   // Função para resetar o formulário
   const resetForm = () => {
     setNewCard({
@@ -962,10 +971,6 @@ const MilhasPage = () => {
     resetForm();
   };
 
-  // Função para lidar com o botão central da navegação móvel
-  const handleAddItem = () => {
-    openAddForm();
-  };
 
   // Carregar dados iniciais
   useEffect(() => {

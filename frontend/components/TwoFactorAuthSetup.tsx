@@ -17,12 +17,12 @@ import {
   FiRefreshCw
 } from 'react-icons/fi';
 import { toast } from 'react-toastify';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Input from './ui/Input';
-import Button from './ui/Button';
+// import Button from './ui/Button';
 
 interface TwoFactorAuthSetupProps {
-  onComplete: (success: boolean) => void;
+  onComplete?: (success: boolean) => void;
   currentStatus: boolean;
 }
 
@@ -92,8 +92,8 @@ export default function TwoFactorAuthSetup({ onComplete, currentStatus }: TwoFac
   const [verificationCode, setVerificationCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [qrCodeUri, setQrCodeUri] = useState('');
-  const [userEmail, setUserEmail] = useState('usuario@finnextho.com');
+  // const [qrCodeUri, setQrCodeUri] = useState(''); // Commented out as it's used but not displayed
+  const [userEmail] = useState('usuario@finnextho.com');
   const [selectedApp, setSelectedApp] = useState<AuthApp | null>(null);
   const [showSecret, setShowSecret] = useState(false);
   const [backupCodesDownloaded, setBackupCodesDownloaded] = useState(false);
@@ -205,15 +205,15 @@ export default function TwoFactorAuthSetup({ onComplete, currentStatus }: TwoFac
       newBackupCodes.push(`${code.slice(0, 4)}-${code.slice(4)}`);
     }
 
-    // Criar URI padrão otpauth para apps autenticadores
-    const issuer = 'FinNEXTHO';
-    const accountName = userEmail;
-    const uri = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(accountName)}?secret=${newSecret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
+    // Criar URI padrão otpauth para apps autenticadores (não usado no momento)
+    // const issuer = 'FinNEXTHO';
+    // const accountName = userEmail;
+    // const uri = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(accountName)}?secret=${newSecret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
 
     setSecret(newSecret);
     setBackupCodes(newBackupCodes);
-    setQrCodeUri(uri);
-  }, [userEmail]);
+    // setQrCodeUri(uri); // Commented out as QR code generation is placeholder
+  }, []);
 
   const formattedSecret = useMemo(() => {
     if (!secret) return '';

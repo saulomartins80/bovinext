@@ -9,6 +9,23 @@ import { useTheme } from "../context/ThemeContext";
 import { useRouter } from 'next/router';
 import { Investimento } from '../types';
 
+// API response types
+type APIResponse<T> = {
+  data: {
+    data?: T;
+  } | T;
+  message?: string;
+};
+
+type APIError = {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+  message?: string;
+};
+
 // Componente dinâmico para os gráficos
 const Chart = dynamic(() => import('react-apexcharts'), {
   ssr: false,
@@ -99,8 +116,8 @@ const InvestimentosDashboard = () => {
       setLoading(true);
       setError(null);
 
-      const response = await investimentoAPI.getAll();
-      const rawData = (response as any)?.data?.data || (response as any)?.data || response;
+      const response = await investimentoAPI.getAll() as APIResponse<Investimento[]>;
+      const rawData = response?.data?.data || response?.data || response;
 
       if (!Array.isArray(rawData)) {
         throw new Error('Formato de dados inválido recebido da API');
@@ -114,7 +131,7 @@ const InvestimentosDashboard = () => {
         'Fundos de Ações', 'Fundos de Renda Fixa', 'Fundos de Previdência', 'Fundos de Crédito Privado'
       ];
 
-      const formattedData = rawData.map((item: any) => {
+      const formattedData = rawData.map((item) => {
         // Função para obter data local no formato YYYY-MM-DD
         const getLocalDate = (dateString: string) => {
           if (!dateString) {
@@ -245,7 +262,7 @@ const InvestimentosDashboard = () => {
         investimentosFiltrados
           .map(inv => inv?.tipo)
           .filter((tipo): tipo is Investimento['tipo'] =>
-            tiposValidos.includes(tipo as any)
+            tiposValidos.includes(tipo)
           )
       )
     );
@@ -354,7 +371,7 @@ const InvestimentosDashboard = () => {
     // Prepara os dados para a API
     const payload = {
       nome: form.data.nome.trim(),
-      tipo: form.data.tipo as any,
+      tipo: form.data.tipo,
       valor: Number(form.data.valor),
       data: form.data.data + 'T12:00:00Z',
       ...(form.data.meta !== undefined && { meta: Number(form.data.meta) }),
@@ -376,7 +393,8 @@ const InvestimentosDashboard = () => {
 
   } catch (err) {
     console.error('Erro no formulário:', err);
-    const errorMessage = (err as any)?.response?.data?.message || (err as any).message || 'Erro ao processar';
+    const error = err as APIError;
+    const errorMessage = error?.response?.data?.message || error.message || 'Erro ao processar';
     toast.error(errorMessage);
   }
 };
@@ -390,8 +408,9 @@ const InvestimentosDashboard = () => {
       await fetchInvestimentos();
     } catch (err) {
       console.error('Erro ao excluir:', err);
-      const errorMessage = (err as any)?.response?.data?.message || (err as any).message || 'Erro ao excluir investimento';
-      toast.error(errorMessage);
+    const error = err as APIError;
+    const errorMessage = error?.response?.data?.message || error.message || 'Erro ao excluir investimento';
+    toast.error(errorMessage);
     }
   };
 

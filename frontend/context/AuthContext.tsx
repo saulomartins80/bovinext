@@ -1,21 +1,21 @@
 // context/AuthContext.tsx
 import { 
-  GoogleAuthProvider,
+  // GoogleAuthProvider,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  // signInWithPopup,
   User as FirebaseUser,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   IdTokenResult,
-} from 'firebase/auth'; 
+} from 'firebase/auth';
 import { loginWithGoogle as firebaseLoginWithGoogle, getFirebaseInstances } from '../lib/firebase/client';
-import { handleRedirectResult } from '../lib/firebase/auth';
+// import { handleRedirectResult } from '../lib/firebase/auth';
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/router';
 import { auth } from '../lib/firebase/client';
 import api from '../services/api';
 import Cookies from 'js-cookie';
-import { checkAndCreateUserProfile, isUserRegistrationComplete } from '../lib/firebase/autoRegistration';
+import { checkAndCreateUserProfile } from '../lib/firebase/autoRegistration';
 
 
 // Tipos
@@ -57,12 +57,14 @@ export type AuthContextType = {
   error: string | null;
   subscriptionError: string | null;
   refreshSubscription: () => Promise<void>;
-  login: (email: string, password: string) => Promise<void>;
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  login: (_email: string, _password: string) => Promise<void>,
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   clearErrors: () => void;
-  updateUserContextProfile: (updatedProfileData: Partial<SessionUser>) => void;
-  setUser: (user: AuthUser | null) => void;
+  updateUserContextProfile: (_updatedProfileData: Partial<SessionUser>) => void;
+  setUser: (_user: AuthUser | null) => void;
+  /* eslint-enable @typescript-eslint/no-unused-vars */
   isAuthReady: boolean;
 };
 
@@ -75,17 +77,39 @@ export const AuthContext = createContext<AuthContextType>({
   error: null,
   subscriptionError: null,
   refreshSubscription: async () => {},
-  login: async () => {},
+  /* eslint-disable @typescript-eslint/no-unused-vars */
+  login: async (_email: string, _password: string) => {},
   loginWithGoogle: async () => {},
   logout: async () => {},
   clearErrors: () => {},
-  updateUserContextProfile: () => {},
-  setUser: () => {},
+  updateUserContextProfile: (_updatedProfileData: Partial<SessionUser>) => {},
+  setUser: (_user: AuthUser | null) => {},
+  /* eslint-enable @typescript-eslint/no-unused-vars */
   isAuthReady: false,
 });
 
-const normalizeSubscription = (subscription: any): Subscription | null => {
-  if (!subscription) return null;
+const normalizeSubscription = (subscription: unknown): Subscription | null => {
+  // Add type guard
+  const isSubscriptionLike = (value: unknown): value is {
+    id?: string;
+    subscriptionId?: string;
+    stripeSubscriptionId?: string;
+    plan: unknown;
+    status: unknown;
+    expiresAt: string;
+    trialEndsAt?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    stripeCustomerId?: string;
+  } => {
+    const obj = value as Record<string, unknown>;
+    return obj && typeof obj === 'object' && 
+      (typeof obj.id === 'string' || typeof obj.subscriptionId === 'string' || typeof obj.stripeSubscriptionId === 'string') &&
+      obj.plan !== undefined &&
+      obj.status !== undefined &&
+      typeof obj.expiresAt === 'string';
+  };
+  if (!subscription || !isSubscriptionLike(subscription)) return null;
   
   return {
     id: subscription.id || subscription.subscriptionId || subscription.stripeSubscriptionId,
@@ -238,11 +262,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         return authUser;
       }
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as { message?: string; code?: string };
       console.error('Erro ao sincronizar sessão:', error);
       
       // Tratamento específico para erro de quota excedida
-      if (error?.message?.includes('auth/quota-exceeded') || error?.code === 'auth/quota-exceeded') {
+      if (err.message?.includes('auth/quota-exceeded') || err.code === 'auth/quota-exceeded') {
         console.error('QUOTA EXCEDIDA: Firebase Authentication atingiu o limite gratuito');
         setState(prev => ({
           ...prev,
@@ -386,11 +411,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (authUser) {
         router.push('/dashboard');
       }
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as { message: string };
       console.error('Login error:', error);
       setState(prev => ({
         ...prev,
-        error: error.message || 'Erro ao fazer login',
+        error: err.message || 'Erro ao fazer login',
         loading: false
       }));
       throw error;
@@ -419,11 +445,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Redirecionar para dashboard
       router.push('/dashboard');
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as { message?: string; code?: string };
       console.error('Erro no login com Google:', error);
       
       // Tratamento específico para erro de quota excedida
-      if (error?.message?.includes('auth/quota-exceeded') || error?.code === 'auth/quota-exceeded') {
+      if (err.message?.includes('auth/quota-exceeded') || err.code === 'auth/quota-exceeded') {
         setState(prev => ({ 
           ...prev, 
           error: 'Serviço temporariamente indisponível. Tente novamente mais tarde.',

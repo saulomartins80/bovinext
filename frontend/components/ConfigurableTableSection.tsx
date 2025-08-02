@@ -10,7 +10,7 @@ type AssetCategory = 'stocks' | 'cryptos' | 'commodities' | 'fiis' | 'etfs' | 'c
 interface ConfigurableTableSectionProps {
   title: string;
   category: AssetCategory;
-  displayFormatter?: (symbol: string) => string;
+  displayFormatter?: () => string;
   showVolume?: boolean;
 }
 
@@ -101,10 +101,10 @@ const ConfigurableTableSection: React.FC<ConfigurableTableSectionProps> = ({
   })();
 
   // Melhorar a função defaultDisplayFormatter
-  const defaultDisplayFormatter = (symbol: string) => {
+  const defaultDisplayFormatter = (symbol: any) => {
+    // Removed unused variable _symbol and unused function getIndexInfo
     if (category === 'indices') {
-      const indexInfo = customIndices.find(idx => idx.symbol === symbol);
-      return indexInfo?.name || symbol.replace('^', '');
+      return symbol.replace('^', '');
     }
     return symbol
       .replace('.SA', '')

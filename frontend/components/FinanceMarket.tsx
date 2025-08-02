@@ -40,9 +40,6 @@ const FinanceMarket: React.FC<FinanceMarketProps> = ({
   marketData,
   loadingMarketData,
   marketError,
-  selectedStocks,
-  selectedCryptos,
-  selectedCommodities,
   refreshMarketData,
   setSelectedStocks,
   setSelectedCryptos,
@@ -50,9 +47,6 @@ const FinanceMarket: React.FC<FinanceMarketProps> = ({
 }) => {
   const { resolvedTheme } = useTheme();
   const {
-    availableStocks = [],
-    availableCryptos = [],
-    availableCommodities = [],
     availableIndices = [],
     customIndices,
     setCustomIndices,
@@ -645,7 +639,7 @@ const FinanceMarket: React.FC<FinanceMarketProps> = ({
         }}
         currentSelected={selectedStocks}
         type="stocks"
-        allOptions={availableStocks}
+        allOptions={[]}
         defaultOptions={defaultStocks}
         title="Selecionar Ações"
       />
@@ -658,7 +652,7 @@ const FinanceMarket: React.FC<FinanceMarketProps> = ({
         }}
         currentSelected={selectedCryptos}
         type="cryptos"
-        allOptions={availableCryptos}
+        allOptions={[]}
         defaultOptions={defaultCryptos}
         title="Selecionar Criptomoedas"
       />
@@ -671,7 +665,7 @@ const FinanceMarket: React.FC<FinanceMarketProps> = ({
         }}
         currentSelected={selectedCommodities}
         type="commodities"
-        allOptions={availableCommodities}
+        allOptions={[]}
         title="Selecionar Commodities"
       />
       <AssetSelectionModal

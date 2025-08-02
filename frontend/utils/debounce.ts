@@ -1,10 +1,10 @@
 // debounce.ts
 // Utilitário de debounce para funções em TypeScript
 
-export function debounce<T extends (...args: any[]) => void>(func: T, wait: number) {
+export function debounce<T extends (..._args: unknown[]) => void>(func: T, wait: number) {
   let timeout: ReturnType<typeof setTimeout>;
-  return (...args: Parameters<T>) => {
+  return (..._args: Parameters<T>) => {
     clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(null, args), wait);
+    timeout = setTimeout(() => func(..._args), wait);
   };
 }

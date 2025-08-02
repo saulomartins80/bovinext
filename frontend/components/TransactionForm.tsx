@@ -25,7 +25,7 @@ interface TransactionPayload {
 interface TransactionFormProps {
   formData: FormData;
   setFormData: React.Dispatch<React.SetStateAction<FormData>>;
-  onSave: (payload: TransactionPayload) => Promise<void>;
+  onSave: (payload: TransactionPayload) => void;
   onClose: () => void;
   isSubmitting?: boolean;
   isEditing?: boolean;

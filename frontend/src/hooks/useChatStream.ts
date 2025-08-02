@@ -16,7 +16,7 @@ interface UseChatStreamReturn {
   streamData: string;
   isStreaming: boolean;
   error: string | null;
-  startStream: (message: string, chatId: string) => Promise<void>;
+  startStream: (_message: string, _chatId: string) => Promise<void>;
   stopStream: () => void;
   resetStream: () => void;
 }
@@ -114,10 +114,14 @@ export function useChatStream(): UseChatStreamReturn {
       const decoder = new TextDecoder();
 
       try {
-        while (true) {
+        let streaming = true;
+        while (streaming) {
           const { done, value } = await reader.read();
           
-          if (done) break;
+          if (done) {
+            streaming = false;
+            break;
+          }
 
           const chunk = decoder.decode(value);
           const lines = chunk.split('\n');
@@ -146,12 +150,14 @@ export function useChatStream(): UseChatStreamReturn {
                       totalChunks: data.totalChunks
                     });
                     setIsStreaming(false);
-                    return;
+                    streaming = false;
+                    break;
                     
                   case 'error':
                     setError(data.error || 'Erro desconhecido');
                     setIsStreaming(false);
-                    return;
+                    streaming = false;
+                    break;
                 }
               } catch (parseError) {
                 console.error('Erro ao processar chunk:', parseError);

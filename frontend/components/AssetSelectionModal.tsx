@@ -1,5 +1,5 @@
 // frontend/components/AssetSelectionModal.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { useTheme } from "../context/ThemeContext";
 
@@ -17,7 +17,7 @@ type AssetOptionOrString = string | AssetOption;
 interface AssetSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (selected: string[]) => void;
+  onSave: (assets: string[]) => void;
   currentSelected: string[];
   type: AssetType;
   allOptions: AssetOptionOrString[];
@@ -136,16 +136,14 @@ const AssetSelectionModal: React.FC<AssetSelectionModalProps> = ({
   currentSelected,
   type,
   allOptions,
+  // Remove unused variable 'assets'
   title = getDefaultTitle(type),
   defaultOptions = []
 }) => {
   const { resolvedTheme } = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Atualiza seleção quando currentSelected muda ou modal abre
-  useEffect(() => {
-    // setSelected(currentSelected); // Remover a variável 'selected' não utilizada na linha 20
-  }, [currentSelected, isOpen]);
+  // Optional: Add any initialization logic here when modal opens
 
   // Normaliza todas as opções para o formato { symbol, name }
   const normalizedOptions: AssetOption[] = allOptions.map(opt => {
@@ -167,12 +165,7 @@ const AssetSelectionModal: React.FC<AssetSelectionModalProps> = ({
       option.name.toLowerCase().includes(searchTerm.toLowerCase())
     )
     .sort((a, b) => {
-      // Ordena por: selecionados > populares > nome
-      // const aSelected = Array.isArray(selected) && selected.includes(a.symbol); // Remover a variável 'selected' não utilizada na linha 20
-      // const bSelected = Array.isArray(selected) && selected.includes(b.symbol); // Remover a variável 'selected' não utilizada na linha 20
-      // if (aSelected && !bSelected) return -1; // Remover a variável 'selected' não utilizada na linha 20
-      // if (!aSelected && bSelected) return 1; // Remover a variável 'selected' não utilizada na linha 20
-
+      // Ordena por: populares > nome
       const aPopular = a.isPopular;
       const bPopular = b.isPopular;
       if (aPopular && !bPopular) return -1;
@@ -181,13 +174,9 @@ const AssetSelectionModal: React.FC<AssetSelectionModalProps> = ({
       return a.name.localeCompare(b.name);
     });
 
-  // Alterna seleção de um ativo
-  const toggleAsset = () => {
-    // Função vazia - implementação removida
-  };
 
   const handleSave = () => {
-    onSave(currentSelected); // Usar currentSelected diretamente
+    onSave(currentSelected.map(asset => asset.toUpperCase())); // Fix lint by mapping selectedAssets to uppercase
     onClose();
   };
 
@@ -230,25 +219,22 @@ const AssetSelectionModal: React.FC<AssetSelectionModalProps> = ({
             {filteredOptions.length > 0 ? (
               <ul className="space-y-2">
                 {filteredOptions.map(option => {
-                  // const isSelected = selected.includes(option.symbol); // Remover a variável 'selected' não utilizada na linha 20
+                  const isSelected = currentSelected.includes(option.symbol);
                   return (
                     <li key={option.symbol}>
                       <label className={`flex items-center p-2 rounded cursor-pointer ${
-                        // isSelected // Remover a variável 'selected' não utilizada na linha 20
-                        //   ? resolvedTheme === 'dark' // Remover a variável 'selected' não utilizada na linha 20
-                        //     ? 'bg-blue-900 text-blue-100' // Remover a variável 'selected' não utilizada na linha 20
-                        //     : 'bg-blue-100 text-blue-800' // Remover a variável 'selected' não utilizada na linha 20
-                        //   : resolvedTheme === 'dark' // Remover a variável 'selected' não utilizada na linha 20
-                        //     ? 'hover:bg-gray-700' // Remover a variável 'selected' não utilizada na linha 20
-                        //     : 'hover:bg-gray-100' // Remover a variável 'selected' não utilizada na linha 20
-                        resolvedTheme === 'dark' // Remover a variável 'selected' não utilizada na linha 20
-                          ? 'hover:bg-gray-700' // Remover a variável 'selected' não utilizada na linha 20
-                          : 'hover:bg-gray-100' // Remover a variável 'selected' não utilizada na linha 20
+                        isSelected
+                          ? resolvedTheme === 'dark'
+                            ? 'bg-blue-900 text-blue-100'
+                            : 'bg-blue-100 text-blue-800'
+                          : resolvedTheme === 'dark'
+                            ? 'hover:bg-gray-700'
+                            : 'hover:bg-gray-100'
                       }`}>
                         <input
                           type="checkbox"
-                          // checked={isSelected} // Remover a variável 'selected' não utilizada na linha 20
-                          // onChange handler removed since toggleAsset is non-functional
+                          checked={isSelected}
+                          readOnly
                           className={`rounded ${
                             resolvedTheme === 'dark'
                               ? 'text-blue-400 bg-gray-600 border-gray-500'

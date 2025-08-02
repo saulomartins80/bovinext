@@ -1,32 +1,52 @@
 {
-  "extends": [
-    "next/core-web-vitals",
-    "plugin:@typescript-eslint/recommended"
-  ],
   "parser": "@typescript-eslint/parser",
+  "extends": [
+    "eslint:recommended",
+    "@typescript-eslint/recommended",
+    "next/core-web-vitals"
+  ],
   "parserOptions": {
     "ecmaVersion": "latest",
-    "sourceType": "module",
-    "project": "./tsconfig.json",
-    "tsconfigRootDir": "."
+    "sourceType": "module"
   },
   "env": {
     "browser": true,
     "es2021": true,
     "node": true
   },
+  "plugins": ["@typescript-eslint"],
   "rules": {
+    // ===== DESABILITAR REGRAS CONFLITANTES =====
+    "no-unused-vars": "off",
+    
+    // ===== VARIÁVEIS NÃO USADAS (TYPESCRIPT) =====
     "@typescript-eslint/no-unused-vars": [
       "warn",
       {
         "argsIgnorePattern": "^_",
         "varsIgnorePattern": "^_",
-        "caughtErrorsIgnorePattern": "^_"
+        "caughtErrorsIgnorePattern": "^_",
+        "destructuredArrayIgnorePattern": "^_",
+        "ignoreRestSiblings": true
       }
     ],
+
+    // ===== TIPO ANY =====
     "@typescript-eslint/no-explicit-any": "warn",
-    "no-unused-vars": "off",
+
+    // ===== REGRAS BÁSICAS =====
+    "prefer-const": "error",
+    "no-var": "error",
     "no-constant-condition": ["error", { "checkLoops": false }]
   },
-  "ignorePatterns": ["**/*.js", "public/", ".next/", "node_modules/"]
+  "overrides": [
+    {
+      "files": ["**/*.d.ts"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/no-unused-vars": "off"
+      }
+    }
+  ],
+  "ignorePatterns": ["node_modules/", ".next/", "out/", "dist/"]
 }

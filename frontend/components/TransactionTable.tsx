@@ -26,8 +26,8 @@ function isMongoDate(date: unknown): date is { $date: string } {
 
 interface TransactionTableProps {
   transacoes: Transacao[];
-  onEdit: (transacao: Transacao) => void;
-  onDelete: (id: string) => Promise<void>;
+onEdit?: (transacao: Transacao) => void;
+  onDelete?: (id: string) => void;
   theme: 'light' | 'dark'; 
 }
 
@@ -35,7 +35,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
   transacoes,
   onEdit,
   onDelete,
-  theme,
+  // theme,
 }) => {
   const { resolvedTheme } = useTheme();
   const [sortConfig, setSortConfig] = useState<{

@@ -1,5 +1,4 @@
 import React from 'react';
-import { useRouter } from 'next/router';
 import { Menu } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
@@ -14,8 +13,8 @@ interface MobileHeaderProps {
 const MobileHeader: React.FC<MobileHeaderProps> = ({ 
   title, 
   onMenuToggle, 
-  showBackButton = false,
-  onBack 
+  // showBackButton: _showBackButton = false,
+  // onBack: _onBack 
 }) => {
   const { resolvedTheme } = useTheme();
 

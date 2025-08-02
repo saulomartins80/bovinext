@@ -12,11 +12,11 @@ import { loadStripe } from '@stripe/stripe-js';
 // Inicializa o Stripe
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUB_KEY!);
 
-const debounce = (func: Function, wait: number) => {
+const debounce = <T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => void => {
   let timeout: ReturnType<typeof setTimeout>;
-  return (...args: unknown[]) => {
+  return (...args: Parameters<T>) => {
     clearTimeout(timeout);
-    timeout = setTimeout(() => func.apply(this, args), wait);
+    timeout = setTimeout(() => func(...args), wait);
   };
 };
 
@@ -32,7 +32,7 @@ interface LayoutContextType {
 
 const LayoutContext = createContext<LayoutContextType | null>(null);
 
-export const useLayoutContext = () => {
+export const useLayoutContext = (): LayoutContextType => {
   const context = useContext(LayoutContext);
   if (!context) {
     throw new Error('useLayoutContext must be used within Layout');
@@ -56,7 +56,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [exportPDFCallback, setExportPDFCallback] = useState<(() => void) | null>(null);
 
   // Função para obter o título da página atual
-  const getPageTitle = () => {
+  const getPageTitle = (): string => {
     const path = router.pathname;
     switch (path) {
       case '/dashboard':
@@ -79,7 +79,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   };
 
   // Função para lidar com o botão central da navegação móvel
-  const handleAddItem = () => {
+  const handleAddItem = (): void => {
     if (addItemCallback) {
       addItemCallback();
     } else {
@@ -109,14 +109,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   };
 
   // Função para lidar com exportar PDF
-  const handleExportPDF = () => {
+  const handleExportPDF = (): void => {
     if (exportPDFCallback) {
       exportPDFCallback();
     }
   };
 
   // Função para registrar callback de adição de item
-  const registerAddItemCallback = useCallback((callback: () => void) => {
+  const registerAddItemCallback = useCallback((callback: () => void): void => {
     setAddItemCallback(() => callback);
   }, []);
 
@@ -126,7 +126,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Função para registrar callback de exportar PDF
-  const registerExportPDFCallback = useCallback((callback: () => void) => {
+  const registerExportPDFCallback = useCallback((callback: () => void): void => {
     setExportPDFCallback(() => callback);
   }, []);
 
@@ -136,9 +136,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobileView(window.innerWidth < MD_BREAKPOINT);
-    };
+  const checkMobile = (): void => {
+    setIsMobileView(window.innerWidth < MD_BREAKPOINT);
+  };
     checkMobile();
     const debouncedCheckMobile = debounce(checkMobile, 100);
     window.addEventListener('resize', debouncedCheckMobile);
@@ -152,25 +152,25 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     let lastScrollY = 0;
     let ticking = false;
 
-    const handleScroll = () => {
-      if (!ticking && isMobileView) {
-        requestAnimationFrame(() => {
-          const currentScrollY = window.scrollY;
-          
-          // Mostrar header se rolou para baixo mais de 100px
-          // Ocultar se rolou para cima ou está no topo
-          if (currentScrollY > 100 && currentScrollY > lastScrollY) {
-            setShowMobileHeader(true);
-          } else if (currentScrollY < lastScrollY - 10 || currentScrollY < 50) {
-            setShowMobileHeader(false);
-          }
-          
-          lastScrollY = currentScrollY;
-          ticking = false;
-        });
-        ticking = true;
-      }
-    };
+  const handleScroll = (): void => {
+    if (!ticking && isMobileView) {
+      requestAnimationFrame(() => {
+        const currentScrollY = window.scrollY;
+        
+        // Mostrar header se rolou para baixo mais de 100px
+        // Ocultar se rolou para cima ou está no topo
+        if (currentScrollY > 100 && currentScrollY > lastScrollY) {
+          setShowMobileHeader(true);
+        } else if (currentScrollY < lastScrollY - 10 || currentScrollY < 50) {
+          setShowMobileHeader(false);
+        }
+        
+        lastScrollY = currentScrollY;
+        ticking = false;
+      });
+      ticking = true;
+    }
+  };
 
     if (isMobileView) {
       window.addEventListener('scroll', handleScroll, { passive: true });
@@ -195,18 +195,18 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     setExportPDFCallback(null);
   }, [router.pathname]);
 
-  const toggleMobileSidebar = useCallback(() => {
+  const toggleMobileSidebar = useCallback((): void => {
     setIsMobileSidebarOpen(prev => !prev);
   }, []);
 
-  const toggleDesktopSidebarCollapse = useCallback(() => {
+  const toggleDesktopSidebarCollapse = useCallback((): void => {
     setIsDesktopSidebarCollapsed(prev => !prev);
     if (typeof window !== 'undefined' && window.innerWidth >= MD_BREAKPOINT) {
       localStorage.setItem('sidebarCollapsed', String(!isDesktopSidebarCollapsed));
     }
   }, [isDesktopSidebarCollapsed]);
 
-  const toggleChat = useCallback(() => {
+  const toggleChat = useCallback((): void => {
     setIsChatOpen(prev => !prev);
   }, []);
 
@@ -230,7 +230,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 initialCollapsed={isDesktopSidebarCollapsed}
                 onToggle={toggleDesktopSidebarCollapse}
                 isOpen={true}
-                onClose={() => {}}
+                onClose={(): void => {}}
               />
             )}
             

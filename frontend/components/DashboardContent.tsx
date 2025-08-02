@@ -12,16 +12,11 @@ import { ArrowUp, ArrowDown, Wallet, TrendingUp, TrendingDown, DollarSign, User 
 import { useRouter } from "next/router";
 import { getGreeting, getFriendlyName } from "../src/utils/friendlyMessages";
 
-// Adicione esta interface para alinhar os tipos
-interface User {
-  name?: string | null; // Aceita tanto undefined quanto null
-  email?: string | null; // Adicione esta linha
-  // ... outras propriedades necessárias pela função getFriendlyName
-}
+// User interface is already imported from the auth context
 
-interface ApiError {
-  message?: string;
-}
+// interface ApiError {
+//   message?: string;
+// }
 
 const formatCurrency = (value: number | undefined, currency: string = 'BRL'): string => {
   if (typeof value !== 'number' || isNaN(value)) return '--';
@@ -49,9 +44,7 @@ const DashboardContent: React.FC = () => {
     setSelectedStocks,
     setSelectedCryptos,
     setSelectedCommodities = () => {},
-    setCustomIndices = (indices: string[]) => {}
   } = useDashboard() as ReturnType<typeof useDashboard> & {
-    setCustomIndices: (indices: string[]) => void;
   };
 
   // Combinar todos os useEffects em um único

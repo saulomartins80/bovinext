@@ -2,19 +2,16 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/router';
 import { 
-  MessageCircle, X, Send, User, Bot, 
-  Sparkles, BarChart2, Lightbulb, BookOpen,
-  Copy, ThumbsUp, ThumbsDown, Paperclip, Command,
-  Star, TrendingUp, Target, Shield, Zap, Trash2,
-  AlertTriangle, Clock, BarChart3, CheckCircle, XCircle,
-  Plus, Edit3, Eye, Brain, Zap as ZapIcon, Plane,
-  CreditCard, DollarSign, Calculator, Gift, Calendar,
-  ClipboardList
+  MessageCircle, X, Send, Bot, 
+  Sparkles, BarChart2, Lightbulb,
+  Copy, ThumbsUp, ThumbsDown,
+  Star, Target, Trash2,
+  CheckCircle, XCircle,
+  Edit3, Brain, Zap as ZapIcon, Plane, ClipboardList
 } from 'lucide-react';
 import { chatbotAPI } from '../services/api';
 import { chatbotDeleteAPI } from '../services/chatbotDeleteAPI';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import React from 'react';
@@ -22,11 +19,34 @@ import DynamicDashboard from './DynamicDashboard';
 
 
 // Tipos para o sistema de automação inteligente
+// Tipos para payloads específicos
+type TransactionPayload = {
+  valor: number;
+  descricao: string;
+  tipo?: 'receita' | 'despesa';
+  categoria?: string;
+  conta?: string;
+  data?: string;
+};
+
+type InvestmentPayload = {
+  valor: number;
+  nome: string;
+  instituicao?: string;
+  tipo?: string;
+};
+
+type GoalPayload = {
+  meta: string;
+  valor_total: number;
+  data_conclusao?: string;
+};
+
 type AutomatedAction = {
   type: 'CREATE_TRANSACTION' | 'CREATE_INVESTMENT' | 'CREATE_GOAL' | 'ANALYZE_DATA' | 'GENERATE_REPORT' | 
         'CREATE_MILEAGE' | 'REDEEM_MILEAGE' | 'ANALYZE_MILEAGE' | 'CONNECT_PLUGGY' | 'CALCULATE_VALUE' |
         'DASHBOARD_COMMAND' | 'GREETING' | 'GENERAL_HELP' | 'FRUSTRATION' | 'CONFIRMATION' | 'UNKNOWN';
-  payload: any;
+  payload: TransactionPayload | InvestmentPayload | GoalPayload | Record<string, unknown>;
   confidence: number;
   requiresConfirmation: boolean;
   successMessage: string;
@@ -45,7 +65,7 @@ type ChatMessage = {
     isAutomated?: boolean;
     processingTime?: number;
     confidence?: number;
-    analysisData?: any;
+    analysisData?: Record<string, unknown>;
     suggestions?: string[];
     isPremium?: boolean;
     expertise?: string;
@@ -56,13 +76,17 @@ type ChatMessage = {
     pointsEarned?: number;
     estimatedValue?: number;
     followUpQuestions?: string[]; // ✅ ADICIONADO: followUpQuestions
-    recommendations?: any[]; // ✅ ADICIONADO: recommendations
+    recommendations?: Array<{
+      title: string;
+      action?: string;
+      description?: string;
+    }>; // ✅ ADICIONADO: recommendations
     nextSteps?: string[]; // ✅ ADICIONADO: nextSteps
     isError?: boolean; // ✅ CORREÇÃO: Adicionar propriedade isError
     isDataCollection?: boolean; // ✅ ADICIONADO: para coleta progressiva
     currentField?: string; // ✅ ADICIONADO: para coleta progressiva
     missingFields?: string[]; // ✅ ADICIONADO: para coleta progressiva
-    collectedData?: any; // ✅ ADICIONADO: para coleta progressiva
+    collectedData?: Record<string, unknown>; // ✅ ADICIONADO: para coleta progressiva
     isComplete?: boolean; // ✅ ADICIONADO: para coleta progressiva
     actionType?: string; // ✅ ADICIONADO: para resumo
     isRecommendations?: boolean; // ✅ ADICIONADO: para recomendações
@@ -176,7 +200,7 @@ const AutomatedActionCard = ({
   onConfirm: () => void;
   onEdit: () => void;
   onCancel: () => void;
-  theme: any;
+  theme: ReturnType<typeof getChatTheme>;
 }) => {
   const getActionIcon = () => {
     switch (action.type) {
@@ -312,19 +336,19 @@ const AutomatedActionCard = ({
 const AdvancedMessageBubble = ({ 
   message, 
   theme, 
-  isPremium,
+  _isPremium, // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
   onFeedback,
   onActionConfirm,
   onActionEdit,
   onActionCancel
-}: { 
+}: {
   message: ChatMessage; 
-  theme: any;
-  isPremium: boolean;
-  onFeedback: (messageId: string) => void;
-  onActionConfirm: (action: AutomatedAction) => void;
-  onActionEdit: (action: AutomatedAction) => void;
-  onActionCancel: (action: AutomatedAction) => void;
+  theme: ReturnType<typeof getChatTheme>;
+  _isPremium: boolean;
+  onFeedback: (_messageId: string) => void; // eslint-disable-line no-unused-vars
+  onActionConfirm: (_action: AutomatedAction) => void; // eslint-disable-line no-unused-vars
+  onActionEdit: (_action: AutomatedAction) => void; // eslint-disable-line no-unused-vars
+  onActionCancel: (_action: AutomatedAction) => void; // eslint-disable-line no-unused-vars
 }) => {
   const copyToClipboard = async (text: string | React.ReactElement) => {
     try {
@@ -378,7 +402,7 @@ const AdvancedMessageBubble = ({
   };
 
   // 🏷️ FORMATAR VALOR DO CAMPO
-  const formatFieldValue = (field: string, value: any): string => {
+  const formatFieldValue = (field: string, value: unknown): string => {
     if (value === null || value === undefined) return '-';
     
     switch (field) {
@@ -387,7 +411,15 @@ const AdvancedMessageBubble = ({
         return `R$ ${Number(value).toFixed(2)}`;
       case 'data':
       case 'data_conclusao':
-        return new Date(value).toLocaleDateString('pt-BR');
+        if (
+          typeof value === 'string' ||
+          typeof value === 'number' ||
+          value instanceof Date
+        ) {
+          const date = new Date(value);
+          return isNaN(date.getTime()) ? '-' : date.toLocaleDateString('pt-BR');
+        }
+        return '-';
       case 'tipo':
         return value === 'receita' ? 'Receita' : 'Despesa';
       default:
@@ -396,7 +428,7 @@ const AdvancedMessageBubble = ({
   };
 
   // 🎯 HANDLER PARA CLIQUE EM RECOMENDAÇÃO
-  const handleRecommendationClick = (recommendation: any) => {
+  const handleRecommendationClick = (recommendation: { action?: string; title: string }) => {
     if (recommendation.action) {
       // Simular envio de mensagem baseada na recomendação
       const message = getRecommendationMessage(recommendation.action);
@@ -569,7 +601,7 @@ const AdvancedMessageBubble = ({
                     <h4 className="font-bold text-sm text-purple-800 dark:text-purple-200">💡 Recomendações:</h4>
                   </div>
                   <div className="space-y-2">
-                    {message.metadata.recommendations.map((rec: any, index: number) => (
+                    {message.metadata.recommendations.map((rec, index) => (
                       <button
                         key={index}
                         onClick={() => handleRecommendationClick(rec)}
@@ -696,25 +728,25 @@ const CommandBar = ({
   theme,
   placeholder 
 }: { 
-  onSubmit: (message: string) => void; 
+  onSubmit: (_message: string) => void; // eslint-disable-line no-unused-vars
   isLoading: boolean;
-  theme: any;
+  theme: ReturnType<typeof getChatTheme>;
   placeholder: string;
 }) => {
-  const [message, setMessage] = useState('');
+  const [inputMessage, setInputMessage] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (message.trim() && !isLoading) {
-      onSubmit(message.trim());
-      setMessage('');
+    if (inputMessage.trim() && !isLoading) {
+      onSubmit(inputMessage.trim());
+      setInputMessage('');
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit(e as any);
+      handleSubmit(e as React.FormEvent);
     }
   };
 
@@ -723,17 +755,17 @@ const CommandBar = ({
       <div className="flex-1 relative">
         <input
           type="text"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          value={inputMessage}
+          onChange={(e) => setInputMessage(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={isLoading}
           className={`w-full px-4 py-3 rounded-lg ${theme.inputBg} text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
         />
-        {message && (
+        {inputMessage && (
           <button
             type="button"
-            onClick={() => setMessage('')}
+            onClick={() => setInputMessage('')}
             className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
           >
             <X size={16} />
@@ -742,7 +774,7 @@ const CommandBar = ({
       </div>
       <button
         type="submit"
-        disabled={!message.trim() || isLoading}
+        disabled={!inputMessage.trim() || isLoading}
         className={`px-4 py-3 rounded-lg ${theme.button} text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2`}
       >
         {isLoading ? (
@@ -757,25 +789,25 @@ const CommandBar = ({
 
 // Novo: Formulário dinâmico para campos obrigatórios
 const DynamicForm = ({
-  actionType,
+  _actionType, // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
   missingFields,
   onSubmit,
   onCancel
 }: {
-  actionType: string;
+  _actionType: string;
   missingFields: string[];
-  onSubmit: (values: Record<string, any>) => void;
+  onSubmit: (_values: Record<string, string | number>) => void; // eslint-disable-line no-unused-vars
   onCancel: () => void;
 }) => {
-  const [values, setValues] = useState<Record<string, any>>({});
+  const [formValues, setFormValues] = useState<Record<string, string | number>>({});
 
-  const handleChange = (field: string, value: any) => {
-    setValues((prev) => ({ ...prev, [field]: value }));
+  const handleChange = (field: string, value: string) => {
+    setFormValues((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(values);
+    onSubmit(formValues);
   };
 
   // Labels amigáveis
@@ -804,7 +836,7 @@ const DynamicForm = ({
               type={field.includes('data') ? 'date' : (field.includes('valor') ? 'number' : 'text')}
               step={field.includes('valor') ? '0.01' : undefined}
               className="w-full px-3 py-2 border rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white"
-              value={values[field] || ''}
+              value={formValues[field] || ''}
               onChange={e => handleChange(field, e.target.value)}
               required
             />
@@ -821,31 +853,18 @@ const DynamicForm = ({
 
 export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotProps) {
   const { user, subscription } = useAuth();
-  const { resolvedTheme } = useTheme();
   const router = useRouter();
   
   // Estados principais
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [chatId, setChatId] = useState<string>('');
+  const [chatId] = useState<string>('');
   const [sessions, setSessions] = useState<ChatSession[]>([]);
-  const [selectedSession, setSelectedSession] = useState<string | null>(null);
-  const [showSessions, setShowSessions] = useState(false);
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [selectedMessageForFeedback, setSelectedMessageForFeedback] = useState<string>('');
-  const [userPlan, setUserPlan] = useState<string>('free');
-  const [userExpertise, setUserExpertise] = useState<string>('beginner');
-  const [isPremium, setIsPremium] = useState(false);
-  const [showCommandBar, setShowCommandBar] = useState(false);
-  const [commandHistory, setCommandHistory] = useState<string[]>([]);
-  const [commandIndex, setCommandIndex] = useState(-1);
   
   // 🎛️ ESTADOS DO DASHBOARD DINÂMICO
   const [showDashboard, setShowDashboard] = useState(false);
   const [dashboardCommand, setDashboardCommand] = useState<string>('');
-  const [dashboardResponse, setDashboardResponse] = useState<any>(null);
   
   // 🛫 ESTADOS PARA PÁGINA DE MILHAS
   const [isMileagePage, setIsMileagePage] = useState(false);
@@ -857,10 +876,10 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
   const [showDynamicForm, setShowDynamicForm] = useState(false);
   const [dynamicFormFields, setDynamicFormFields] = useState<string[]>([]);
   const [dynamicFormAction, setDynamicFormAction] = useState<string>('');
-  const [dynamicFormPayload, setDynamicFormPayload] = useState<any>({});
+  const [dynamicFormPayload, setDynamicFormPayload] = useState<Record<string, unknown>>({});
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [inputValue, setInputValue] = useState('');
+  // const [inputValue, setInputValue] = useState('');
 
 
   // Usar estado externo se fornecido, senão usar interno
@@ -920,7 +939,8 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
   };
 
   // Obter expertise do consultor baseado no contexto
-  const getExpertiseDisplay = () => {
+  // eslint-disable-next-line no-unused-vars, @typescript-eslint/no-unused-vars
+  const _getExpertiseDisplay = () => {
     if (isMileagePage) {
       if (isPremiumUser) {
         return {
@@ -953,8 +973,6 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
       icon: '🤖'
     };
   };
-
-  const expertise = getExpertiseDisplay();
 
   // ✅ OTIMIZAÇÃO: Usar useCallback para funções que não mudam frequentemente
   const loadChatSessions = useCallback(async () => {
@@ -1099,65 +1117,6 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
     }
   };
 
-  // 🎯 HANDLER PARA RESPOSTAS DO BACKEND COM CONTEXTO
-  const handleBackendResponse = (response: any) => {
-    console.log('[FRONTEND] 🎯 handleBackendResponse chamado com:', response);
-    
-    // ✅ CORREÇÃO: Só mostrar ação automatizada se for uma ação que realmente precisa de confirmação
-    const shouldShowAction = response.metadata?.action && 
-      response.metadata.action.type !== 'GREETING' && 
-      response.metadata.action.type !== 'GENERAL_HELP' && 
-      response.metadata.action.type !== 'UNKNOWN' &&
-      response.metadata.requiresConfirmation === true;
-    
-    const botMessage: ChatMessage = {
-      id: `bot-${Date.now()}`,
-      sender: 'bot',
-      content: response.message,
-      timestamp: new Date(),
-      metadata: {
-        action: shouldShowAction ? response.metadata?.action : undefined,
-        requiresConfirmation: shouldShowAction ? response.metadata?.requiresConfirmation : false,
-        followUpQuestions: response.metadata?.followUpQuestions,
-        recommendations: response.metadata?.recommendations,
-        nextSteps: response.metadata?.nextSteps,
-        currentField: response.metadata?.currentField,
-        missingFields: response.metadata?.missingFields,
-        collectedData: response.metadata?.collectedData,
-        isDataCollection: response.metadata?.currentField ? true : false,
-        isComplete: response.metadata?.missingFields?.length === 0 && response.metadata?.collectedData
-      }
-    };
-
-    console.log('[FRONTEND] 📝 Criando mensagem do bot:', botMessage);
-    setMessages(prev => {
-      console.log('[FRONTEND] 📋 Estado anterior das mensagens:', prev.length);
-      const newMessages = [...prev, botMessage];
-      console.log('[FRONTEND] 📋 Novo estado das mensagens:', newMessages.length);
-      return newMessages;
-    });
-
-    // ✅ MODIFICADO: Mostrar confirmação para metas, transações E investimentos com dados completos
-    if (response.metadata?.action && 
-        ['CREATE_GOAL', 'CREATE_TRANSACTION', 'CREATE_INVESTMENT'].includes(response.metadata.action.type) &&
-        response.metadata?.collectedData && 
-        response.metadata?.missingFields?.length === 0) {
-      console.log('[FRONTEND] 📋 Criando mensagem de confirmação');
-      const confirmationMessage: ChatMessage = {
-        id: `confirmation-${Date.now()}`,
-        sender: 'bot',
-        content: '📋 **Confirme os dados:**',
-        timestamp: new Date(),
-        metadata: {
-          isSummary: true,
-          actionType: response.metadata.action?.type,
-          collectedData: response.metadata.collectedData,
-          requiresConfirmation: true
-        }
-      };
-      setMessages(prev => [...prev, confirmationMessage]);
-    }
-  };
 
   // 🎯 HANDLER PARA ENVIO DE MENSAGENS
   const handleSendMessage = async (message: string) => {
@@ -1171,7 +1130,6 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
     };
 
     setMessages(prev => [...prev, userMessage]);
-    setInputValue('');
     setIsLoading(true);
 
     try {
@@ -1289,12 +1247,18 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
       
       // ✅ CORREÇÃO: Verificar se response e response.messages existem
       if (response && response.success && response.messages && Array.isArray(response.messages)) {
-        const formattedMessages: ChatMessage[] = response.messages.map((msg: any) => ({
+      const formattedMessages: ChatMessage[] = response.messages.map((msg: {
+        metadata?: { messageId?: string; [key: string]: unknown };
+        _id?: string;
+        sender?: string;
+        content?: string;
+        timestamp?: string | Date;
+      }) => ({
           id: msg.metadata?.messageId || msg._id || `msg-${Date.now()}-${Math.random()}`,
           sender: msg.sender === 'assistant' ? 'bot' : (msg.sender || 'bot'),
           content: msg.content || 'Mensagem sem conteúdo',
           timestamp: new Date(msg.timestamp || Date.now()),
-          metadata: msg.metadata || {}
+          metadata: msg.metadata as ChatMessage['metadata'] || {}
         }));
         
         setMessages(formattedMessages);
@@ -1345,33 +1309,6 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
     }
   }, [activeSession]);
 
-  // ✅ OTIMIZAÇÃO: Função para lidar com tecla Enter
-  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (inputMessage.trim() && !isLoading) {
-        handleSendMessage(inputMessage); // Corrigido: passar inputMessage
-      }
-    }
-  }, [inputMessage, isLoading, handleSendMessage]);
-
-  // ✅ OTIMIZAÇÃO: Função para lidar com mudança no input
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInputMessage(e.target.value);
-  }, []);
-
-  // Handlers para ações automatizadas
-  const handleActionConfirmWithForm = async (action: AutomatedAction) => {
-    // Se faltar campos obrigatórios, abrir formulário dinâmico
-    if (action.requiresConfirmation && action.payload && action.payload.missingFields) {
-      setDynamicFormFields(action.payload.missingFields);
-      setDynamicFormAction(action.type);
-      setDynamicFormPayload(action.payload);
-      setShowDynamicForm(true);
-      return;
-    }
-    await executeAutomatedAction(action);
-  };
 
   const handleActionEdit = (action: AutomatedAction) => {
     // Implementar edição da ação
@@ -1379,7 +1316,7 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
     toast.info('Funcionalidade de edição em desenvolvimento');
   };
 
-  const handleActionCancel = (action: AutomatedAction) => {
+  const handleActionCancel = (_action?: AutomatedAction) => { // eslint-disable-line no-unused-vars, @typescript-eslint/no-unused-vars
     const cancelMessage: ChatMessage = {
       id: `cancel-${Date.now()}`,
       sender: 'bot',
@@ -1392,7 +1329,14 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
     toast.info('Ação cancelada');
   };
 
-  const handleFeedback = async (feedbackData: any) => {
+  const handleFeedback = async (feedbackData: {
+    messageId: string;
+    rating: number;
+    helpful: boolean;
+    comment: string;
+    category: 'helpfulness' | 'accuracy' | 'clarity' | 'relevance';
+    context: string;
+  }) => {
     try {
       await chatbotAPI.saveUserFeedback(feedbackData);
       console.log('Feedback enviado com sucesso!');
@@ -1408,61 +1352,15 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
   const closeFeedbackModal = () => {
     setFeedbackModal({ messageId: '', isOpen: false });
   };
-
-  // Funções para exclusão de sessões
-  const handleDeleteSession = async (chatId: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Evita que o clique propague para o loadSession
-    
-    if (window.confirm('Tem certeza que deseja excluir esta conversa? Esta ação não pode ser desfeita.')) {
-      try {
-        await chatbotDeleteAPI.deleteSession(chatId);
-        
-        // Remove a sessão da lista
-        setSessions(prev => prev.filter(s => s.chatId !== chatId));
-        
-        // Se a sessão ativa for a mesma que foi excluída, limpa a sessão ativa
-        if (activeSession?.chatId === chatId) {
-          setActiveSession(null);
-          setMessages([]);
-        }
-        
-        console.log('Sessão excluída com sucesso');
-      } catch (error) {
-        console.error('Erro ao excluir sessão:', error);
-        alert('Erro ao excluir a conversa. Tente novamente.');
-      }
-    }
-  };
-
-  const handleDeleteAllSessions = async () => {
-    if (window.confirm('Tem certeza que deseja excluir TODAS as conversas? Esta ação não pode ser desfeita.')) {
-      try {
-        await chatbotDeleteAPI.deleteAllSessions();
-        
-        // Limpa todas as sessões
-        setSessions([]);
-        setActiveSession(null);
-        setMessages([]);
-        
-        console.log('Todas as sessões foram excluídas com sucesso');
-      } catch (error) {
-        console.error('Erro ao excluir todas as sessões:', error);
-        alert('Erro ao excluir as conversas. Tente novamente.');
-      }
-    }
-  };
-
-  // 🎛️ FUNÇÕES DO DASHBOARD DINÂMICO
-  const handleDashboardCommand = (command: string) => {
-    setDashboardCommand(command);
-    setShowDashboard(true);
-  };
-
-  const handleDashboardResponse = (response: any) => {
-    setDashboardResponse(response);
-    
+  
+  const handleDashboardResponse = (response: CommandResponse) => {
     // Adicionar resposta do dashboard como mensagem do bot
     if (response.success) {
+      // Ensure data is a Record<string, unknown> if needed
+      const payload = (response.data && typeof response.data === 'object' && !Array.isArray(response.data))
+        ? response.data as Record<string, unknown>
+        : {};
+
       const dashboardMessage: ChatMessage = {
         id: `dashboard-${Date.now()}`,
         sender: 'bot',
@@ -1471,7 +1369,7 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
         metadata: {
           action: {
             type: 'DASHBOARD_COMMAND', // ✅ CORRIGIDO: Usando tipo correto
-            payload: response.data,
+            payload,
             confidence: 1.0,
             requiresConfirmation: false,
             successMessage: response.message,
@@ -1490,44 +1388,11 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
   const closeDashboard = () => {
     setShowDashboard(false);
     setDashboardCommand('');
-    setDashboardResponse(null);
   };
 
-  // 🎯 PROCESSAR COMANDOS ESPECIAIS DO CHATBOT
-  const processSpecialCommands = (message: string) => {
-    const lowerMessage = message.toLowerCase();
-    
-    // Comandos do dashboard
-    if (lowerMessage.includes('dashboard') || lowerMessage.includes('mostrar') || lowerMessage.includes('exibir')) {
-      handleDashboardCommand(message);
-      return true;
-    }
-    
-    // Comandos de navegação
-    if (lowerMessage.includes('ir para') || lowerMessage.includes('navegar para')) {
-      if (lowerMessage.includes('transações') || lowerMessage.includes('gastos')) {
-        router.push('/transacoes');
-        return true;
-      }
-      if (lowerMessage.includes('metas') || lowerMessage.includes('objetivos')) {
-        router.push('/goals');
-        return true;
-      }
-      if (lowerMessage.includes('investimentos') || lowerMessage.includes('portfólio')) {
-        router.push('/investimentos');
-        return true;
-      }
-      if (lowerMessage.includes('relatórios') || lowerMessage.includes('análise')) {
-        router.push('/relatorios');
-        return true;
-      }
-    }
-    
-    return false;
-  };
 
   // Novo: Submissão do formulário dinâmico
-  const handleDynamicFormSubmit = async (values: Record<string, any>) => {
+  const handleDynamicFormSubmit = async (values: Record<string, string | number>) => {
     setShowDynamicForm(false);
     // Mesclar valores preenchidos com o payload anterior
     const mergedPayload = { ...dynamicFormPayload, ...values };
@@ -1571,10 +1436,6 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
     toast.error(`❌ ${error}`);
   };
 
-  // ✅ NOVO: Função para mostrar toast de informação
-  const showInfoToast = (message: string) => {
-    toast.info(message);
-  };
 
   if (!user) return null;
 
@@ -1640,7 +1501,7 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
                         </div>
                         <div className="flex justify-end mt-2">
                           <button
-                            onClick={(e) => deleteSession(session.chatId)}
+                            onClick={() => deleteSession(session.chatId)}
                             className="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/20 rounded transition-colors"
                             title="Excluir conversa"
                           >
@@ -1695,7 +1556,7 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
                         key={msg.id}
                         message={msg}
                         theme={theme}
-                        isPremium={isPremiumUser}
+                        _isPremium={isPremiumUser}
                         onFeedback={openFeedbackModal}
                         onActionConfirm={handleActionConfirm}
                         onActionEdit={handleActionEdit}
@@ -1808,7 +1669,7 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
               Preencha os campos obrigatórios para {dynamicFormAction}
             </h3>
             <DynamicForm
-              actionType={dynamicFormAction}
+              _actionType={dynamicFormAction}
               missingFields={dynamicFormFields}
               onSubmit={handleDynamicFormSubmit}
               onCancel={handleDynamicFormCancel}
@@ -1827,7 +1688,14 @@ export default function Chatbot({ isOpen: externalIsOpen, onToggle }: ChatbotPro
 const FeedbackModal = ({ messageId, onClose, onSubmit }: {
   messageId: string;
   onClose: () => void;
-  onSubmit: (feedback: any) => void;
+  onSubmit: (_feedback: { // eslint-disable-line no-unused-vars
+    messageId: string;
+    rating: number;
+    helpful: boolean;
+    comment: string;
+    category: 'accuracy' | 'helpfulness' | 'clarity' | 'relevance';
+    context: string;
+  }) => void;
 }) => {
   const [feedback, setFeedback] = useState({
     rating: 0,
@@ -1914,7 +1782,7 @@ const FeedbackModal = ({ messageId, onClose, onSubmit }: {
           <label className="block mb-2 dark:text-gray-300">Categoria:</label>
           <select
             value={feedback.category}
-            onChange={(e) => setFeedback({...feedback, category: e.target.value as any})}
+            onChange={(e) => setFeedback({...feedback, category: e.target.value as 'accuracy' | 'helpfulness' | 'clarity' | 'relevance'})}
             className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           >
             <option value="helpfulness">Utilidade</option>
@@ -1953,4 +1821,5 @@ const FeedbackModal = ({ messageId, onClose, onSubmit }: {
       </motion.div>
     </motion.div>
   );
-};   
+};
+

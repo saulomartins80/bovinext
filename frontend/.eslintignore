@@ -1,23 +1,20 @@
-# Arquivos temporários
-*.tmp
-*.temp
-
-# Arquivos de build
+# Build artifacts (handled in .eslintrc.json ignorePatterns as well)
 .next/
 out/
 dist/
 
-# Arquivos de configuração
+# Configuration files that should not be linted
 next.config.js
 tailwind.config.js
 postcss.config.js
 
-# Arquivos de tipos
-*.d.ts
+# Test files (if you want to exclude them from general linting)
+# **/*.test.*
+# **/*.spec.*
 
-# Arquivos de teste
-**/*.test.*
-**/*.spec.*
+# Specific problematic files
+src/@types/react-notifications.d.ts
 
-# Arquivos específicos com problemas
-src/@types/react-notifications.d.ts 
+# Temporary files
+*.tmp
+*.temp

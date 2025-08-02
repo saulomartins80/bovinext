@@ -8,6 +8,79 @@ import {
   Meta
 } from "../types";
 
+// Chat types
+interface ChatMessage {
+  message: string;
+  chatId: string;
+  context?: Record<string, unknown>;
+  history?: Array<{ role: string; content: string; }>;
+}
+
+interface AutomatedAction {
+  action: string;
+  payload: Record<string, unknown>;
+  chatId?: string;
+}
+
+// Market data types
+interface MarketDataResponse {
+  symbols: Record<string, { price: number; change: number; }>;
+  cryptos: Record<string, { price: number; change: number; }>;
+  commodities: Record<string, { price: number; change: number; }>;
+}
+
+// Dashboard types
+interface DashboardDataPayload {
+  symbols: string[];
+  timeframe?: string;
+  indicators?: string[];
+}
+
+// Error response type
+interface ErrorResponse {
+  response?: {
+    data?: {
+      message?: string;
+    };
+    status?: number;
+    statusText?: string;
+  };
+  message?: string;
+}
+
+// Mileage types
+interface MileageCard {
+  id?: string;
+  name: string;
+  program: string;
+  number: string;
+  expiryDate: string;
+  mileageBalance: number;
+}
+
+interface MileageProgram {
+  id: string;
+  name: string;
+  balance: number;
+  lastUpdate: string;
+}
+
+interface MileageTransaction {
+  id?: string;
+  programId: string;
+  type: 'credit' | 'debit';
+  amount: number;
+  description: string;
+  date: string;
+}
+
+interface MileageCalculatorParams {
+  spendAmount: number;
+  cardType: string;
+  program: string;
+  bonusMultiplier?: number;
+}
+
 export interface MarketDataRequest {
   symbols: string[];
   cryptos: string[];
@@ -140,7 +213,7 @@ export const marketDataAPI = {
 
 // --- CHATBOT API ---
 export const chatbotAPI = {
-  sendQuery: async (data: { message: string; chatId: string; context?: any; history?: any }) => {
+  sendQuery: async (data: ChatMessage) => {
     try {
       console.log('[chatbotAPI] 📤 Enviando consulta:', data);
       
@@ -155,14 +228,14 @@ export const chatbotAPI = {
     } catch (error) {
       console.error('[chatbotAPI] ❌ Erro ao enviar consulta:', error);
       console.error('[chatbotAPI] ❌ Detalhes do erro:', {
-        message: (error as any)?.response?.data?.message,
-        status: (error as any)?.response?.status,
-        statusText: (error as any)?.response?.statusText
+        message: (error as ErrorResponse)?.response?.data?.message,
+        status: (error as ErrorResponse)?.response?.status,
+        statusText: (error as ErrorResponse)?.response?.statusText
       });
       throw error;
     }
   },
-  executeAction: async (actionData: { action: string; payload: any; chatId?: string }) => {
+  executeAction: async (actionData: AutomatedAction) => {
     console.log('[chatbotAPI] Executando ação:', actionData);
     try {
       const response = await api.post('/api/automated-actions/execute', actionData);
@@ -388,7 +461,7 @@ export const metaAPI = {
       });
       
       const metas = response.data?.metas || response.data || [];
-      const normalizedMetas = metas.map((meta: any) => ({
+      const normalizedMetas = metas.map((meta: Partial<Meta>) => ({
         _id: meta._id,
         meta: meta.meta || meta.titulo,
         valor_total: meta.valor_total || meta.valorAlvo,
@@ -445,7 +518,7 @@ export const metaAPI = {
 
 // API para Dashboard com logs
 export const dashboardAPI = {
-  getMarketData: async (payload: any): Promise<any> => {
+  getMarketData: async (payload: DashboardDataPayload): Promise<MarketDataResponse> => {
     console.log('[dashboardAPI] Buscando dados do mercado:', payload);
     try {
       const response = await api.post('/api/market-data', payload);
@@ -498,7 +571,7 @@ export const mileageAPI = {
     }
   },
 
-  updateMileageProgram: async (programId: string, data: any) => {
+  updateMileageProgram: async (programId: string, data: Partial<MileageProgram>) => {
     console.log('[mileageAPI] Atualizando programa de milhas:', programId, data);
     try {
       const response = await api.put(`/api/mileage/programs/${programId}`, data);
@@ -523,7 +596,7 @@ export const mileageAPI = {
     }
   },
 
-  addMileageCard: async (cardData: any) => {
+  addMileageCard: async (cardData: Omit<MileageCard, 'id'>) => {
     console.log('[mileageAPI] Adicionando cartão de milhas:', cardData);
     try {
       const response = await api.post('/api/mileage/cards', cardData);
@@ -535,7 +608,7 @@ export const mileageAPI = {
     }
   },
 
-  updateMileageCard: async (cardId: string, cardData: any) => {
+  updateMileageCard: async (cardId: string, cardData: Partial<MileageCard>) => {
     console.log('[mileageAPI] Atualizando cartão de milhas:', cardId, cardData);
     try {
       const response = await api.put(`/api/mileage/cards/${cardId}`, cardData);
@@ -559,7 +632,7 @@ export const mileageAPI = {
   },
 
   // Mileage Transactions
-  getMileageTransactions: async (filters?: any) => {
+  getMileageTransactions: async (filters?: { programId?: string; startDate?: string; endDate?: string; type?: 'credit' | 'debit' }) => {
     console.log('[mileageAPI] Buscando transações de milhas:', filters);
     try {
       const response = await api.get('/api/mileage/transactions', { params: filters });
@@ -571,7 +644,7 @@ export const mileageAPI = {
     }
   },
 
-  addMileageTransaction: async (transactionData: any) => {
+  addMileageTransaction: async (transactionData: Omit<MileageTransaction, 'id'>) => {
     console.log('[mileageAPI] Adicionando transação de milhas:', transactionData);
     try {
       const response = await api.post('/api/mileage/transactions', transactionData);
@@ -615,7 +688,7 @@ export const mileageAPI = {
   },
 
   // Mileage Calculator
-  calculateMiles: async (params: any) => {
+  calculateMiles: async (params: MileageCalculatorParams) => {
     console.log('[mileageAPI] Calculando milhas:', params);
     try {
       const response = await api.post('/api/mileage/calculate', params);

@@ -3,7 +3,7 @@
  * (Dashboard em tempo real para visualização do sistema)
  ***************************************/
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   Activity, AlertTriangle, Bot, CheckCircle, Clock, Cpu, DollarSign, MessageCircle, RefreshCw, Target, TrendingUp, Users, Wifi, XCircle, Zap, Play, Square
 } from 'lucide-react';
@@ -170,8 +170,7 @@ export default function RPADashboard({ className = '' }: RPADashboardProps) {
     } catch (error) {
       console.error('Erro ao carregar métricas:', error);
       setError(error instanceof Error ? error.message : 'Erro desconhecido');
-      // eslint-disable-next-line no-constant-condition
-      if (false) { /* Evitar erro de constant condition */ }
+      // Fixed constant condition lint error
       setIsLoading(false);
     }
   }, []);
@@ -201,10 +200,14 @@ export default function RPADashboard({ className = '' }: RPADashboardProps) {
 
       const decoder = new TextDecoder();
 
-      while (true) {
+      let streaming = true;
+      while (streaming) {
         const { done, value } = await reader.read();
         
-        if (done) break;
+        if (done) {
+          streaming = false;
+          break;
+        }
 
         const chunk = decoder.decode(value);
         const lines = chunk.split('\n');
@@ -231,16 +234,15 @@ export default function RPADashboard({ className = '' }: RPADashboardProps) {
     } catch (error) {
       console.error('Erro no streaming:', error);
       setError(error instanceof Error ? error.message : 'Erro no streaming');
-      // eslint-disable-next-line no-constant-condition
-      if (false) { /* Evitar erro de constant condition */ }
+      // Fixed constant condition lint error
       setIsStreaming(false);
     }
   }, []);
 
   // 🚨 HANDLER PARA NOVOS ALERTAS
-  const handleNewAlert = useCallback((alert: any) => {
+  const handleNewAlert = useCallback((alert: { type: 'critical' | 'warning' | 'info'; message: string }) => {
     const alertType = alert.type === 'critical' ? 'error' : alert.type === 'warning' ? 'warning' : 'info';
-    const icon = alert.type === 'critical' ? '🚨' : alert.type === 'warning' ? '⚠️' : 'ℹ️';
+    // Removed unused variable icon
     
     showToast(alert.message, alertType as 'success' | 'error' | 'warning');
   }, []);
@@ -267,8 +269,7 @@ export default function RPADashboard({ className = '' }: RPADashboardProps) {
     } catch (error) {
       console.error('Erro ao resolver alerta:', error);
       showToast('Erro ao resolver alerta', 'error');
-      // eslint-disable-next-line no-constant-condition
-      if (false) { /* Evitar erro de constant condition */ }
+      // Fixed constant condition lint error
     }
   }, [loadMetrics]);
 
@@ -293,8 +294,7 @@ export default function RPADashboard({ className = '' }: RPADashboardProps) {
     } catch (error) {
       console.error('Erro ao iniciar dashboard:', error);
       showToast('Erro ao iniciar dashboard', 'error');
-      // eslint-disable-next-line no-constant-condition
-      if (false) { /* Evitar erro de constant condition */ }
+      // Fixed constant condition lint error
     }
   }, [loadMetrics]);
 
@@ -318,8 +318,7 @@ export default function RPADashboard({ className = '' }: RPADashboardProps) {
     } catch (error) {
       console.error('Erro ao parar dashboard:', error);
       showToast('Erro ao parar dashboard', 'error');
-      // eslint-disable-next-line no-constant-condition
-      if (false) { /* Evitar erro de constant condition */ }
+      // Fixed constant condition lint error
     }
   }, []);
 

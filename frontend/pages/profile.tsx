@@ -11,7 +11,7 @@ import { getApp } from 'firebase/app';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '../context/ThemeContext';
 import { motion } from 'framer-motion';
-import { Edit, Trash2, Calendar, CreditCard, Phone, MapPin } from 'lucide-react';
+import { CreditCard } from 'lucide-react';
 import { getAuth, signOut } from 'firebase/auth';
 
 interface AuthUserData {
@@ -28,7 +28,7 @@ interface ProfileAuthContextType {
   subscription: { plan?: string; status?: string; expiresAt?: string } | null;
   loadingSubscription: boolean;
   refreshSubscription: () => Promise<void>;
-  updateUserContextProfile: (updatedProfileData: Partial<AuthUserData>) => void;
+  updateUserContextProfile: (_updatedProfileData: Partial<AuthUserData>) => void;
 }
 
 interface UserData {
@@ -45,12 +45,12 @@ export default function Profile() {
     user,
     subscription,
     loadingSubscription,
-    refreshSubscription,
+    refreshSubscription: _refreshSubscription,
     updateUserContextProfile
   } = useAuth() as ProfileAuthContextType;
-  const { resolvedTheme } = useTheme();
+  const { resolvedTheme: _resolvedTheme } = useTheme();
   const router = useRouter();
-  const [userData, setUserData] = useState<UserData | null>(null);
+  const [_userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [isEditing, setIsEditing] = useState(false);

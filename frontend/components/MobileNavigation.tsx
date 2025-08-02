@@ -9,9 +9,7 @@ import {
   Menu,
   X,
   Download,
-  BarChart3,
   Home,
-  PieChart,
   CreditCard
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';

@@ -68,7 +68,7 @@ const agruparPorMes = (transacoes: Transacao[]): DadosMes[] => {
     const transacoesDoMes = transacoes.filter((t) => {
       try {
         return parseDate(t.data).getMonth() === index;
-      } catch (error) {
+      } catch {
         return false;
       }
     });
@@ -89,7 +89,7 @@ const calcularSaldoAcumulado = (transacoes: Transacao[]): SaldoAcumulado[] => {
   const transacoesOrdenadas = [...transacoes].sort((a, b) => {
     try {
       return parseDate(a.data).getTime() - parseDate(b.data).getTime();
-    } catch (error) {
+    } catch {
       return 0;
     }
   });
