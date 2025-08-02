@@ -21,14 +21,20 @@ export interface CryptoItem {
   change?: number;
   changePercent?: number;
   volume?: number;
+  currency?: string;
   marketCap?: number;
   name?: string;
+  exchange?: string;
 }
 
 export interface MarketData {
   stocks: StockItem[];
   cryptos: CryptoItem[];
-  indices: MarketIndices;
+  commodities: StockItem[];
+  fiis: StockItem[];
+  etfs: StockItem[];
+  currencies: StockItem[];
+  indices: StockItem[];
   lastUpdated: string;
 }
 

@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef } f
 import { marketDataAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/router';
+import { MarketData, StockItem, CustomIndex } from '../types/market';
 
 interface ManualAsset {
   symbol: string;
@@ -9,33 +10,8 @@ interface ManualAsset {
   change: number;
 }
 
-export interface StockData {
-  symbol: string;
-  price: number;
-  change: number;
-  changePercent: number;
-  volume?: number;
-  currency?: string;
-  marketCap?: number;
-  name?: string;
-  exchange?: string;
-}
-
-export interface MarketData {
-  stocks: StockData[];
-  cryptos: StockData[];
-  indices: StockData[]; 
-  fiis: StockData[];
-  etfs: StockData[];
-  commodities: StockData[];
-  currencies: StockData[];
-  lastUpdated: string;
-}
-
-export interface CustomIndex {
-  symbol: string;
-  name: string;
-}
+// Usando tipagem StockItem importada de market.ts como StockData para compatibilidade
+export type StockData = StockItem;
 
 export interface DashboardContextType {
   marketData: MarketData | null;

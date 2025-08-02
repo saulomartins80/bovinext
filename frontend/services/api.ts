@@ -7,6 +7,7 @@ import {
   Investimento,
   Meta
 } from "../types";
+import { MarketData } from '../types/market';
 
 // Chat types
 interface ChatMessage {
@@ -196,14 +197,23 @@ api.interceptors.response.use(
 
 // --- MARKET DATA API ---
 export const marketDataAPI = {
-  getMarketData: async (requestBody: MarketDataRequest) => {
+  getMarketData: async (requestBody: MarketDataRequest): Promise<MarketData> => {
     try {
       console.log('[marketDataAPI] Buscando dados do mercado:', requestBody);
       const response = await api.post('/api/market-data', requestBody, {
         timeout: 30000 // Aumentando timeout para 30 segundos
       });
       console.log('[marketDataAPI] Dados do mercado obtidos com sucesso:', response.data);
-      return response.data;
+      
+      // Garantir que lastUpdated seja sempre uma string
+      const marketData: MarketData = {
+        ...response.data,
+        lastUpdated: typeof response.data.lastUpdated === 'string' 
+          ? response.data.lastUpdated 
+          : new Date().toISOString()
+      };
+      
+      return marketData;
     } catch (error) {
       console.error('[marketDataAPI] Erro ao buscar dados do mercado:', error);
       throw error;

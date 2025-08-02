@@ -65,7 +65,7 @@ interface MetricData {
   type: 'metric';
   value: number;
   currency?: string;
-  lastUpdated?: Date;
+  lastUpdated?: string | number;
 }
 
 interface ListData {
@@ -74,7 +74,7 @@ interface ListData {
     name: string;
     value: number;
   }>;
-  lastUpdated?: Date;
+  lastUpdated?: string | number;
 }
 
 interface ChartData {
@@ -83,7 +83,7 @@ interface ChartData {
     name: string;
     value: number;
   }>;
-  lastUpdated?: Date;
+  lastUpdated?: string | number;
 }
 
 interface AlertData {
@@ -92,7 +92,7 @@ interface AlertData {
     message: string;
     severity?: 'info' | 'warning' | 'error';
   }>;
-  lastUpdated?: Date;
+  lastUpdated?: string | number;
 }
 
 interface ActionData {
@@ -103,7 +103,7 @@ interface ActionData {
     icon?: string;
     onClick: () => void;
   }>;
-  lastUpdated?: Date;
+  lastUpdated?: string | number;
 }
 
 export default function DynamicDashboard({ 
@@ -216,7 +216,7 @@ export default function DynamicDashboard({
         success: true,
         message: `Comando executado: ${command}`,
         action: 'dashboard_command',
-        data: { command, timestamp: new Date() }
+        data: { command, timestamp: new Date().toISOString() }
       });
 
     } catch (error) {
@@ -281,7 +281,7 @@ export default function DynamicDashboard({
         ...prev,
         widgets: prev.widgets.map(widget => ({
           ...widget,
-          data: { ...widget.data, lastUpdated: new Date() }
+          data: { ...widget.data, lastUpdated: new Date().toISOString() }
         }))
       }));
 
