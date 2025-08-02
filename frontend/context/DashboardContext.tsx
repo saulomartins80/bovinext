@@ -21,7 +21,7 @@ export interface StockData {
   exchange?: string;
 }
 
-interface MarketData {
+export interface MarketData {
   stocks: StockData[];
   cryptos: StockData[];
   indices: StockData[]; 
