@@ -261,11 +261,11 @@ const validateField = (value: string | number | undefined, validation?: FormStep
     }
 
     // Validação minLength/maxLength para strings
-    if (validation.minLength && value && value.length < validation.minLength) {
+    if (validation.minLength && typeof value === 'string' && value.length < validation.minLength) {
       return `Mínimo de ${validation.minLength} caracteres`;
     }
 
-    if (validation.maxLength && value && value.length > validation.maxLength) {
+    if (validation.maxLength && typeof value === 'string' && value.length > validation.maxLength) {
       return `Máximo de ${validation.maxLength} caracteres`;
     }
 
@@ -275,7 +275,7 @@ const validateField = (value: string | number | undefined, validation?: FormStep
     }
 
     // Validação custom
-    if (validation.custom) {
+    if (validation.custom && value !== undefined) {
       return validation.custom(value);
     }
 

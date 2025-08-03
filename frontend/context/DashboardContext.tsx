@@ -12,6 +12,8 @@ interface ManualAsset {
 
 // Usando tipagem StockItem importada de market.ts como StockData para compatibilidade
 export type StockData = StockItem;
+// Re-exportar MarketData para compatibilidade
+export type { MarketData };
 
 export interface DashboardContextType {
   marketData: MarketData | null;
