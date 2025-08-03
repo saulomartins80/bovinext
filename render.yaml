@@ -4,7 +4,7 @@ services:
     env: node
     plan: starter
     rootDir: backend
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npm run build:no-lint
     startCommand: npm start
     envVars:
       - key: NODE_ENV

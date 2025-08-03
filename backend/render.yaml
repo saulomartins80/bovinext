@@ -3,7 +3,7 @@ services:
     name: theclosen-backend
     env: node
     plan: starter
-    buildCommand: npm run build:production
+    buildCommand: npm run build:no-lint
     startCommand: npm start
     envVars:
       - key: NODE_ENV

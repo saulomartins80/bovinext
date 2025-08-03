@@ -20,7 +20,7 @@
     "cleanup-db": "cross-env NODE_ENV=development ts-node src/scripts/cleanupDatabase.ts",
     "fix-subscription": "cross-env NODE_ENV=development ts-node src/scripts/fixSubscription.ts",
     "test": "jest",
-    "lint": "eslint . --ext .ts",
+    "lint": "eslint .",
     "format": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
@@ -72,6 +72,7 @@
     "zod": "^3.25.20"
   },
   "devDependencies": {
+    "@eslint/js": "9.32.0",
     "@types/bcrypt": "^5.0.2",
     "@types/bcryptjs": "3.0.0",
     "@types/compression": "^1.8.0",

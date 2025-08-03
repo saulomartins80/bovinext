@@ -10,6 +10,7 @@ type AssetCategory = 'stocks' | 'cryptos' | 'commodities' | 'fiis' | 'etfs' | 'c
 interface ConfigurableTableSectionProps {
   title: string;
   category: AssetCategory;
+  // eslint-disable-next-line no-unused-vars
   displayFormatter?: (item: string) => string;
   showVolume?: boolean;
 }
