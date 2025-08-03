@@ -5,23 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { ExclamationTriangleIcon, ArrowUpIcon, ArrowDownIcon, PlusIcon } from '@heroicons/react/24/outline';
 import AssetSelectionModal from './AssetSelectionModal';
 import { useDashboard } from '../context/DashboardContext';
-
-interface StockData {
-  symbol: string;
-  price: number;
-  change: number;
-  changePercent: number;
-  volume?: number;
-  currency?: string;
-}
-
-interface MarketData {
-  stocks?: StockData[];
-  cryptos?: StockData[];
-  indices?: StockData[]; // Agora é StockData[]
-  commodities?: StockData[];
-  lastUpdated?: string;
-}
+import { MarketData, StockItem } from '../types/market';
 
 interface FinanceMarketProps {
   marketData: MarketData | null;
@@ -295,7 +279,7 @@ const FinanceMarket: React.FC<FinanceMarketProps> = ({
                 const indexInfo = customIndices.find(i => i.symbol === normalizedSymbol);
                 
                 // Encontra os dados de mercado
-                const indexData = marketData?.indices?.find((i: StockData) => 
+                const indexData = marketData?.indices?.find((i: StockItem) => 
                   i.symbol === normalizedSymbol
                 );
 
@@ -422,20 +406,20 @@ const FinanceMarket: React.FC<FinanceMarketProps> = ({
                         )}
                       </td>
                       <td className={`px-4 py-3 whitespace-nowrap text-sm text-right ${
-                        stock.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                        (stock.change ?? 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                       }`}>
                         {formatValue(stock.price, true, stock.currency)}
                       </td>
                       <td className={`px-4 py-3 whitespace-nowrap text-sm text-right ${
-                        stock.changePercent >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                        (stock.changePercent ?? 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                       }`}>
                         <span className="inline-flex items-center">
-                          {stock.changePercent >= 0 ? (
+                          {(stock.changePercent ?? 0) >= 0 ? (
                             <ArrowUpIcon className="h-3 w-3 mr-1" />
                           ) : (
                             <ArrowDownIcon className="h-3 w-3 mr-1" />
                           )}
-                          {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
+                          {(stock.changePercent ?? 0) >= 0 ? '+' : ''}{(stock.changePercent ?? 0).toFixed(2)}%
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-500 dark:text-gray-400">
@@ -512,20 +496,20 @@ const FinanceMarket: React.FC<FinanceMarketProps> = ({
                         )}
                       </td>
                       <td className={`px-4 py-3 whitespace-nowrap text-sm text-right ${
-                        crypto.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                        (crypto.change ?? 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                       }`}>
                         {formatValue(crypto.price, true, 'USD')}
                       </td>
                       <td className={`px-4 py-3 whitespace-nowrap text-sm text-right ${
-                        crypto.changePercent >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                        (crypto.changePercent ?? 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                       }`}>
                         <span className="inline-flex items-center">
-                          {crypto.changePercent >= 0 ? (
+                          {(crypto.changePercent ?? 0) >= 0 ? (
                             <ArrowUpIcon className="h-3 w-3 mr-1" />
                           ) : (
                             <ArrowDownIcon className="h-3 w-3 mr-1" />
                           )}
-                          {crypto.changePercent >= 0 ? '+' : ''}{crypto.changePercent.toFixed(2)}%
+                          {(crypto.changePercent ?? 0) >= 0 ? '+' : ''}{(crypto.changePercent ?? 0).toFixed(2)}%
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-500 dark:text-gray-400">
@@ -598,20 +582,20 @@ const FinanceMarket: React.FC<FinanceMarketProps> = ({
                         {getCommodityDisplayName(commodity.symbol)}
                       </td>
                       <td className={`px-4 py-3 whitespace-nowrap text-sm text-right ${
-                        commodity.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                        (commodity.change ?? 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                       }`}>
                         {formatValue(commodity.price, true, 'USD')}
                       </td>
                       <td className={`px-4 py-3 whitespace-nowrap text-sm text-right ${
-                        commodity.changePercent >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                        (commodity.changePercent ?? 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                       }`}>
                         <span className="inline-flex items-center">
-                          {commodity.changePercent >= 0 ? (
+                          {(commodity.changePercent ?? 0) >= 0 ? (
                             <ArrowUpIcon className="h-3 w-3 mr-1" />
                           ) : (
                             <ArrowDownIcon className="h-3 w-3 mr-1" />
                           )}
-                          {commodity.changePercent >= 0 ? '+' : ''}{commodity.changePercent.toFixed(2)}%
+                          {(commodity.changePercent ?? 0) >= 0 ? '+' : ''}{(commodity.changePercent ?? 0).toFixed(2)}%
                         </span>
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-sm text-right text-gray-500 dark:text-gray-400">

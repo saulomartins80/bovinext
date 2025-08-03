@@ -3,7 +3,7 @@ import Image from 'next/image';
 import { 
   Plus, X, Search, DollarSign, CheckCircle,
   CreditCard as CreditCardIcon, Banknote, Wallet, Award,
-  MoreVertical, Star, ArrowUpRight, Eye, EyeOff, Zap,
+  Star, ArrowUpRight, Eye, EyeOff, Zap,
   PieChart, Filter, Download, Loader2, Bell
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -61,6 +61,21 @@ interface MileageProgram {
   expirationDate: string;
 }
 
+interface Invoice {
+  id: string;
+  cardId: string;
+  amount: number;
+  dueDate: string;
+  status: 'paid' | 'pending' | 'overdue';
+  description: string;
+}
+
+type ModalItem = CreditCard | MileageProgram | Invoice | null;
+
+// Type guards
+const isCreditCard = (item: ModalItem): item is CreditCard => item !== null && 'limit' in item;
+const isMileageProgram = (item: ModalItem): item is MileageProgram => item !== null && 'pointsBalance' in item;
+
 const MilhasRedesign = () => {
   const { resolvedTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('cards');
@@ -82,6 +97,18 @@ const MilhasRedesign = () => {
     cardId: '',
     amount: 0,
     cardName: ''
+  });
+  const [editModal, setEditModal] = useState({
+    open: false,
+    type: '', // 'card', 'program', 'invoice'
+    item: null as ModalItem,
+    index: -1
+  });
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    type: '',
+    item: null as ModalItem,
+    index: -1
   });
 
   // Detectar mobile
@@ -259,7 +286,7 @@ const MilhasRedesign = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <motion.div
             whileHover={{ scale: 1.02 }}
-            className={`${themeClasses.cardBg} p-6 rounded-2xl border ${themeClasses.border} backdrop-blur-sm`}
+            className={`${themeClasses.cardBg} p-6 rounded-2xl border ${themeClasses.border} backdrop-blur-sm border-l-4 border-l-blue-500`}
           >
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
@@ -268,14 +295,14 @@ const MilhasRedesign = () => {
               <span className="text-xs text-green-500 font-medium">+12%</span>
             </div>
             <h3 className={`text-2xl font-bold ${themeClasses.text} mb-1`}>
-              {showBalances ? 'R$ 52.000' : '••••••'}
+              {showBalances ? `R$ ${creditCards.reduce((total, card) => total + card.limit, 0).toLocaleString()}` : '••••••'}
             </h3>
             <p className={`text-sm ${themeClasses.textSecondary}`}>Limite Total</p>
           </motion.div>
 
           <motion.div
             whileHover={{ scale: 1.02 }}
-            className={`${themeClasses.cardBg} p-6 rounded-2xl border ${themeClasses.border} backdrop-blur-sm`}
+            className={`${themeClasses.cardBg} p-6 rounded-2xl border ${themeClasses.border} backdrop-blur-sm border-l-4 border-l-orange-500`}
           >
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 bg-orange-100 dark:bg-orange-900 rounded-lg">
@@ -284,14 +311,14 @@ const MilhasRedesign = () => {
               <span className="text-xs text-red-500 font-medium">-5%</span>
             </div>
             <h3 className={`text-2xl font-bold ${themeClasses.text} mb-1`}>
-              {showBalances ? 'R$ 15.420' : '••••••'}
+              {showBalances ? `R$ ${creditCards.reduce((total, card) => total + card.nextInvoiceAmount, 0).toLocaleString()}` : '••••••'}
             </h3>
             <p className={`text-sm ${themeClasses.textSecondary}`}>Fatura Total</p>
           </motion.div>
 
           <motion.div
             whileHover={{ scale: 1.02 }}
-            className={`${themeClasses.cardBg} p-6 rounded-2xl border ${themeClasses.border} backdrop-blur-sm`}
+            className={`${themeClasses.cardBg} p-6 rounded-2xl border ${themeClasses.border} backdrop-blur-sm border-l-4 border-l-purple-500`}
           >
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
@@ -300,7 +327,7 @@ const MilhasRedesign = () => {
               <span className="text-xs text-green-500 font-medium">+25%</span>
             </div>
             <h3 className={`text-2xl font-bold ${themeClasses.text} mb-1`}>
-              {showBalances ? '281.500' : '••••••'}
+              {showBalances ? mileagePrograms.reduce((total, program) => total + program.pointsBalance, 0).toLocaleString() : '••••••'}
             </h3>
             <p className={`text-sm ${themeClasses.textSecondary}`}>Pontos Totais</p>
           </motion.div>
@@ -311,7 +338,7 @@ const MilhasRedesign = () => {
             onClick={() => {
               toast.info('Cashback acumulado este mês! Resgate disponível a partir de R$ 50.');
             }}
-            className={`${themeClasses.cardBg} p-6 rounded-2xl border ${themeClasses.border} backdrop-blur-sm cursor-pointer hover:shadow-lg transition-all`}
+            className={`${themeClasses.cardBg} p-6 rounded-2xl border ${themeClasses.border} backdrop-blur-sm cursor-pointer hover:shadow-lg transition-all border-l-4 border-l-green-500`}
           >
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
@@ -323,7 +350,7 @@ const MilhasRedesign = () => {
               </div>
             </div>
             <h3 className={`text-2xl font-bold ${themeClasses.text} mb-1`}>
-              {showBalances ? 'R$ 430' : '••••••'}
+              {showBalances ? `R$ ${creditCards.reduce((total, card) => total + (card.cashback || 0), 0).toLocaleString()}` : '••••••'}
             </h3>
             <div className="flex items-center justify-between">
               <p className={`text-sm ${themeClasses.textSecondary}`}>Cashback</p>
@@ -352,7 +379,7 @@ const MilhasRedesign = () => {
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-4 py-3 rounded-xl transition-all duration-200 ${
               activeTab === tab.id
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                ? `bg-blue-600 text-white shadow-lg`
                 : `${themeClasses.text} hover:bg-gray-100 dark:hover:bg-gray-700`
             }`}
           >
@@ -379,11 +406,7 @@ const MilhasRedesign = () => {
           setSelectedCard(selectedCard === card.id ? null : card.id);
         }}
       >
-        {/* Background Gradient */}
-        <div 
-          className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity"
-          style={{ background: `linear-gradient(135deg, ${card.color}20, ${card.color}40)` }}
-        />
+
         
         {/* Card Header */}
         <div className="relative z-10 flex justify-between items-start mb-6">
@@ -409,9 +432,44 @@ const MilhasRedesign = () => {
                 <Star className="text-yellow-600" size={14} />
               </div>
             )}
-            <button className={`p-2 rounded-lg ${themeClasses.hover} transition-colors`}>
-              <MoreVertical size={16} />
-            </button>
+            <div className="flex items-center gap-1">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setEditModal({
+                    open: true,
+                    type: 'card',
+                    item: card,
+                    index: creditCards.findIndex(c => c.id === card.id)
+                  });
+                }}
+                className={`p-2 rounded-lg ${themeClasses.hover} transition-colors text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20`}
+                title="Editar cartão"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                  <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+              </button>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeleteModal({
+                    open: true,
+                    type: 'card',
+                    item: card,
+                    index: creditCards.findIndex(c => c.id === card.id)
+                  });
+                }}
+                className={`p-2 rounded-lg ${themeClasses.hover} transition-colors text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20`}
+                title="Excluir cartão"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="3,6 5,6 21,6" />
+                  <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -543,8 +601,46 @@ const MilhasRedesign = () => {
         </div>
         
         <div className="flex items-center gap-2">
-          <div className="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full text-xs font-medium">
-            {program.status === 'active' ? 'Ativo' : 'Inativo'}
+          <span className="px-3 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 rounded-full text-xs font-medium">
+            Ativo
+          </span>
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditModal({
+                  open: true,
+                  type: 'program',
+                  item: program,
+                  index: mileagePrograms.findIndex(p => p.id === program.id)
+                });
+              }}
+              className={`p-2 rounded-lg ${themeClasses.hover} transition-colors text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20`}
+              title="Editar programa"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteModal({
+                  open: true,
+                  type: 'program',
+                  item: program,
+                  index: mileagePrograms.findIndex(p => p.id === program.id)
+                });
+              }}
+              className={`p-2 rounded-lg ${themeClasses.hover} transition-colors text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20`}
+              title="Excluir programa"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="3,6 5,6 21,6" />
+                <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -687,11 +783,54 @@ const MilhasRedesign = () => {
               Pagar Fatura
             </button>
             <button 
-              onClick={(e) => e.stopPropagation()}
-              className={`px-4 py-3 rounded-xl ${themeClasses.hover} ${themeClasses.text} border ${themeClasses.border} flex items-center gap-2`}
+              onClick={(e) => {
+                e.stopPropagation();
+                // Simular download de PDF da fatura
+                toast.success(`PDF da fatura do ${card.name} baixado com sucesso!`);
+                // Aqui seria implementada a lógica real de download do PDF
+                // window.open(`/api/invoices/${card.id}/pdf`, '_blank');
+              }}
+              className={`px-4 py-3 rounded-xl ${themeClasses.hover} ${themeClasses.text} border ${themeClasses.border} flex items-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors`}
+              title="Baixar PDF da fatura"
             >
               <Download size={16} />
               PDF
+            </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditModal({
+                  open: true,
+                  type: 'invoice',
+                  item: card,
+                  index: creditCards.findIndex(c => c.id === card.id)
+                });
+              }}
+              className={`px-4 py-3 rounded-xl ${themeClasses.hover} transition-colors text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 border ${themeClasses.border}`}
+              title="Editar fatura"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setDeleteModal({
+                  open: true,
+                  type: 'invoice',
+                  item: card,
+                  index: creditCards.findIndex(c => c.id === card.id)
+                });
+              }}
+              className={`px-4 py-3 rounded-xl ${themeClasses.hover} transition-colors text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border ${themeClasses.border}`}
+              title="Excluir fatura"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="3,6 5,6 21,6" />
+                <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" />
+              </svg>
             </button>
           </div>
         </motion.div>
@@ -909,6 +1048,308 @@ const MilhasRedesign = () => {
     </AnimatePresence>
   );
 
+  // Modal de Edição
+  const EditModal = () => {
+    const [editData, setEditData] = useState<Partial<CreditCard | MileageProgram | Invoice>>({});
+
+    useEffect(() => {
+      if (editModal.open && editModal.item) {
+        setEditData({ ...editModal.item });
+      }
+    }, [editModal]);
+
+    const handleEditSubmit = (e: React.FormEvent) => {
+      e.preventDefault();
+      
+      const itemType = editModal.type === 'card' ? 'cartão' : 
+                      editModal.type === 'program' ? 'programa' : 'fatura';
+      
+      // Simular atualização dos dados
+      setTimeout(() => {
+        toast.success(`${itemType.charAt(0).toUpperCase() + itemType.slice(1)} atualizado com sucesso!`);
+        setEditModal({ open: false, type: '', item: null, index: -1 });
+        setEditData({});
+      }, 500);
+    };
+
+    const getEditTitle = () => {
+      switch (editModal.type) {
+        case 'card': return 'Editar Cartão';
+        case 'program': return 'Editar Programa';
+        case 'invoice': return 'Editar Fatura';
+        default: return 'Editar Item';
+      }
+    };
+
+    return (
+      <AnimatePresence>
+        {editModal.open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className={`${themeClasses.cardBg} rounded-3xl shadow-2xl w-full max-w-sm sm:max-w-md lg:max-w-lg p-4 sm:p-6`}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className={`text-xl font-bold ${themeClasses.text}`}>
+                  {getEditTitle()}
+                </h2>
+                <button 
+                  onClick={() => setEditModal({ open: false, type: '', item: null, index: -1 })}
+                  className={`p-2 rounded-lg ${themeClasses.hover}`}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <form onSubmit={handleEditSubmit} className="space-y-3 sm:space-y-4">
+                {editModal.type === 'card' && (
+                  <>
+                    <div>
+                      <label className={`block text-sm font-medium ${themeClasses.text} mb-2`}>
+                        Nome do Cartão
+                      </label>
+                      <input
+                        type="text"
+                        value={(editData as Partial<CreditCard>).name || ''}
+                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                        className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
+                        placeholder="Nome do cartão"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className={`block text-sm font-medium ${themeClasses.text} mb-2`}>
+                          Limite (R$)
+                        </label>
+                        <input
+                          type="number"
+                          value={(editData as Partial<CreditCard>).limit || ''}
+                          onChange={(e) => setEditData({ ...editData, limit: Number(e.target.value) })}
+                          className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
+                          placeholder="25000"
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-sm font-medium ${themeClasses.text} mb-2`}>
+                          Usado (R$)
+                        </label>
+                        <input
+                          type="number"
+                          value={(editData as Partial<CreditCard>).used || ''}
+                          onChange={(e) => setEditData({ ...editData, used: Number(e.target.value) })}
+                          className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
+                          placeholder="5000"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {editModal.type === 'program' && (
+                  <>
+                    <div>
+                      <label className={`block text-sm font-medium ${themeClasses.text} mb-2`}>
+                        Nome do Programa
+                      </label>
+                      <input
+                        type="text"
+                        value={(editData as Partial<MileageProgram>).name || ''}
+                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                        className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
+                        placeholder="Nome do programa"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className={`block text-sm font-medium ${themeClasses.text} mb-2`}>
+                          Saldo Atual
+                        </label>
+                        <input
+                          type="number"
+                          value={(editData as Partial<MileageProgram>).pointsBalance || ''}
+                          onChange={(e) => setEditData({ ...editData, pointsBalance: Number(e.target.value) })}
+                          className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
+                          placeholder="125000"
+                        />
+                      </div>
+                      <div>
+                        <label className={`block text-sm font-medium ${themeClasses.text} mb-2`}>
+                          Valor Estimado (R$)
+                        </label>
+                        <input
+                          type="number"
+                          value={(editData as Partial<MileageProgram>).estimatedValue || ''}
+                          onChange={(e) => setEditData({ ...editData, estimatedValue: Number(e.target.value) })}
+                          className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
+                          placeholder="3125"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {editModal.type === 'invoice' && (
+                  <>
+                    <div>
+                      <label className={`block text-sm font-medium ${themeClasses.text} mb-2`}>
+                        Valor da Fatura (R$)
+                      </label>
+                      <input
+                        type="number"
+                        value={(editData as Partial<CreditCard>).nextInvoiceAmount || ''}
+                        onChange={(e) => setEditData({ ...editData, nextInvoiceAmount: Number(e.target.value) })}
+                        className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
+                        placeholder="1500"
+                      />
+                    </div>
+                    <div>
+                      <label className={`block text-sm font-medium ${themeClasses.text} mb-2`}>
+                        Data de Vencimento
+                      </label>
+                      <input
+                        type="date"
+                        value={(editData as Partial<CreditCard>).nextInvoiceDue ? new Date((editData as Partial<CreditCard>).nextInvoiceDue!).toISOString().split('T')[0] : ''}
+                        onChange={(e) => setEditData({ ...editData, nextInvoiceDue: e.target.value })}
+                        className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
+                      />
+                    </div>
+                  </>
+                )}
+
+                <div className="flex gap-2 sm:gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditModal({ open: false, type: '', item: null, index: -1 })}
+                    className={`flex-1 py-2 px-4 rounded-xl border ${themeClasses.border} ${themeClasses.text} text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-all`}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                  >
+                    <CheckCircle size={16} />
+                    Salvar
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  };
+
+  // Modal de Exclusão
+  const DeleteModal = () => {
+    const handleDeleteConfirm = () => {
+      const itemType = deleteModal.type === 'card' ? 'cartão' : 
+                      deleteModal.type === 'program' ? 'programa' : 'fatura';
+      
+      // Simular exclusão dos dados
+      setTimeout(() => {
+        toast.success(`${itemType.charAt(0).toUpperCase() + itemType.slice(1)} excluído com sucesso!`);
+        setDeleteModal({ open: false, type: '', item: null, index: -1 });
+      }, 500);
+    };
+
+    const getDeleteTitle = () => {
+      switch (deleteModal.type) {
+        case 'card': return 'Excluir Cartão';
+        case 'program': return 'Excluir Programa';
+        case 'invoice': return 'Excluir Fatura';
+        default: return 'Excluir Item';
+      }
+    };
+
+    const getItemName = () => {
+      if (!deleteModal.item) return '';
+      if (isCreditCard(deleteModal.item) || isMileageProgram(deleteModal.item)) {
+        return deleteModal.item.name || 'este item';
+      }
+      return 'este item';
+    };
+
+    return (
+      <AnimatePresence>
+        {deleteModal.open && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 flex items-center justify-center p-4 z-50"
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className={`${themeClasses.cardBg} rounded-3xl shadow-2xl w-full max-w-sm p-4 sm:p-6`}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className={`text-xl font-bold ${themeClasses.text}`}>
+                  {getDeleteTitle()}
+                </h2>
+                <button 
+                  onClick={() => setDeleteModal({ open: false, type: '', item: null, index: -1 })}
+                  className={`p-2 rounded-lg ${themeClasses.hover}`}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="mb-6">
+                <div className="flex items-center justify-center w-16 h-16 mx-auto mb-4 bg-red-100 dark:bg-red-900/20 rounded-full">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-600">
+                    <polyline points="3,6 5,6 21,6" />
+                    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" />
+                    <line x1="10" y1="11" x2="10" y2="17" />
+                    <line x1="14" y1="11" x2="14" y2="17" />
+                  </svg>
+                </div>
+                
+                <div className="text-center">
+                  <p className={`text-lg font-semibold ${themeClasses.text} mb-2`}>
+                    Tem certeza?
+                  </p>
+                  <p className={`text-sm ${themeClasses.textSecondary}`}>
+                    Você está prestes a excluir <strong>{getItemName()}</strong>. 
+                    Esta ação não pode ser desfeita.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteModal({ open: false, type: '', item: null, index: -1 })}
+                  className={`flex-1 py-2 px-4 rounded-xl border ${themeClasses.border} ${themeClasses.text} text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors`}
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="flex-1 py-2 px-4 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <polyline points="3,6 5,6 21,6" />
+                    <path d="m19,6v14a2,2 0 0,1 -2,2H7a2,2 0 0,1 -2,-2V6m3,0V4a2,2 0 0,1 2,-2h4a2,2 0 0,1 2,2v2" />
+                  </svg>
+                  Excluir
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  };
+
   // Modal de Pagamento de Fatura
   const PaymentModal = () => {
     const [paymentData, setPaymentData] = useState({
@@ -951,7 +1392,7 @@ const MilhasRedesign = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 flex items-center justify-center p-4 z-50"
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
@@ -1228,7 +1669,7 @@ const MilhasRedesign = () => {
               <div>
                 <p className={`${themeClasses.textSecondary} text-sm font-medium`}>Total de Pontos</p>
                 <p className={`text-2xl md:text-3xl font-bold ${themeClasses.text} mt-2`}>
-                  {showBalances ? '281.500' : '••••••'}
+                  {showBalances ? mileagePrograms.reduce((total, program) => total + program.pointsBalance, 0).toLocaleString() : '••••••'}
                 </p>
               </div>
               <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
@@ -1247,7 +1688,7 @@ const MilhasRedesign = () => {
               <div>
                 <p className={`${themeClasses.textSecondary} text-sm font-medium`}>Valor Estimado</p>
                 <p className={`text-2xl md:text-3xl font-bold ${themeClasses.text} mt-2`}>
-                  {showBalances ? 'R$ 7.037' : '••••••'}
+                  {showBalances ? `R$ ${mileagePrograms.reduce((total, program) => total + program.estimatedValue, 0).toLocaleString()}` : '••••••'}
                 </p>
                 <p className={`text-sm ${themeClasses.textSecondary} mt-1`}>
                   Valor total das milhas
@@ -1352,7 +1793,7 @@ const MilhasRedesign = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+              className="fixed inset-0 flex items-center justify-center p-4 z-50"
             >
               <motion.div
                 initial={{ scale: 0.9, y: 20 }}
@@ -1451,8 +1892,9 @@ const MilhasRedesign = () => {
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+                      className="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
                     >
+                      <CheckCircle size={16} />
                       Salvar
                     </button>
                   </div>
@@ -1478,9 +1920,9 @@ const MilhasRedesign = () => {
               </div>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition-all"
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl ${themeClasses.cardBg} border ${themeClasses.border} ${themeClasses.text} font-medium hover:shadow-lg transition-all hover:bg-blue-50 dark:hover:bg-blue-900/20`}
               >
-                <Plus size={18} />
+                <Plus size={18} className="text-blue-600" />
                 Novo Cartão
               </button>
             </div>
@@ -1502,9 +1944,9 @@ const MilhasRedesign = () => {
               </div>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition-all"
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl ${themeClasses.cardBg} border ${themeClasses.border} ${themeClasses.text} font-medium hover:shadow-lg transition-all hover:bg-blue-50 dark:hover:bg-blue-900/20`}
               >
-                <Plus size={18} />
+                <Plus size={18} className="text-blue-600" />
                 Novo Programa
               </button>
             </div>
@@ -1526,9 +1968,9 @@ const MilhasRedesign = () => {
               </div>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:shadow-lg transition-all"
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl ${themeClasses.cardBg} border ${themeClasses.border} ${themeClasses.text} font-medium hover:shadow-lg transition-all hover:bg-blue-50 dark:hover:bg-blue-900/20`}
               >
-                <Plus size={18} />
+                <Plus size={18} className="text-blue-600" />
                 Nova Fatura
               </button>
             </div>
@@ -1548,7 +1990,7 @@ const MilhasRedesign = () => {
     <div className={`min-h-screen ${themeClasses.bg} transition-colors duration-300`}>
       <ModernHeader />
       
-      <div className="px-6 pb-20">
+      <div className="px-6 pb-20 relative">
         <ModernNavigation />
         
         {/* Search and Filters */}
@@ -1571,7 +2013,16 @@ const MilhasRedesign = () => {
         {renderContent()}
       </div>
 
+      {/* Modal de Adicionar */}
       <AddModal />
+      
+      {/* Modal de Edição */}
+      <EditModal />
+      
+      {/* Modal de Exclusão */}
+      <DeleteModal />
+      
+      {/* Modal de Pagamento */}
       <PaymentModal />
     </div>
   );
