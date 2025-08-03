@@ -216,15 +216,15 @@ const ConfigurableTableSection: React.FC<ConfigurableTableSectionProps> = ({
                     </span>
                   </td>
                   <td className={`px-4 py-3 whitespace-nowrap text-right ${
-                    item.change >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                    (item.change ?? 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                   }`}>
                     {formatValue(item.price, item.currency)}
                   </td>
                   <td className={`px-4 py-3 whitespace-nowrap text-right ${
-                    item.changePercent >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                    (item.changePercent ?? 0) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                   }`}>
                     <span className="inline-flex items-center">
-                      {item.changePercent >= 0 ? (
+                      {(item.changePercent ?? 0) >= 0 ? (
                         <ArrowUp className="h-3 w-3 mr-1" />
                       ) : (
                         <ArrowDown className="h-3 w-3 mr-1" />
