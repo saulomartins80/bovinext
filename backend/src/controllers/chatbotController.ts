@@ -63,11 +63,48 @@ export class ChatbotController {
       const { message, chatId } = req.body;
       const userId = (req as any).user?.uid || 'anonymous';
       
+      console.log(`[CHATBOT] Processando mensagem: "${message}" do usuário: ${userId}`);
+      
+      // Validar entrada
+      if (!message || typeof message !== 'string') {
+        res.status(400).json({
+          success: false,
+          message: 'Mensagem inválida'
+        });
+        return;
+      }
+
+      // Obter contexto do usuário
+      const userContext = await this.getRealUserContext(userId);
+      
+      // Obter histórico da conversa
+      const conversationHistory = await this.getConversationHistory(chatId);
+      
+      // Processar mensagem com IA
+      const aiResponse = await this.aiService.processMessage(
+        userId,
+        message,
+        conversationHistory,
+        userContext
+      );
+      
+      // Salvar mensagem no histórico
+      await this.saveMessageToHistory(chatId, userId, message, aiResponse.response);
+      
+      // Retornar resposta completa
       res.status(200).json({
         success: true,
-        message: 'Mensagem processada com sucesso',
-        messageId: uuidv4()
+        message: aiResponse.response,
+        messageId: uuidv4(),
+        intent: aiResponse.intent,
+        entities: aiResponse.entities,
+        context: userContext,
+        reasoning: aiResponse.reasoning,
+        responseTime: aiResponse.responseTime
       });
+      
+      console.log(`[CHATBOT] Resposta enviada: "${aiResponse.response}"`);
+      
     } catch (error) {
       console.error('Erro ao processar mensagem:', error);
       res.status(500).json({
@@ -218,6 +255,17 @@ export class ChatbotController {
 
   async getConversation(chatId: string): Promise<any> {
     return await this.chatHistoryService.getConversation(chatId);
+  }
+  
+  private async getConversationHistory(chatId: string): Promise<any[]> {
+    try {
+      // Usar getOrCreateState com userId temporário para obter o estado
+      const conversation = this.conversationStateService.getOrCreateState('temp', chatId);
+      return conversation?.context?.conversationHistory || [];
+    } catch (error) {
+      console.error('Erro ao obter histórico:', error);
+      return [];
+    }
   }
   
   private async getRealUserContext(userId: string): Promise<any> {

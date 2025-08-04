@@ -26,18 +26,45 @@ class AIService {
     try {
       const startTime = Date.now();
       
-      const response = await this.callAI('Test prompt', userContext);
+      // Analisar a mensagem do usuário
+      const lowerQuery = query.toLowerCase();
+      
+      // Detectar intenção baseada no conteúdo da mensagem
+      let response = '';
+      let intent = { name: 'general', confidence: 0.7, payload: {} };
+      
+      if (lowerQuery.includes('olá') || lowerQuery.includes('oi') || lowerQuery.includes('hello')) {
+        response = this.generateGreetingResponse(userContext);
+        intent = { name: 'greeting', confidence: 0.9, payload: {} };
+      } else if (lowerQuery.includes('ajuda') || lowerQuery.includes('help')) {
+        response = this.generateHelpResponse(userContext);
+        intent = { name: 'help', confidence: 0.8, payload: {} };
+      } else if (lowerQuery.includes('transação') || lowerQuery.includes('gasto') || lowerQuery.includes('receita')) {
+        response = this.generateTransactionResponse(userContext);
+        intent = { name: 'transaction', confidence: 0.8, payload: {} };
+      } else if (lowerQuery.includes('investimento') || lowerQuery.includes('investir')) {
+        response = this.generateInvestmentResponse(userContext);
+        intent = { name: 'investment', confidence: 0.8, payload: {} };
+      } else if (lowerQuery.includes('meta') || lowerQuery.includes('objetivo')) {
+        response = this.generateGoalResponse(userContext);
+        intent = { name: 'goal', confidence: 0.8, payload: {} };
+      } else if (lowerQuery.includes('saldo') || lowerQuery.includes('dinheiro') || lowerQuery.includes('quanto')) {
+        response = this.generateBalanceResponse(userContext);
+        intent = { name: 'balance', confidence: 0.7, payload: {} };
+      } else if (lowerQuery.includes('dica') || lowerQuery.includes('conselho')) {
+        response = this.generateTipResponse(userContext);
+        intent = { name: 'tip', confidence: 0.7, payload: {} };
+      } else {
+        response = this.generateGeneralResponse(query, userContext);
+        intent = { name: 'general', confidence: 0.5, payload: {} };
+      }
       
       return {
-        response: 'Olá! Como posso ajudar você com suas finanças?',
-        intent: {
-          name: 'greeting',
-          confidence: 0.9,
-          payload: {}
-        },
-        entities: {},
+        response: response,
+        intent: intent,
+        entities: this.extractEntities(query),
         context: userContext,
-        reasoning: 'Resposta padrão',
+        reasoning: `Processei a mensagem "${query}" e identifiquei a intenção: ${intent.name}`,
         responseTime: Date.now() - startTime
       };
     } catch (error) {
@@ -54,6 +81,234 @@ class AIService {
         reasoning: 'Erro na comunicação com IA'
       };
     }
+  }
+
+  private generateGreetingResponse(userContext: any): string {
+    const userName = userContext?.userProfile?.name || 'Amigo';
+    const timeOfDay = this.getTimeOfDay();
+    
+    return `${timeOfDay}, ${userName}! 👋 
+
+Sou seu assistente financeiro pessoal. Posso ajudar você com:
+
+💳 **Transações**: Registrar gastos e receitas
+📈 **Investimentos**: Acompanhar seus investimentos  
+🎯 **Metas**: Criar e gerenciar objetivos financeiros
+💰 **Análises**: Relatórios e insights sobre suas finanças
+
+Como posso te ajudar hoje?`;
+  }
+
+  private generateHelpResponse(userContext: any): string {
+    return `Aqui estão as principais funcionalidades que posso te ajudar:
+
+**📊 Gestão Financeira:**
+• Registrar transações (gastos e receitas)
+• Categorizar seus gastos
+• Acompanhar seu saldo
+
+**📈 Investimentos:**
+• Adicionar novos investimentos
+• Acompanhar performance
+• Receber recomendações
+
+**🎯 Metas Financeiras:**
+• Criar objetivos de economia
+• Acompanhar progresso
+• Receber lembretes
+
+**💡 Dicas e Insights:**
+• Análise de gastos
+• Sugestões de economia
+• Tendências financeiras
+
+Basta me dizer o que você quer fazer!`;
+  }
+
+  private generateTransactionResponse(userContext: any): string {
+    const hasTransactions = userContext?.hasTransactions;
+    
+    if (hasTransactions) {
+      const totalTransacoes = userContext?.totalTransacoes || 0;
+      return `Vejo que você já tem ${totalTransacoes} transações registradas! 
+
+Para **adicionar uma nova transação**, me diga:
+• O valor
+• A descrição
+• A categoria (ex: alimentação, transporte, lazer)
+
+Exemplo: "Registrar gasto de R$ 50 com almoço na categoria alimentação"
+
+Para **ver suas transações**, posso mostrar um resumo dos seus últimos gastos e receitas.`;
+    } else {
+      return `Perfeito! Vamos começar a registrar suas transações.
+
+Para **adicionar uma transação**, me diga:
+• O valor
+• A descrição  
+• A categoria
+
+Exemplo: "Registrar gasto de R$ 30 com Uber na categoria transporte"
+
+Isso vai te ajudar a ter controle total das suas finanças! 💰`;
+    }
+  }
+
+  private generateInvestmentResponse(userContext: any): string {
+    const hasInvestments = userContext?.hasInvestments;
+    
+    if (hasInvestments) {
+      const totalInvestimentos = userContext?.totalInvestimentos || 0;
+      return `Ótimo! Você já tem ${totalInvestimentos} investimentos registrados.
+
+Posso te ajudar a:
+• **Adicionar** novos investimentos
+• **Acompanhar** a performance dos seus ativos
+• **Analisar** a diversificação da sua carteira
+• **Receber** recomendações baseadas no seu perfil
+
+Quer adicionar um novo investimento ou ver o resumo dos seus atuais?`;
+    } else {
+      return `Que ótimo que você quer começar a investir! 💪
+
+Para **adicionar um investimento**, me informe:
+• O tipo (ações, fundos, cripto, etc.)
+• O valor investido
+• A data da aplicação
+
+Exemplo: "Adicionar investimento de R$ 1000 em ações da Petrobras"
+
+Posso também te dar dicas sobre:
+• Diversificação de carteira
+• Tipos de investimentos
+• Estratégias de longo prazo
+
+Vamos começar?`;
+    }
+  }
+
+  private generateGoalResponse(userContext: any): string {
+    const hasGoals = userContext?.hasGoals;
+    
+    if (hasGoals) {
+      const totalMetas = userContext?.totalMetas || 0;
+      return `Excelente! Você já tem ${totalMetas} metas financeiras ativas.
+
+Posso te ajudar a:
+• **Acompanhar** o progresso das suas metas
+• **Adicionar** novas metas
+• **Ajustar** valores ou prazos
+• **Comemorar** quando atingir um objetivo! 🎉
+
+Quer ver o status das suas metas atuais ou criar uma nova?`;
+    } else {
+      return `Ótima ideia! Metas financeiras são essenciais para o sucesso.
+
+Para **criar uma meta**, me diga:
+• O objetivo (ex: viagem, carro, casa)
+• O valor total necessário
+• O prazo desejado
+
+Exemplo: "Criar meta de R$ 5000 para viagem em 6 meses"
+
+Vou te ajudar a:
+• Calcular quanto economizar por mês
+• Acompanhar o progresso
+• Manter a motivação
+
+Qual é o seu primeiro objetivo? 🎯`;
+    }
+  }
+
+  private generateBalanceResponse(userContext: any): string {
+    const hasTransactions = userContext?.hasTransactions;
+    
+    if (hasTransactions) {
+      const resumoTransacoes = userContext?.resumoTransacoes;
+      const total = resumoTransacoes?.total || 0;
+      
+      return `Baseado nas suas transações registradas:
+
+💰 **Total de transações**: R$ ${total.toFixed(2)}
+📊 **Número de registros**: ${userContext?.totalTransacoes || 0}
+
+Para ter um **saldo mais preciso**, certifique-se de:
+• Registrar todas as suas receitas
+• Incluir todos os gastos
+• Atualizar regularmente
+
+Quer que eu analise seus gastos por categoria ou ajude a registrar mais transações?`;
+    } else {
+      return `Para te dar informações sobre seu saldo, preciso que você registre suas transações primeiro.
+
+Vamos começar registrando:
+• Suas **receitas** (salário, bônus, etc.)
+• Seus **gastos** (contas, alimentação, lazer)
+
+Exemplo: "Registrar receita de R$ 3000 do salário"
+
+Assim que tivermos alguns registros, posso te dar análises detalhadas sobre suas finanças! 💰`;
+    }
+  }
+
+  private generateTipResponse(userContext: any): string {
+    const tips = [
+      "💡 **Regra 50/30/20**: 50% para necessidades, 30% para desejos, 20% para investimentos",
+      "💡 **Reserva de emergência**: Mantenha 3-6 meses de despesas em uma conta separada",
+      "💡 **Automatize**: Configure transferências automáticas para seus investimentos",
+      "💡 **Revise mensalmente**: Analise seus gastos para identificar oportunidades de economia",
+      "💡 **Diversifique**: Não coloque todos os ovos na mesma cesta - diversifique seus investimentos",
+      "💡 **Metas SMART**: Específicas, Mensuráveis, Atingíveis, Relevantes e Temporais"
+    ];
+    
+    const randomTip = tips[Math.floor(Math.random() * tips.length)];
+    
+    return `Aqui está uma dica financeira para você:
+
+${randomTip}
+
+Quer mais dicas ou tem alguma dúvida específica sobre finanças?`;
+  }
+
+  private generateGeneralResponse(query: string, userContext: any): string {
+    return `Entendi que você disse: "${query}"
+
+Como seu assistente financeiro, posso te ajudar com:
+
+• 📊 **Gestão de transações** e controle de gastos
+• 📈 **Acompanhamento de investimentos**
+• 🎯 **Criação e gestão de metas financeiras**
+• 💡 **Dicas e conselhos financeiros**
+• 📋 **Relatórios e análises**
+
+Me diga especificamente o que você gostaria de fazer e vou te guiar! 😊`;
+  }
+
+  private getTimeOfDay(): string {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Bom dia';
+    if (hour < 18) return 'Boa tarde';
+    return 'Boa noite';
+  }
+
+  private extractEntities(query: string): any {
+    // Extrair entidades básicas da mensagem
+    const entities: any = {};
+    
+    // Extrair valores monetários
+    const moneyMatch = query.match(/R?\$?\s*(\d+[.,]?\d*)/gi);
+    if (moneyMatch) {
+      entities.money = moneyMatch.map(m => m.replace(/[^\d,.]/g, ''));
+    }
+    
+    // Extrair categorias
+    const categories = ['alimentação', 'transporte', 'lazer', 'saúde', 'educação', 'moradia'];
+    const foundCategories = categories.filter(cat => query.toLowerCase().includes(cat));
+    if (foundCategories.length > 0) {
+      entities.categories = foundCategories;
+    }
+    
+    return entities;
   }
 
   private async callAI(prompt: string, context: unknown = {}): Promise<any> {

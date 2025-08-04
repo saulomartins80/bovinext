@@ -12,7 +12,7 @@ import {
 } from 'firebase/auth';
 import { loginWithGoogle as firebaseLoginWithGoogle, getFirebaseInstances } from '../lib/firebase/client';
 // import { handleRedirectResult } from '../lib/firebase/auth';
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { auth } from '../lib/firebase/client';
 import api from '../services/api';
@@ -171,7 +171,9 @@ const normalizeUser = (userFromBackend: SessionUser | null, firebaseUserInstance
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
-  console.log('[AuthProvider] Inicializando AuthProvider');
+  
+  // ✅ CORREÇÃO: Usar useRef para evitar re-inicializações
+  const isInitialized = useRef(false);
   
   const [state, setState] = useState<{
     user: AuthUser | null;
@@ -194,6 +196,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     isAuthReady: false,
     quotaExceeded: false
   });
+
+  // ✅ CORREÇÃO: Verificar se já foi inicializado
+  if (isInitialized.current) {
+    console.log('[AuthProvider] Já inicializado, pulando...');
+  } else {
+    console.log('[AuthProvider] Inicializando AuthProvider');
+    isInitialized.current = true;
+  }
 
   const clearErrors = useCallback(() => {
     setState(prev => ({ ...prev, error: null, subscriptionError: null }));
@@ -470,8 +480,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [router, syncSessionWithBackend]);
 
-  // Verificar autenticação do Firebase na inicialização
+  // ✅ CORREÇÃO: Verificar autenticação do Firebase na inicialização com otimizações
   useEffect(() => {
+    // ✅ CORREÇÃO: Evitar múltiplas verificações
+    if (state.authChecked) {
+      console.log('[AuthContext] Autenticação já verificada, pulando...');
+      return;
+    }
+    
     console.log('[AuthContext] Verificando autenticação do Firebase...');
     
     // Garantir que o Firebase esteja inicializado
@@ -492,41 +508,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log('[AuthContext] Firebase auth state changed:', !!firebaseUser);
       
       if (firebaseUser) {
-        console.log('[AuthContext] Usuário Firebase encontrado, verificando se precisa sincronizar...');
+        console.log('[AuthContext] Usuário Firebase encontrado...');
         
-        // Verificar se já temos dados do usuário para evitar sincronização desnecessária
-        setState(currentState => {
-          if (currentState.user && currentState.user.uid === firebaseUser.uid && currentState.authChecked) {
-            console.log('[AuthContext] Usuário já sincronizado, mantendo estado atual...');
-            return currentState;
-          }
-          
-          // Verificar se estamos na página inicial - se sim, não sincronizar ainda
-          const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
-          const isHomePage = currentPath === '/';
-          
-          if (isHomePage) {
-            console.log('[AuthContext] Na página inicial, criando usuário básico sem sincronizar com backend');
-            const authUser = normalizeUser(null, firebaseUser);
-            return {
-              ...currentState,
-              user: authUser,
-              subscription: null,
-              authChecked: true,
-              loading: false,
-              isAuthReady: true,
-            };
-          } else {
-            console.log('[AuthContext] Preparando sincronização com backend...');
-            // Marcar como loading e depois sincronizar
-            syncSessionWithBackend(firebaseUser);
-            return {
-              ...currentState,
-              loading: true,
-              isAuthReady: false,
-            };
-          }
-        });
+        // ✅ CORREÇÃO: Verificar se já temos dados do usuário para evitar sincronização desnecessária
+        if (state.user && state.user.uid === firebaseUser.uid && state.authChecked) {
+          console.log('[AuthContext] Usuário já sincronizado, mantendo estado atual...');
+          return;
+        }
+        
+        // ✅ CORREÇÃO: Verificar se estamos na página inicial - se sim, não sincronizar ainda
+        const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+        const isHomePage = currentPath === '/';
+        
+        if (isHomePage) {
+          console.log('[AuthContext] Na página inicial, criando usuário básico sem sincronizar com backend');
+          const authUser = normalizeUser(null, firebaseUser);
+          setState(prev => ({
+            ...prev,
+            user: authUser,
+            subscription: null,
+            authChecked: true,
+            loading: false,
+            isAuthReady: true,
+          }));
+        } else {
+          console.log('[AuthContext] Preparando sincronização com backend...');
+          // Marcar como loading e depois sincronizar
+          setState(prev => ({
+            ...prev,
+            loading: true,
+            isAuthReady: false,
+          }));
+          syncSessionWithBackend(firebaseUser);
+        }
       } else {
         console.log('[AuthContext] Nenhum usuário Firebase, finalizando verificação...');
         setState(prev => ({
