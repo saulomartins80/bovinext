@@ -213,7 +213,7 @@ export default function Sobre() {
                         <FiAward className="w-6 h-6 text-blue-600 mb-2" />
                         <h3 className="font-semibold mb-2">Reconhecimento</h3>
                         <p className={`text-sm ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                          Eleita "Melhor Fintech Emergente" pelo TechCrunch 2024
+                          Eleita &ldquo;Melhor Fintech Emergente&rdquo; pelo TechCrunch 2024
                         </p>
                       </div>
                       <div className={`p-4 rounded-lg ${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-green-50'}`}>

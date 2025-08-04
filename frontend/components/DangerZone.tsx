@@ -205,7 +205,7 @@ export default function DangerZone({ userId, onAccountDeleted }: DangerZoneProps
 
   const handleDeleteAccount = async () => {
     if (confirmationText !== 'EXCLUIR PERMANENTEMENTE') {
-      toast.error('Digite exatamente "EXCLUIR PERMANENTEMENTE" para confirmar.');
+      toast.error('Digite exatamente &ldquo;EXCLUIR PERMANENTEMENTE&rdquo; para confirmar.');
       return;
     }
 
@@ -443,7 +443,7 @@ export default function DangerZone({ userId, onAccountDeleted }: DangerZoneProps
             >
               <div className="p-4 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg">
                 <p className="text-sm text-red-800 dark:text-red-200 mb-3">
-                  Para continuar, digite <strong>"EXCLUIR PERMANENTEMENTE"</strong> no campo abaixo:
+                  Para continuar, digite <strong>&ldquo;EXCLUIR PERMANENTEMENTE&rdquo;</strong> no campo abaixo:
                 </p>
                 <input
                   type="text"

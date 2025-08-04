@@ -455,7 +455,7 @@ export default function DynamicDashboard({
               <p className="text-center max-w-md">
                 Use o chatbot para adicionar widgets e personalizar seu dashboard.
                 <br />
-                Exemplo: "Mostrar saldo", "Adicionar widget de transações"
+                Exemplo: &ldquo;Mostrar saldo&rdquo;, &ldquo;Adicionar widget de transações&rdquo;
               </p>
             </div>
           ) : (

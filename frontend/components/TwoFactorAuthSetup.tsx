@@ -788,7 +788,7 @@ export default function TwoFactorAuthSetup({ onComplete, currentStatus }: TwoFac
               </h4>
               <ol className="text-sm text-blue-700 dark:text-blue-300 mt-2 space-y-1 list-decimal list-inside">
                 <li>Abra seu aplicativo autenticador</li>
-                <li>Toque em "Adicionar conta" ou "+"</li>
+                <li>Toque em &ldquo;Adicionar conta&rdquo; ou &ldquo;+&rdquo;</li>
                 <li>Escaneie este QR code ou digite o código manual</li>
                 <li>Sua conta FinNEXTHO aparecerá no app</li>
               </ol>
