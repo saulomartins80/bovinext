@@ -95,7 +95,7 @@ export interface MarketDataRequest {
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
-  timeout: 60000, // Aumentando para 60 segundos
+  timeout: 120000, // Aumentando para 2 minutos
   headers: {
     'Content-Type': 'application/json',
   },

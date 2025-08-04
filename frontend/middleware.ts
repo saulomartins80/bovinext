@@ -1,51 +1,33 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 
-// Adicione aqui as rotas que você quer que sejam públicas
-const publicRoutes = [
-  '/',
-  '/auth/login',
-  '/auth/register',
-  '/recursos',
-  '/solucoes',
-  '/precos',
-  '/clientes',
-  '/contato',
-  '/api/auth/login',
-  '/api/auth/register',
-  '/api/auth/logout'
-];
-
-export function middleware(request: NextRequest) {
-  const path = request.nextUrl.pathname;
+export function middleware() {
+  // Adicionar headers de segurança
+  const response = NextResponse.next();
   
-  // Verificar se é uma rota pública
-  const isPublic = publicRoutes.some(publicRoute =>
-    path === publicRoute || (publicRoute.endsWith('/') && path.startsWith(publicRoute))
-  );
+  // Headers de segurança
+  response.headers.set('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  response.headers.set('Cross-Origin-Embedder-Policy', 'unsafe-none');
+  response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   
-  // Verificar se há token de autenticação
-  const token = request.cookies.get('token');
+  // Headers de CORS
+  response.headers.set('Access-Control-Allow-Origin', '*');
+  response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   
-  // Se é uma rota pública e não há token, redirecionar para login
-  if (!isPublic && !token) {
-    return NextResponse.redirect(new URL('/auth/login', request.url));
-  }
-  
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
   matcher: [
-    '/dashboard/:path*',
-    '/investimentos/:path*',
-    '/metas/:path*',
-    '/transacoes/:path*',
-    '/configuracoes/:path*',
-    '/profile/:path*',
-    '/assinaturas/:path*',
-    // Rotas da API que precisam de proteção
-    '/api/users/:path*',
-    '/api/subscription/:path*'
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 }; 

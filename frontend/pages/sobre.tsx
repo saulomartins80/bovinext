@@ -67,16 +67,16 @@ export default function Sobre() {
       linkedin: '#'
     },
     {
-      name: 'Maria Oliveira',
+      name: 'David mota',
       role: 'Head of Product',
       bio: 'Ex-product manager do iFood, focada em UX',
       image: '/api/placeholder/150/150',
       linkedin: '#'
     },
     {
-      name: 'João Costa',
+      name: 'Cleber portolino ',
       role: 'Head of Engineering',
-      bio: 'Ex-tech lead da Stone, especialista em fintech',
+      bio: 'Ex-tech lead da Stone, especialista em Web designer',
       image: '/api/placeholder/150/150',
       linkedin: '#'
     }
