@@ -214,7 +214,7 @@ export const useMileage = () => {
   }, []);
 
   // Adicionar cartão de milhas
-  const addMileageCard = useCallback(async (cardData: Omit<MileageCard, 'id'>) => {
+  const addMileageCard = useCallback(async (cardData: { name: string; program: string; number: string; expiryDate: string; mileageBalance: number }) => {
     try {
       const newCard = await mileageAPI.addMileageCard(cardData);
       setMileageCards(prev => [...prev, newCard.card]);
@@ -257,7 +257,7 @@ export const useMileage = () => {
   }, []);
 
   // Adicionar transação de milhas
-  const addMileageTransaction = useCallback(async (transactionData: Omit<MileageTransaction, 'id' | 'date'>) => {
+  const addMileageTransaction = useCallback(async (transactionData: { programId: string; type: 'credit' | 'debit'; amount: number; description: string; date: string }) => {
     try {
       const newTransaction = await mileageAPI.addMileageTransaction(transactionData);
       setRecentTransactions(prev => [newTransaction.transaction, ...prev]);

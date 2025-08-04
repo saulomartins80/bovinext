@@ -294,7 +294,7 @@ export default function TwoFactorAuthSetup({ onComplete, currentStatus }: TwoFac
 
   const handleComplete2FASetup = useCallback(() => {
     setStep('complete');
-    onComplete(true);
+    onComplete?.(true);
     safeToast('success', 'Autenticação de dois fatores configurada com sucesso!');
   }, [onComplete, safeToast]);
 
@@ -310,7 +310,7 @@ export default function TwoFactorAuthSetup({ onComplete, currentStatus }: TwoFac
       
       setIsLoading(false);
       setStep('intro');
-      onComplete(false);
+      onComplete?.(false);
       safeToast('success', 'Autenticação de dois fatores desativada.');
     }, 1000);
   }, [onComplete, safeToast]);
@@ -490,7 +490,7 @@ export default function TwoFactorAuthSetup({ onComplete, currentStatus }: TwoFac
         </div>
 
         <button
-          onClick={() => onComplete(true)}
+          onClick={() => onComplete?.(true)}
           className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
         >
           Concluir Configuração
@@ -1021,7 +1021,7 @@ export default function TwoFactorAuthSetup({ onComplete, currentStatus }: TwoFac
 
       <div className="flex space-x-3">
         <button
-          onClick={() => onComplete(false)}
+          onClick={() => onComplete?.(false)}
           className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
         >
           Cancelar

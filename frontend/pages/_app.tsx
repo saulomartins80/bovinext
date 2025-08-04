@@ -100,7 +100,6 @@ function ToastContainerWithTheme() {
       toastStyle={{ zIndex: 9999 }}
       theme={theme === 'dark' ? 'dark' : 'light'}
       closeButton={true}
-      enableMultiContainer={false}
       containerId="main-toast-container"
     />
   );

@@ -465,7 +465,7 @@ export default function Demo() {
                 <p className={`text-lg mb-6 ${
                   resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'
                 }`}>
-                  "{testimonial.content}"
+                  &ldquo;{testimonial.content}&rdquo;
                 </p>
                 
                 <div className="flex items-center">

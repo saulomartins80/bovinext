@@ -10,13 +10,6 @@ import { useRouter } from 'next/router';
 import { Investimento } from '../types';
 
 // API response types
-type APIResponse<T> = {
-  data: {
-    data?: T;
-  } | T;
-  message?: string;
-};
-
 type APIError = {
   response?: {
     data?: {
@@ -116,8 +109,8 @@ const InvestimentosDashboard = () => {
       setLoading(true);
       setError(null);
 
-      const response = await investimentoAPI.getAll() as APIResponse<Investimento[]>;
-      const rawData = response?.data?.data || response?.data || response;
+      const response = await investimentoAPI.getAll();
+      const rawData = Array.isArray(response) ? response : [];
 
       if (!Array.isArray(rawData)) {
         throw new Error('Formato de dados inválido recebido da API');
@@ -169,7 +162,7 @@ const InvestimentosDashboard = () => {
         };
 
         return {
-          _id: item._id?.$oid || item._id || Math.random().toString(36).substring(2, 9),
+          _id: (typeof item._id === 'object' && item._id && '$oid' in item._id ? (item._id as { $oid: string }).$oid : item._id) || Math.random().toString(36).substring(2, 9),
           nome: item.nome || 'Sem nome',
           tipo: tiposValidos.includes(item.tipo) ? item.tipo : 'Renda Fixa',
           valor: Number(item.valor) || 0,

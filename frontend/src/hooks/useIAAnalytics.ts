@@ -70,8 +70,8 @@ export function useIAAnalytics() {
           if (userProgress) {
             finalMetrics = {
               ...realMetrics,
-              userProgress
-            } as unknown;
+              userProgress: userProgress as any
+            } as IAMetrics;
           }
         } catch (progressError) {
           console.warn('Erro ao carregar progresso do usuário:', progressError);

@@ -279,7 +279,7 @@ export default function ConfiguracoesPage() {
       type: 'select',
       options: LANGUAGE_OPTIONS,
       currentValue: settings.language,
-      onChange: (value) => handleSettingChange('language', value),
+      onChange: (value: unknown) => handleSettingChange('language', value as string | number | boolean),
       icon: <FiGlobe className="w-5 h-5" />,
       category: 'Personalização'
     },
@@ -290,7 +290,7 @@ export default function ConfiguracoesPage() {
       type: 'select',
       options: CURRENCY_OPTIONS,
       currentValue: settings.currency,
-      onChange: (value) => handleSettingChange('currency', value),
+      onChange: (value: unknown) => handleSettingChange('currency', value as string | number | boolean),
       icon: <FiCreditCard className="w-5 h-5" />,
       category: 'Personalização'
     },
@@ -301,7 +301,7 @@ export default function ConfiguracoesPage() {
       type: 'radiogroup',
       options: THEME_OPTIONS,
       currentValue: theme,
-      onChange: handleThemeChange,
+      onChange: (value: unknown) => handleThemeChange(value as Theme),
       icon: <FiMonitor className="w-5 h-5" />,
       category: 'Aparência'
     },
@@ -336,7 +336,7 @@ export default function ConfiguracoesPage() {
       description: 'Receba notificações importantes por email',
       type: 'toggle',
       currentValue: settings.emailNotifications,
-      onChange: (value) => handleSettingChange('emailNotifications', value),
+      onChange: (value: unknown) => handleSettingChange('emailNotifications', value as string | number | boolean),
       icon: <FiMail className="w-5 h-5" />
     },
     {
@@ -345,7 +345,7 @@ export default function ConfiguracoesPage() {
       description: 'Receba notificações em tempo real',
       type: 'toggle',
       currentValue: settings.pushNotifications,
-      onChange: (value) => handleSettingChange('pushNotifications', value),
+      onChange: (value: unknown) => handleSettingChange('pushNotifications', value as string | number | boolean),
       icon: <FiBell className="w-5 h-5" />
     }
   ], [settings, handleSettingChange]);
@@ -357,7 +357,7 @@ export default function ConfiguracoesPage() {
       description: 'Permitir compartilhamento de dados para melhorias',
       type: 'toggle',
       currentValue: settings.dataSharing,
-      onChange: (value) => handleSettingChange('dataSharing', value),
+      onChange: (value: unknown) => handleSettingChange('dataSharing', value as string | number | boolean),
       icon: <FiDatabase className="w-5 h-5" />
     }
   ], [settings, handleSettingChange]);
@@ -379,7 +379,7 @@ export default function ConfiguracoesPage() {
       type: 'select',
       options: SESSION_TIMEOUT_OPTIONS,
       currentValue: settings.sessionTimeout,
-      onChange: (value) => handleSettingChange('sessionTimeout', value),
+      onChange: (value: unknown) => handleSettingChange('sessionTimeout', value as string | number | boolean),
       icon: <FiKey className="w-5 h-5" />
     }
   ], [settings, handleSettingChange]);
@@ -393,7 +393,7 @@ export default function ConfiguracoesPage() {
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
-                checked={setting.currentValue}
+                checked={setting.currentValue as boolean | undefined}
                 onChange={(e) => setting.onChange?.(e.target.checked)}
                 className="sr-only peer"
                 aria-label={setting.label}
@@ -407,7 +407,7 @@ export default function ConfiguracoesPage() {
         return (
           <div className="min-w-[150px]">
             <Select
-              value={setting.currentValue}
+              value={setting.currentValue as string | number | readonly string[] | undefined}
               onChange={(e) => setting.onChange?.(e.target.value)}
               options={setting.options?.map(opt => ({ 
                 value: opt.value.toString(), 

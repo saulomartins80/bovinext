@@ -114,7 +114,7 @@ const normalizeSubscription = (subscription: unknown): Subscription | null => {
   if (!subscription || !isSubscriptionLike(subscription)) return null;
   
   return {
-    id: subscription.id || subscription.subscriptionId || subscription.stripeSubscriptionId,
+    id: subscription.id || subscription.subscriptionId || subscription.stripeSubscriptionId || '',
     plan: subscription.plan as SubscriptionPlan,
     status: subscription.status as SubscriptionStatus,
     expiresAt: subscription.expiresAt,

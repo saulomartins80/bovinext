@@ -245,7 +245,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            onEdit(transacao);
+                            onEdit?.(transacao);
                           }}
                           className={`p-1.5 rounded-full ${
                             resolvedTheme === 'dark' 
@@ -259,7 +259,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            onDelete(id);
+                            onDelete?.(id);
                           }}
                           className={`p-1.5 rounded-full ${
                             resolvedTheme === 'dark' 
@@ -435,7 +435,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onEdit(transacao);
+                          onEdit?.(transacao);
                         }}
                         className={`px-3 py-1.5 rounded-full text-sm flex items-center gap-1 ${
                           resolvedTheme === 'dark' 
@@ -448,7 +448,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          onDelete(id);
+                          onDelete?.(id);
                         }}
                         className={`px-3 py-1.5 rounded-full text-sm flex items-center gap-1 ${
                           resolvedTheme === 'dark' 

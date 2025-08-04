@@ -279,10 +279,19 @@ export default function DynamicDashboard({
       // Atualizar dados dos widgets
       setDashboardConfig(prev => ({
         ...prev,
-        widgets: prev.widgets.map(widget => ({
-          ...widget,
-          data: { ...widget.data, lastUpdated: new Date().toISOString() }
-        }))
+        widgets: prev.widgets.map(widget => {
+          const updatedData = { ...widget.data };
+          
+          // Adicionar lastUpdated apenas se o tipo de dados suportar
+          if ('lastUpdated' in updatedData) {
+            (updatedData as { lastUpdated?: string }).lastUpdated = new Date().toISOString();
+          }
+          
+          return {
+            ...widget,
+            data: updatedData
+          };
+        })
       }));
 
     } catch (error) {

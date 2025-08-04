@@ -9,10 +9,6 @@ interface MongoId {
   $oid: string;
 }
 
-interface MongoDate {
-  $date: string;
-}
-
 interface NovaTransacao {
   descricao: string;
   valor: number;
@@ -54,12 +50,8 @@ interface FinanceContextProps {
 }
 
 // 2. Depois declare os type guards
-function isMongoId(id: unknown): id is MongoId {
-  return id && typeof id === 'object' && '$oid' in id;
-}
-
-function isMongoDate(date: unknown): date is MongoDate {
-  return date && typeof date === 'object' && '$date' in date;
+function isMongoId(id: unknown): id is { $oid: string } {
+  return Boolean(id && typeof id === 'object' && '$oid' in id);
 }
 
 // 3. Função de normalização
@@ -70,7 +62,7 @@ const normalizeId = (id: string | MongoId): string => {
 const normalizeTransacao = (t: Transacao): Transacao => ({
   ...t,
   _id: isMongoId(t._id) ? t._id.$oid : t._id as string,
-  data: isMongoDate(t.data) ? t.data.$date : t.data as string
+  data: typeof t.data === 'string' ? t.data : t.data.$date
 });
 
 // 4. Crie o contexto

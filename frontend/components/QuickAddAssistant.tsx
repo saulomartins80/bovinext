@@ -2,6 +2,9 @@
 import { useState } from 'react';
 import { X } from 'lucide-react';
 import { transacaoAPI, metaAPI, investimentoAPI } from '../services/api';
+import { NovaTransacaoPayload, Transacao } from '../types/Transacao';
+import { Meta, Prioridade } from '../types/Meta';
+import { Investimento, TipoInvestimento } from '../types/Investimento';
 
 interface QuickAddAssistantProps {
   onClose: () => void;
@@ -316,47 +319,57 @@ const validateField = (value: string | number | undefined, validation?: FormStep
   };
 
   const handleSubmit = async () => {
-    // Validar todos os campos obrigatórios
-    const errors: ValidationError[] = [];
+    if (!validateCurrentField()) return;
     
-    formModels[activeTab].steps.forEach(step => {
-      if (step.validation?.required || !step.optional) {
-        const error = validateField(formData[step.field], step.validation);
-        if (error) {
-          errors.push({ field: step.field, message: error });
-        }
-      }
-    });
-
-    if (errors.length > 0) {
-      setValidationErrors(errors);
-      setError("Por favor, corrija os erros no formulário");
-      return;
-    }
-
     setIsLoading(true);
     setError('');
-    setValidationErrors([]);
     
     try {
-      let result;
+      let result: Transacao | Meta | Investimento | undefined;
       
       if (activeTab === 'transaction') {
         // Adicionar data atual se não fornecida
-        const transactionData = {
-          ...formData,
-          data: formData.data || new Date().toISOString().split('T')[0]
+        const transactionData: NovaTransacaoPayload = {
+          descricao: String(formData.descricao || ''),
+          valor: Number(formData.valor || 0),
+          data: String(formData.data || new Date().toISOString().split('T')[0]),
+          categoria: String(formData.categoria || ''),
+          tipo: String(formData.tipo || 'despesa') as 'receita' | 'despesa' | 'transferencia',
+          conta: String(formData.conta || '')
         };
         result = await transacaoAPI.create(transactionData);
       } else if (activeTab === 'goal') {
-        result = await metaAPI.create(formData);
+        const metaData: Omit<Meta, '_id' | 'concluida' | 'createdAt'> = {
+          meta: String(formData.meta || ''),
+          descricao: String(formData.descricao || ''),
+          valor_total: Number(formData.valor_total || 0),
+          valor_atual: Number(formData.valor_atual || 0),
+          data_conclusao: String(formData.data_conclusao || ''),
+          userId: String(formData.userId || ''),
+          categoria: formData.categoria ? String(formData.categoria) : undefined,
+          prioridade: formData.prioridade ? String(formData.prioridade) as Prioridade : undefined
+        };
+        result = await metaAPI.create(metaData);
       } else if (activeTab === 'investment') {
-        result = await investimentoAPI.create(formData);
+        const investimentoData: Omit<Investimento, '_id'> = {
+          nome: String(formData.nome || ''),
+          tipo: String(formData.tipo || 'Ações') as TipoInvestimento,
+          valor: Number(formData.valor || 0),
+          data: String(formData.data || new Date().toISOString().split('T')[0]),
+          meta: formData.meta ? Number(formData.meta) : undefined,
+          instituicao: formData.instituicao ? String(formData.instituicao) : undefined,
+          rentabilidade: formData.rentabilidade ? Number(formData.rentabilidade) : undefined,
+          vencimento: formData.vencimento ? String(formData.vencimento) : undefined,
+          liquidez: formData.liquidez ? String(formData.liquidez) as Investimento['liquidez'] : undefined,
+          risco: formData.risco ? String(formData.risco) as Investimento['risco'] : undefined,
+          categoria: formData.categoria ? String(formData.categoria) : undefined
+        };
+        result = await investimentoAPI.create(investimentoData);
       }
       
       // Chamar callback de sucesso
       if (onSuccess && result) {
-        onSuccess(activeTab, result);
+        onSuccess(activeTab, result as Record<string, string | number>);
       }
       
       onClose();

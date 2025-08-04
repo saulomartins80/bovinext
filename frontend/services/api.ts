@@ -473,11 +473,11 @@ export const metaAPI = {
       const metas = response.data?.metas || response.data || [];
       const normalizedMetas = metas.map((meta: Partial<Meta>) => ({
         _id: meta._id,
-        meta: meta.meta || meta.titulo,
-        valor_total: meta.valor_total || meta.valorAlvo,
-        valor_atual: meta.valor_atual || meta.valorAtual,
-        data_conclusao: meta.data_conclusao || meta.dataLimite,
-        concluida: (meta.valor_atual >= meta.valor_total) || meta.concluida,
+        meta: meta.meta || '',
+        valor_total: meta.valor_total || 0,
+        valor_atual: meta.valor_atual || 0,
+        data_conclusao: meta.data_conclusao || '',
+        concluida: ((meta.valor_atual || 0) >= (meta.valor_total || 0)) || meta.concluida || false,
         categoria: meta.categoria,
         prioridade: meta.prioridade,
         createdAt: meta.createdAt,
