@@ -72,6 +72,7 @@ const Transacoes = () => {
       unregisterAddItemCallback();
       unregisterExportPDFCallback();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registerAddItemCallback, unregisterAddItemCallback, registerExportPDFCallback, unregisterExportPDFCallback]);
 
   const resetForm = useCallback(() => {
@@ -152,7 +153,7 @@ const Transacoes = () => {
     .reduce((acc, t) => acc + Math.abs(t.valor), 0);
   const saldoAtual = totalReceitas - totalDespesas + transferenciasEntrada - transferenciasSaida;
 
-  const handleExportPDF = () => {
+  const handleExportPDF = useCallback(() => {
     const doc = new jsPDF();
     const pageHeight = doc.internal.pageSize.getHeight();
     const pageWidth = doc.internal.pageSize.getWidth();
@@ -226,7 +227,7 @@ const Transacoes = () => {
 
     doc.save("relatorio-transacoes.pdf");
     toast.success("PDF gerado com sucesso!")
-  };
+  }, [transacoes, resolvedTheme, user]);
 
   return (
     <div

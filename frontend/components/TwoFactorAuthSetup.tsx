@@ -189,6 +189,7 @@ export default function TwoFactorAuthSetup({ onComplete, currentStatus }: TwoFac
     if ((step === 'scan' || step === 'verify') && !secret) {
       generateSetupData();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, secret]);
 
   const generateSetupData = useCallback(() => {

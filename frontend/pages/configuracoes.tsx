@@ -180,7 +180,7 @@ export default function ConfiguracoesPage() {
   const handleThemeChange = useCallback((newTheme: Theme) => {
     setTheme(newTheme);
     // Salva automaticamente a mudança de tema
-    setTimeout(() => saveSettings(), 100);
+    // setTimeout(() => saveSettings(), 100);
   }, [setTheme]);
 
   const saveSettings = useCallback(async () => {
@@ -238,7 +238,7 @@ export default function ConfiguracoesPage() {
       toast.error('Erro ao realizar backup.');
       setTimeout(() => setBackupStatus('idle'), 3000);
     }
-  }, [user?.uid, settings, user]);
+  }, [settings, user]);
 
   const handlePasswordChangeSuccess = useCallback(() => {
     setShowPasswordModal(false);

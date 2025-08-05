@@ -237,6 +237,7 @@ export default function RPADashboard({ className = '' }: RPADashboardProps) {
       // Fixed constant condition lint error
       setIsStreaming(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 🚨 HANDLER PARA NOVOS ALERTAS

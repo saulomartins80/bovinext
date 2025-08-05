@@ -4,7 +4,7 @@
  * (Dashboard que responde aos comandos do chatbot)
  ***************************************/
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BarChart3, DollarSign, AlertTriangle,
@@ -128,9 +128,10 @@ export default function DynamicDashboard({
     if (chatbotCommand) {
       processChatbotCommand(chatbotCommand);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatbotCommand]);
 
-  const processChatbotCommand = async (command: string) => {
+  const processChatbotCommand = useCallback(async (command: string) => {
     setIsLoading(true);
     
     try {
@@ -229,10 +230,11 @@ export default function DynamicDashboard({
     } finally {
       setIsLoading(false);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onCommandResponse]);
 
   // 🎯 ADICIONAR WIDGET
-  const addWidget = async (type: string, title: string, data: WidgetData) => {
+  const addWidget = useCallback(async (type: string, title: string, data: WidgetData) => {
     const newWidget: DashboardWidget = {
       id: `${type}_${Date.now()}`,
       type: getWidgetType(type),
@@ -248,7 +250,7 @@ export default function DynamicDashboard({
       ...prev,
       widgets: [...prev.widgets, newWidget]
     }));
-  };
+  }, []);
 
   // 🗑️ REMOVER WIDGET
   const removeWidget = async (type: string) => {

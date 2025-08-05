@@ -1,5 +1,5 @@
 // types/auth.d.ts
-import { User as FirebaseUser, IdTokenResult } from 'firebase/auth';
+import { User as FirebaseUser } from 'firebase/auth';
 import { Subscription } from './subscription';
 
 export interface AuthUser extends FirebaseUser {

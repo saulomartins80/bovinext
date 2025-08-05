@@ -302,7 +302,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       return authUser;
     }
-  }, [router, state.user]);
+  }, [state.user, state.authChecked]);
 
   const updateUserContextProfile = useCallback((updatedProfileData: Partial<SessionUser>) => {
     setState(prev => {
@@ -551,7 +551,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, []); // Removido syncSessionWithBackend e state.user?.uid das dependências
+  }, [state.authChecked, state.user, syncSessionWithBackend]); // Adicionadas dependências necessárias
 
   const value: AuthContextType = useMemo(() => ({
     ...state,

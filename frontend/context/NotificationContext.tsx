@@ -45,6 +45,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         removeNotification(newNotification.id);
       }, 5000);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const removeNotification = useCallback((id: string) => {

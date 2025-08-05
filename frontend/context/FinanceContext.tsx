@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { transacaoAPI, investimentoAPI, metaAPI } from "../services/api";
 import { Meta, Transacao, Investimento } from "../types";
 import { useAuth } from '../context/AuthContext';
@@ -323,12 +323,12 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     const fetchDataCallId = Date.now();
-    console.log(`[fetchData CALL ${fetchDataCallId}] Starting. Path: ${router.pathname}, Auth: isAuthReady = ${isAuthReady}, user = ${!!user}, User ID if exists: ${user?.uid}`);
-
+    console.log(`[fetchData CALL ${fetchDataCallId}] Starting. Path: ${router.pathname}, AuthReady: ${isAuthReady}, User: ${!!user}`);
+    
     if (!isAuthReady || !user) {
-      console.log(`[fetchData CALL ${fetchDataCallId}] ABORTING: Auth not ready or no user.`);
+      console.log(`[fetchData CALL ${fetchDataCallId}] ABORTED - Auth not ready or no user. Path: ${router.pathname}`);
       setLoading(false);
       return;
     }
@@ -368,7 +368,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
       console.log(`[fetchData CALL ${fetchDataCallId}] Finished fetching all data. Path: ${router.pathname}`);
     }
-  };
+  }, [isAuthReady, user, router.pathname]);
 
   useEffect(() => {
     const effectId = Date.now();
@@ -391,7 +391,7 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       console.log(`[FinanceProvider EFFECT ${effectId}] SKIPPING fetchData (not on protected route, or router not ready). Path: ${router.pathname}, RouterReady: ${router.isReady}, isProtectedRoute: ${isProtectedRoute}`);
       setLoading(false);
     }
-  }, [isAuthReady, user, router.isReady, router.pathname]);
+  }, [isAuthReady, user, router.isReady, router.pathname, fetchData]);
 
   return (
     <FinanceContext.Provider

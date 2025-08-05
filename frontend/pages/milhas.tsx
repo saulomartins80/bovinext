@@ -1056,7 +1056,7 @@ const MilhasRedesign = () => {
       if (editModal.open && editModal.item) {
         setEditData({ ...editModal.item });
       }
-    }, [editModal]);
+    }, []);
 
     const handleEditSubmit = (e: React.FormEvent) => {
       e.preventDefault();
