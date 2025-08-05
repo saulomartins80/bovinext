@@ -197,11 +197,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     quotaExceeded: false
   });
 
-  // ✅ CORREÇÃO: Verificar se já foi inicializado
-  if (isInitialized.current) {
-    console.log('[AuthProvider] Já inicializado, pulando...');
-  } else {
-    console.log('[AuthProvider] Inicializando AuthProvider');
+  // ✅ CORREÇÃO: Verificar se já foi inicializado - OTIMIZADO
+  // Removido retorno antecipado para evitar erro de hooks
+  if (!isInitialized.current) {
     isInitialized.current = true;
   }
 
@@ -227,12 +225,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Verificar se já temos dados do usuário para evitar sincronização desnecessária
     if (state.user && state.user.uid === firebaseUser.uid && state.authChecked) {
-      console.log('[AuthContext] Usuário já sincronizado, pulando sincronização...');
       return state.user;
     }
 
     try {
-      console.log('[AuthContext] Iniciando sincronização com backend...');
       const token = await firebaseUser.getIdToken(true);
       
       const response = await api.post('/api/auth/session', {}, {

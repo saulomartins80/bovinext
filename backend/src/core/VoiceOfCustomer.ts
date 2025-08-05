@@ -11,10 +11,12 @@ export class VoiceOfCustomer {
   }
 
   async processLiveFeedback(userId: string, feedback: string) {
-    const insights = await AIService.extractInsights([feedback]);
+    const insights = await AIService.extractInsights(feedback);
     const superMemory = new SuperMemory();
     await superMemory.storeUserInsight(userId, insights);
-    if (insights.length > 0 && insights.some((insight: any) => insight.priority === 'high')) {
+    
+    // Verificar se o feedback é urgente baseado na estrutura real do retorno
+    if (insights.urgent) {
       await this.triggerLiveAgentCall(userId);
     }
   }
@@ -22,5 +24,6 @@ export class VoiceOfCustomer {
   private async triggerLiveAgentCall(userId: string) {
     // Lógica para acionar agente humano
     // Exemplo: enviar alerta para equipe de suporte
+    console.log(`[VoiceOfCustomer] Acionando agente humano para usuário: ${userId}`);
   }
 } 

@@ -81,29 +81,29 @@ export class ChatbotController {
       const conversationHistory = await this.getConversationHistory(chatId);
       
       // Processar mensagem com IA
-      const aiResponse = await this.aiService.processMessage(
-        userId,
+      const aiResponse = await this.aiService.generateContextualResponse(
+        '', // systemPrompt vazio para usar o Finn Engine
         message,
         conversationHistory,
         userContext
       );
       
       // Salvar mensagem no histórico
-      await this.saveMessageToHistory(chatId, userId, message, aiResponse.response);
+      await this.saveMessageToHistory(chatId, userId, message, aiResponse.text);
       
       // Retornar resposta completa
       res.status(200).json({
         success: true,
-        message: aiResponse.response,
+        message: aiResponse.text,
         messageId: uuidv4(),
-        intent: aiResponse.intent,
-        entities: aiResponse.entities,
+        intent: 'general',
+        entities: [],
         context: userContext,
-        reasoning: aiResponse.reasoning,
-        responseTime: aiResponse.responseTime
+        reasoning: '',
+        responseTime: aiResponse.analysisData?.responseTime || 0
       });
       
-      console.log(`[CHATBOT] Resposta enviada: "${aiResponse.response}"`);
+      console.log(`[CHATBOT] Resposta enviada: "${aiResponse.text}"`);
       
     } catch (error) {
       console.error('Erro ao processar mensagem:', error);
@@ -259,9 +259,23 @@ export class ChatbotController {
   
   private async getConversationHistory(chatId: string): Promise<any[]> {
     try {
-      // Usar getOrCreateState com userId temporário para obter o estado
-      const conversation = this.conversationStateService.getOrCreateState('temp', chatId);
-      return conversation?.context?.conversationHistory || [];
+      if (!chatId) {
+        console.log('[CHATBOT] ChatId não fornecido, retornando histórico vazio');
+        return [];
+      }
+      
+      // Usar o ChatHistoryService para obter o histórico real
+      const conversation = await this.chatHistoryService.getConversation(chatId);
+      const messages = conversation?.messages || [];
+      
+      console.log(`[CHATBOT] Histórico obtido para chatId ${chatId}: ${messages.length} mensagens`);
+      
+      // Converter para o formato esperado pelo AIService
+      return messages.map(msg => ({
+        sender: msg.sender,
+        content: msg.content,
+        timestamp: msg.timestamp
+      }));
     } catch (error) {
       console.error('Erro ao obter histórico:', error);
       return [];
@@ -270,6 +284,8 @@ export class ChatbotController {
   
   private async getRealUserContext(userId: string): Promise<any> {
     try {
+      console.log(`[CHATBOT] Obtendo contexto para usuário: ${userId}`);
+      
       const [user, goals, transactions, investments] = await Promise.all([
         this.userService.getUserByFirebaseUid(userId).catch(() => null),
         this.getUserGoals(userId),
@@ -277,10 +293,23 @@ export class ChatbotController {
         this.getUserInvestments(userId)
       ]);
       
+      // Determinar o nome do usuário
+      let userName = 'Amigo';
+      if (user?.name) {
+        userName = user.name;
+      } else if (user?.email) {
+        userName = user.email.split('@')[0];
+      } else if (user?.firstName) {
+        userName = user.firstName;
+      }
+      
+      console.log(`[CHATBOT] Nome do usuário determinado: ${userName}`);
+      
       return {
         userId,
+        name: userName, // Adicionar nome direto no contexto
         userProfile: { 
-          name: user?.name || user?.email?.split('@')[0] || 'Amigo', 
+          name: userName, 
           plan: user?.subscription?.plan || 'basic',
           subscriptionStatus: user?.subscription?.status || 'inactive'
         },
@@ -303,7 +332,8 @@ export class ChatbotController {
       console.error('Error getting user context:', error);
       return {
         userId,
-        userProfile: { name: 'Usuário', plan: 'basic' },
+        name: 'Amigo',
+        userProfile: { name: 'Amigo', plan: 'basic' },
         hasTransactions: false,
         hasInvestments: false,
         hasGoals: false,

@@ -1,7 +1,7 @@
 // pages/index.tsx - VERSÃO REVOLUCIONÁRIA
 import { useRouter } from 'next/router';
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { motion, useAnimation, useInView, AnimatePresence } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import Image from 'next/image'; 
 import { Tabs, TabList, Tab, TabPanel } from 'react-tabs';
@@ -24,14 +24,14 @@ import WhatsAppFloat from '../components/WhatsAppFloat';
   // Estilos
 
 
-// Componente de Partículas Flutuantes
+// Componente de Partículas Flutuantes - OTIMIZADO
 const FloatingParticles = () => {
-  const particles = Array.from({ length: 15 }, (_, i) => ({
+  const particles = Array.from({ length: 8 }, (_, i) => ({
     id: i,
     x: Math.random() * 100,
     y: Math.random() * 100,
     delay: Math.random() * 2,
-    duration: 3 + Math.random() * 2,
+    duration: 4 + Math.random() * 3,
   }));
 
   return (
@@ -39,21 +39,22 @@ const FloatingParticles = () => {
       {particles.map((particle) => (
         <motion.div
           key={particle.id}
-          className="absolute w-2 h-2 bg-blue-500/20 rounded-full"
+          className="absolute w-1.5 h-1.5 bg-blue-500/15 rounded-full"
           style={{
             left: `${particle.x}%`,
             top: `${particle.y}%`,
           }}
           animate={{
-            y: [0, -20, 0],
-            opacity: [0.2, 0.8, 0.2],
-            scale: [1, 1.2, 1],
+            y: [0, -15, 0],
+            opacity: [0.1, 0.6, 0.1],
+            scale: [1, 1.1, 1],
           }}
           transition={{
             duration: particle.duration,
             delay: particle.delay,
             repeat: Infinity,
             ease: "easeInOut",
+            repeatDelay: 1,
           }}
         />
       ))}
@@ -96,14 +97,13 @@ export default function HomePage() {
   const [activeTab, setActiveTab] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   // const [currentTime, setCurrentTime] = useState(new Date());
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const controls = useAnimation();
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
+  // const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 }); // REMOVIDO - não mais necessário
+  // const controls = useAnimation(); // REMOVIDO - não mais necessário
+  // const ref = useRef(null); // REMOVIDO - não mais necessário
+  // const isInView = useInView(ref, { once: true }); // REMOVIDO - não mais necessário
 
-  // Redirecionar usuários logados para o dashboard
+  // Redirecionar usuários logados para o dashboard - OTIMIZADO
   useEffect(() => {
-    console.log('[HomePage] useEffect - loading:', loading, 'user:', !!user);
     if (!loading && user) {
       console.log('[HomePage] User is logged in, redirecting to dashboard');
       router.replace('/dashboard');
@@ -112,18 +112,18 @@ export default function HomePage() {
 
   // efeito de hora removido
 
-  // Rastrear posição do mouse para efeitos parallax
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    setMousePosition({
-      x: (e.clientX / window.innerWidth) * 100,
-      y: (e.clientY / window.innerHeight) * 100,
-    });
-  }, []);
+  // Rastrear posição do mouse para efeitos parallax - REMOVIDO
+  // const handleMouseMove = useCallback((e: MouseEvent) => {
+  //   setMousePosition({
+  //     x: (e.clientX / window.innerWidth) * 100,
+  //     y: (e.clientY / window.innerHeight) * 100,
+  //   });
+  // }, []);
 
-  useEffect(() => {
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [handleMouseMove]);
+  // useEffect(() => {
+  //   window.addEventListener('mousemove', handleMouseMove);
+  //   return () => window.removeEventListener('mousemove', handleMouseMove);
+  // }, [handleMouseMove]);
 
   const handleClick = (buttonName: string) => {
     if (typeof window !== 'undefined' && window.gtag) {
@@ -136,25 +136,28 @@ export default function HomePage() {
 
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      const scrolled = window.scrollY > 50;
+      if (scrolled !== isScrolled) {
+        setIsScrolled(scrolled);
+      }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [isScrolled]);
 
   useEffect(() => {
-    controls.start({
-      opacity: window.scrollY > 200 ? 1 : 0,
-      y: window.scrollY > 200 ? 0 : 20
-    });
-  }, [isScrolled, controls]);
+    // controls.start({ // REMOVIDO - não mais necessário
+    //   opacity: window.scrollY > 200 ? 1 : 0,
+    //   y: window.scrollY > 200 ? 0 : 20
+    // });
+  }, [isScrolled]); // REMOVIDO - não mais necessário
 
   useEffect(() => {
-    if (isInView) {
-      controls.start('visible');
-    }
-  }, [isInView, controls]);
+    // if (isInView) { // REMOVIDO - não mais necessário
+    //   controls.start('visible');
+    // }
+  }, []); // REMOVIDO - não mais necessário
 
   // Mostrar loading apenas quando está carregando
   if (loading) {
@@ -297,9 +300,7 @@ export default function HomePage() {
         <meta property="og:url" content="https://finnextho.com" />
         <meta name="twitter:card" content="summary_large_image" />
         <link rel="icon" href="/favicon.ico" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
       </Head>
 
       {/* Header Revolucionário */}
@@ -318,7 +319,7 @@ export default function HomePage() {
           background: isScrolled ? undefined : `linear-gradient(135deg, ${resolvedTheme === 'dark' ? 'rgba(17, 24, 39, 0.1)' : 'rgba(255, 255, 255, 0.1)'} 0%, transparent 100%)`
         }}
       >  
-        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center space-x-3">
             <Image src="/finnextho.png" alt="FinNEXTHO" width={40} height={40} />
             <span className={`text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 ${
@@ -439,7 +440,7 @@ export default function HomePage() {
                 : 'bg-white/95 backdrop-blur-md border-t border-gray-200/50'
             } shadow-2xl`}
           >
-            <div className="container mx-auto px-6 py-4">
+            <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
               <nav className="flex flex-col space-y-4">
                 {filteredMenuItems.map((item) => (
                   <Link 
@@ -527,22 +528,24 @@ export default function HomePage() {
           {/* Partículas Flutuantes */}
           <FloatingParticles />
           
-          {/* Efeito Parallax com Mouse */}
-          <motion.div
-            className="absolute inset-0 opacity-30"
+          {/* Efeito Parallax com Mouse - REMOVIDO PARA EVITAR CONFLITOS */}
+          {/* <motion.div
+            className="absolute inset-0 opacity-20 pointer-events-none"
             style={{
-              background: `radial-gradient(circle at ${mousePosition.x}% ${mousePosition.y}%, rgba(59, 130, 246, 0.15) 0%, transparent 50%)`
+              background: `radial-gradient(circle at ${mousePosition.x}% ${mousePosition.y}%, rgba(59, 130, 246, 0.1) 0%, transparent 50%)`,
+              zIndex: -1
             }}
-          />
+          /> */}
         </div>
 
-        <div className="relative z-10 container mx-auto px-6 h-screen flex flex-col justify-center">
+        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-screen flex flex-col justify-center">
           <motion.div
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
-            className="max-w-4xl"
+            className="max-w-4xl mx-auto w-full"
           >
+            {/* Badge "Versão PRO Lançada" - POSICIONADO CORRETAMENTE */}
             <div className={`inline-flex items-center px-3 py-1 rounded-full ${
               resolvedTheme === 'dark' 
                 ? 'bg-gray-800/50 border border-gray-700' 
@@ -704,8 +707,8 @@ export default function HomePage() {
           </motion.div>
         </div>
 
-        {/* Scroll Indicator Moderno */}
-        <motion.div
+        {/* Scroll Indicator Moderno - REMOVIDO COMPLETAMENTE */}
+        {/* <motion.div
           animate={controls}
           initial={{ opacity: 0, y: 20 }}
           className="absolute bottom-10 left-1/2 transform -translate-x-1/2 z-10"
@@ -737,7 +740,7 @@ export default function HomePage() {
           >
             Role para descobrir
           </motion.p>
-        </motion.div>
+        </motion.div> */}
       </section>
 
       {/* Seção de Métricas Revolucionária */}
@@ -749,7 +752,7 @@ export default function HomePage() {
           resolvedTheme === 'dark' ? 'from-blue-600 to-purple-600' : 'from-blue-500 to-purple-500'
         }`} />
         
-        <div className="container mx-auto px-6 relative z-10">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           {/* Título da Seção */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -901,7 +904,7 @@ export default function HomePage() {
           ))}
         </div>
         
-        <div className="container mx-auto px-6 relative z-10">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -1107,7 +1110,7 @@ export default function HomePage() {
       <section id="clientes" className={`py-20 ${
         resolvedTheme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'
       }`}>
-        <div className="container mx-auto px-6">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className={`text-3xl md:text-5xl font-bold mb-6 ${
               resolvedTheme === 'dark' ? 'text-white' : 'text-gray-900'
@@ -1121,17 +1124,13 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div ref={ref}>
+          <div>
             <Splide options={splideOptions} aria-label="Depoimentos">
               {_featuredTestimonials.map((testimonial, index) => (
                 <SplideSlide key={index}>
                   <motion.div
-                    variants={{
-                      hidden: { opacity: 0, y: 50 },
-                      visible: { opacity: 1, y: 0 }
-                    }}
-                    initial="hidden"
-                    animate={controls}
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: index * 0.1 }}
                     className={`${
                       resolvedTheme === 'dark' 
@@ -1194,7 +1193,7 @@ export default function HomePage() {
             : 'bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-transparent via-transparent to-gray-900'
         }`}></div>
 
-        <div className="relative container mx-auto px-6 text-center">
+        <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -1254,7 +1253,7 @@ export default function HomePage() {
           ? 'bg-gray-950 text-gray-400'
           : 'bg-gray-100 text-gray-700'
       }`}>
-        <div className="container mx-auto px-6">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
             <div className="lg:col-span-2">
               <Link href="/" className="flex items-center space-x-3 mb-6">
@@ -1408,7 +1407,7 @@ export default function HomePage() {
       {/* WhatsApp Float Button - apenas para usuários não logados */}
       {!loading && !user && (
         <WhatsAppFloat 
-          phoneNumber="5511999999999" // Substitua pelo número real da FinNEXTHO
+          phoneNumber="5562999667963" // Substitua pelo número real da FinNEXTHO
           message="Olá! Gostaria de saber mais sobre o FinNEXTHO e como ele pode me ajudar com minhas finanças."
           position="bottom-right"
         />
