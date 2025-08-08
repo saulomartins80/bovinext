@@ -1,5 +1,5 @@
 //SentimentService.ts
-import AIService from './aiService';
+import { EnterpriseAIEngine } from './EnterpriseAIEngine';
 import cacheService from './cacheService';
 
 export interface SentimentAnalysis {
@@ -20,10 +20,10 @@ export interface SentimentAnalysis {
 }
 
 export class SentimentService {
-  private aiService: AIService;
+  private aiService: EnterpriseAIEngine;
 
   constructor() {
-    this.aiService = new AIService();
+    this.aiService = new EnterpriseAIEngine();
   }
 
   // Analisar sentimento de uma mensagem
@@ -130,11 +130,8 @@ export class SentimentService {
         Retorne apenas o JSON válido.
       `;
 
-      const response = await this.aiService.generateContextualResponse(
-        'Você é um analisador de sentimentos especializado. Analise a mensagem fornecida e retorne apenas um JSON válido com a análise.',
-        prompt,
-        []
-      );
+      const result = await this.aiService.processEnterpriseRequest('sentiment_analysis', message, { type: 'sentiment_analysis' });
+      const response = result.response || 'Análise não disponível';
       
       try {
         const responseText = typeof response === 'string' ? response : (response as any)?.text || '';

@@ -223,6 +223,15 @@ export const marketDataAPI = {
 
 // --- CHATBOT API ---
 export const chatbotAPI = {
+  healthCheck: async () => {
+    try {
+      const response = await api.get('/api/chatbot/health', { timeout: 10000 });
+      return response.data;
+    } catch (error) {
+      console.error('[chatbotAPI] ❌ Erro no health check:', error);
+      throw error;
+    }
+  },
   sendQuery: async (data: ChatMessage) => {
     try {
       console.log('[chatbotAPI] 📤 Enviando consulta:', data);
@@ -242,6 +251,22 @@ export const chatbotAPI = {
         status: (error as ErrorResponse)?.response?.status,
         statusText: (error as ErrorResponse)?.response?.statusText
       });
+      throw error;
+    }
+  },
+  openStream: async ({ message, chatId }: { message: string; chatId: string }): Promise<EventSource> => {
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      const token = user ? await getIdToken(user, true) : '';
+
+      const base = (api.defaults.baseURL || '').replace(/\/$/, '');
+      const url = `${base}/api/chatbot/stream?message=${encodeURIComponent(message)}&chatId=${encodeURIComponent(chatId)}&token=${encodeURIComponent(token)}`;
+
+      console.log('[chatbotAPI] 🔌 Abrindo stream via EventSource:', { url: `${base}/api/chatbot/stream?...`, hasToken: !!token, withCredentials: false });
+      return new EventSource(url, { withCredentials: false });
+    } catch (error) {
+      console.error('[chatbotAPI] ❌ Erro ao abrir stream:', error);
       throw error;
     }
   },

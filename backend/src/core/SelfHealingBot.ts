@@ -1,10 +1,17 @@
 // 📂 core/SelfHealingBot.ts
-import AIService from '../services/aiService';
+import { EnterpriseAIEngine } from '../services/EnterpriseAIEngine';
 import { FinancialAssistant } from '../services/FinancialAssistant';
 
 export class SelfHealingBot {
+  private aiEngine: EnterpriseAIEngine;
+
+  constructor() {
+    this.aiEngine = new EnterpriseAIEngine();
+  }
+
   async handleUserCorrection(userMessage: string, lastResponse: any) {
-    const analysis = await AIService.analyzeCorrection(userMessage, lastResponse);
+    const result = await this.aiEngine.processEnterpriseRequest('self_healing', userMessage, { type: 'correction_analysis', lastResponse });
+    const analysis = result.insights || { isCorrection: false };
     if (analysis.isCorrection) {
       const correctedResponse = await this.rebuildResponse(analysis.correctIntent);
       return {

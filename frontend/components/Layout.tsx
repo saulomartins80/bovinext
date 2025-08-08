@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import Header from './Header';
 import MobileHeader from './MobileHeader';
 import Sidebar from './Sidebar';
-import Chatbot from './Chatbot';
+import OptimizedChatbot from './OptimizedChatbot';
 import MobileNavigation from './MobileNavigation';
 import { ProtectedRoute } from './ProtectedRoute';
 import { Elements } from '@stripe/react-stripe-js';
@@ -290,7 +290,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             )}
             
             {/* Chatbot - sempre no canto direito */}
-            <Chatbot 
+            <OptimizedChatbot 
               isOpen={isChatOpen}
               onToggle={toggleChat}
             />

@@ -224,9 +224,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     // Verificar se já temos dados do usuário para evitar sincronização desnecessária
-    if (state.user && state.user.uid === firebaseUser.uid && state.authChecked) {
-      return state.user;
-    }
+    // Remover esta verificação para evitar problemas de dependência circular
 
     try {
       const token = await firebaseUser.getIdToken(true);
@@ -302,7 +300,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       return authUser;
     }
-  }, [state.user, state.authChecked]);
+  }, []);
 
   const updateUserContextProfile = useCallback((updatedProfileData: Partial<SessionUser>) => {
     setState(prev => {
@@ -506,11 +504,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (firebaseUser) {
         console.log('[AuthContext] Usuário Firebase encontrado...');
         
-        // ✅ CORREÇÃO: Verificar se já temos dados do usuário para evitar sincronização desnecessária
-        if (state.user && state.user.uid === firebaseUser.uid && state.authChecked) {
-          console.log('[AuthContext] Usuário já sincronizado, mantendo estado atual...');
-          return;
-        }
+        // Remover verificação circular que causa problemas
         
         // ✅ CORREÇÃO: Verificar se estamos na página inicial - se sim, não sincronizar ainda
         const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
@@ -551,7 +545,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [state.authChecked, state.user, syncSessionWithBackend]); // Adicionadas dependências necessárias
+  }, [state.authChecked, syncSessionWithBackend]);
 
   const value: AuthContextType = useMemo(() => ({
     ...state,

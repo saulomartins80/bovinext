@@ -1,9 +1,9 @@
 // SuggestionService.ts
-import AIService from './aiService';
+import { EnterpriseAIEngine } from './EnterpriseAIEngine';
 import cacheService from './cacheService';
 
 export class SuggestionService {
-  private aiService: AIService;
+  private aiService: EnterpriseAIEngine;
   private readonly SUGGESTION_CATEGORIES = {
     INVESTMENT: 'investimento',
     SUPPORT: 'suporte',
@@ -13,7 +13,7 @@ export class SuggestionService {
   };
 
   constructor() {
-    this.aiService = new AIService();
+    this.aiService = new EnterpriseAIEngine();
   }
 
   // Gerar sugestões baseadas na mensagem atual

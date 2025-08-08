@@ -9,15 +9,27 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
   try {
     console.log(`[AUTH] 🔍 Iniciando autenticação para: ${req.method} ${req.path}`);
     
-    const authHeader = req.headers.authorization;
-    if (!authHeader?.startsWith('Bearer ')) {
-      console.log(`[AUTH] ❌ Token não fornecido ou formato inválido`);
-      return next(new AppError(401, 'Token de autenticação não fornecido'));
+    // Para streaming (EventSource), aceitar token via query parameter
+    let token: string | undefined;
+    
+    if (req.path.includes('/stream')) {
+      // Para streaming, tentar token via query parameter primeiro
+      token = req.query.token as string;
+      console.log(`[AUTH] 🔄 Streaming request - tentando token via query parameter`);
     }
-
-    const token = authHeader.split('Bearer ')[1];
+    
+    // Se não temos token ainda, tentar header Authorization
     if (!token) {
-      console.log(`[AUTH] ❌ Token vazio após split`);
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith('Bearer ')) {
+        console.log(`[AUTH] ❌ Token não fornecido nem no header nem no query parameter`);
+        return next(new AppError(401, 'Token de autenticação não fornecido'));
+      }
+      token = authHeader.split('Bearer ')[1];
+    }
+    
+    if (!token) {
+      console.log(`[AUTH] ❌ Token vazio`);
       return next(new AppError(401, "Credenciais ausentes"));
     }
 

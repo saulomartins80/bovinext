@@ -1,4 +1,4 @@
-import AIService from './aiService';
+import { EnterpriseAIEngine } from './EnterpriseAIEngine';
 
 interface UserMessage {
   content: string;
@@ -38,10 +38,10 @@ export interface DetectedIntent {
 }
 
 export class ReasoningEngine {
-  private aiService: AIService;
+  private aiService: EnterpriseAIEngine;
 
   constructor() {
-    this.aiService = new AIService();
+    this.aiService = new EnterpriseAIEngine();
   }
 
   async analyze(message: UserMessage, context: ConversationContext): Promise<MessageAnalysis> {
@@ -113,15 +113,10 @@ export class ReasoningEngine {
     
     try {
       // ✅ CORREÇÃO: Usar o método correto do AIService
-      const aiResponse = await this.aiService.generateContextualResponse(
-        enhancedPrompt,
-        message.content,
-        [],
-        { userId: message.userId }
-      );
+      const result = await this.aiService.processEnterpriseRequest('reasoning_analysis', message.content, { type: 'reasoning', context });
+      const aiResponse = { text: result.response };
       
-      // O AIService retorna uma string diretamente
-      const response = aiResponse || '';
+      const response = aiResponse?.text || 'Não consegui processar sua mensagem. Pode tentar novamente?';
       
       // Parsear a resposta como JSON se possível
       let parsedResponse;

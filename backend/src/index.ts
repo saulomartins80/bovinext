@@ -17,7 +17,7 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 
 // Rotas
-import chatbotRoutes from './routes/chatbotRoutes';
+import optimizedChatbotRoutes from './routes/optimizedChatbotRoutes';
 import transacoesRouter from './routes/transacoesRoutes';
 import goalsRouter from './routes/goalsRoutes';
 import investimentoRouter from './routes/investimentoRoutes';
@@ -255,7 +255,7 @@ app.use('/api/subscriptions/webhook', express.raw({ type: 'application/json' }))
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/chatbot', optimizedChatbotRoutes);
 app.use('/api/transacoes', transacoesRouter);
 app.use('/api/goals', goalsRouter);
 app.use('/api/investimentos', investimentoRouter);

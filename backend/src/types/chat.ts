@@ -15,6 +15,7 @@ export interface ChatMessageMetadata {
   result?: any;
   action?: any;
   requiresConfirmation?: boolean;
+  isBot?: boolean;
   // ✅ NOVO: Propriedades para detecção de duplicatas
   duplicateDetected?: boolean;
   userDataAccessed?: {

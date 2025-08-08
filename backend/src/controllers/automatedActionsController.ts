@@ -3,10 +3,10 @@ import { User } from '../models/User';
 import { Transacoes } from '../models/Transacoes';
 import Investimento from '../models/Investimento';
 import { Goal } from '../models/Goal';
-import AIService from '../services/aiService';
+import { EnterpriseAIEngine } from '../services/EnterpriseAIEngine';
 import { v4 as uuidv4 } from 'uuid';
 
-const aiService = new AIService();
+const aiService = new EnterpriseAIEngine();
 
 // Interfaces para tipos de payload
 interface TransactionPayload {
@@ -323,28 +323,34 @@ Analise a mensagem e retorne um JSON com:
 - requiresConfirmation: se precisa confirmação
 JSON:`;
 
-    const aiResponse = await aiService.detectAutomatedAction(prompt);
+    const actionResult = await aiService.processEnterpriseRequest('automated_user', message, { type: 'automation_detection' });
 
-    if (!aiResponse || aiResponse.intent === 'UNKNOWN') {
+    // Extract intent from actions array or reasoning
+    const detectedAction = actionResult.actions?.[0] || {};
+    const intent = detectedAction.type || detectedAction.intent || 'UNKNOWN';
+    const entities = detectedAction.data || detectedAction.payload || {};
+    const requiresConfirmation = detectedAction.requiresConfirmation || false;
+
+    if (!actionResult || intent === 'UNKNOWN') {
       return {
         type: 'UNKNOWN',
         payload: {},
-        confidence: aiResponse?.confidence || 0.0,
+        confidence: actionResult?.confidence || 0.0,
         requiresConfirmation: false,
         successMessage: '',
         errorMessage: '',
-        response: aiResponse?.response || 'Como posso te ajudar hoje?'
+        response: actionResult?.response || 'Como posso te ajudar hoje?'
       };
     }
 
     return {
-      type: aiResponse.intent as any,
-      payload: aiResponse.entities || {},
-      confidence: aiResponse.confidence || 0.0,
-      requiresConfirmation: aiResponse.requiresConfirmation || false,
+      type: intent as any,
+      payload: entities || {},
+      confidence: actionResult.confidence || 0.0,
+      requiresConfirmation: requiresConfirmation,
       successMessage: '',
       errorMessage: '',
-      response: aiResponse.response || 'Entendi sua solicitação. Como posso ajudar?'
+      response: actionResult.response || 'Entendi sua solicitação. Como posso ajudar?'
     };
   } catch (error) {
     console.error('Erro na análise com IA:', error);
@@ -394,7 +400,7 @@ function isValidReportData(action: DetectedAction): action is DetectedAction & {
   return action.type === 'GENERATE_REPORT';
 }
 
-// Controller principal para ações automatizadas
+// ⚡ Controller principal para ações automatizadas
 export const processAutomatedAction = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = (req as any).user?.uid;
@@ -517,7 +523,9 @@ export const processAutomatedAction = async (req: Request, res: Response): Promi
     } else {
       // Processar como mensagem normal do chatbot
       try {
-        const response = await aiService.generateContextualResponse('', message, [], userContext);
+        const result = await aiService.processEnterpriseRequest(userId, message, { type: 'contextual_response' });
+        const response = { text: result.response };
+
         res.status(200).json({
           success: true,
           type: 'TEXT_RESPONSE',

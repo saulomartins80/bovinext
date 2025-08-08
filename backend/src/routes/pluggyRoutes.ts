@@ -2,7 +2,7 @@ import express from 'express';
 import { getConnectToken, handleItemCreation, getMileageSummary } from '../controllers/pluggyController';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import { asyncHandler } from '../utils/asyncHandler';
-import PluggyService from '../services/pluggyServiceFixed';
+import PluggyService from '../services/pluggyService';
 
 const router = express.Router();
 

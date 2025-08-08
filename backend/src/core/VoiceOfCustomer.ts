@@ -1,17 +1,20 @@
 // 📂 core/VoiceOfCustomer.ts
 import { RealTimeStream } from '../services/RealTimeStream';
-import AIService from '../services/aiService';
+import { EnterpriseAIEngine } from '../services/EnterpriseAIEngine';
 import { SuperMemory } from './SuperMemory';
 
 export class VoiceOfCustomer {
   private feedbackStream: RealTimeStream;
+  private aiEngine: EnterpriseAIEngine;
 
   constructor() {
     this.feedbackStream = new RealTimeStream();
+    this.aiEngine = new EnterpriseAIEngine();
   }
 
   async processLiveFeedback(userId: string, feedback: string) {
-    const insights = await AIService.extractInsights(feedback);
+    const result = await this.aiEngine.processEnterpriseRequest(userId, feedback, { type: 'feedback_analysis' });
+    const insights = result.insights || { urgent: false };
     const superMemory = new SuperMemory();
     await superMemory.storeUserInsight(userId, insights);
     

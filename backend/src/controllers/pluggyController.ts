@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import PluggyService from '../services/pluggyServiceFixed';
+import PluggyService from '../services/pluggyService';
 import { MileageSummary } from '../models/Mileage';
 import mongoose from 'mongoose';
 

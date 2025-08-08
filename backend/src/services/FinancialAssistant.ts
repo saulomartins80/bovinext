@@ -1,4 +1,4 @@
-import AIService from './aiService';
+import { EnterpriseAIEngine } from './EnterpriseAIEngine';
 import { UserService } from '../modules/users/services/UserService';
 import { UserRepository } from '../modules/users/repositories/UserRepository';
 import { ConversationMemory } from './ConversationMemory';
@@ -134,7 +134,7 @@ export class FinancialAssistant {
   private memory: ConversationMemory;
   private reasoningEngine: ReasoningEngine;
   private personality: EnhancedPersonality;
-  private aiService: AIService;
+  private aiService: EnterpriseAIEngine;
   
   // Circuit Breaker
   private circuitBreaker: CircuitBreakerState = {
@@ -149,13 +149,14 @@ export class FinancialAssistant {
     this.memory = new ConversationMemory();
     this.reasoningEngine = new ReasoningEngine();
     this.personality = new EnhancedPersonality();
-    this.aiService = new AIService();
+    this.aiService = new EnterpriseAIEngine();
   }
 
   // Compreensão Contextual Aprimorada
   private async buildEnhancedContext(message: UserMessage): Promise<ConversationContext> {
     // Adicionar análise de sentimento
-    const sentiment = await this.aiService.analyzeSentiment?.(message.content) || { score: 0, label: 'neutral' };
+    const result = await this.aiService.processEnterpriseRequest('sentiment_analysis', message.content, { type: 'sentiment' });
+    const sentiment = result.insights?.sentiment || 'neutral';
     
     // Verificar histórico recente
     const last5Messages = await this.memory.getRecentMessages(message.userId, 5) || [];
