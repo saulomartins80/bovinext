@@ -12,8 +12,9 @@ import {
   Menu,
   Gem, // Ícone para Planos/Assinaturas
   HelpCircle, // Ícone para Suporte
-  Plane, // Ícone para Milhas
+  CreditCard, // Ícone para Cartões
   Activity, // Ícone para IA & Analytics
+  // Removido: Plane, // Ícone para Milhas (não estava sendo usado)
 } from "lucide-react";
 import { useRouter } from "next/router";
 import { motion, AnimatePresence } from "framer-motion";
@@ -104,7 +105,7 @@ export default function Sidebar({
     },
     {
       path: "/milhas",
-      icon: Plane,
+      icon: CreditCard,
       label: "Milhas",
     },
     {

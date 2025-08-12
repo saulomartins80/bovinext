@@ -184,7 +184,7 @@ export default function HomePage() {
 
   // Métricas dinâmicas mais impactantes
   const metrics = [
-    { value: 2.5, suffix: 'K+', label: 'Usuários ativos', icon: <FiUsers className="w-6 h-6" />, color: 'text-blue-500' },
+    { value: 1.1, suffix: 'K+', label: 'Usuários ativos', icon: <FiUsers className="w-6 h-6" />, color: 'text-blue-500' },
     { value: 95, suffix: '%', label: 'Satisfação', icon: <FiStar className="w-6 h-6" />, color: 'text-yellow-500' },
     { value: 4.9, suffix: '/5', label: 'Avaliação', icon: <FiAward className="w-6 h-6" />, color: 'text-green-500' },
     { value: 24, suffix: '/7', label: 'Suporte', icon: <FiShield className="w-6 h-6" />, color: 'text-purple-500' }
@@ -192,9 +192,9 @@ export default function HomePage() {
 
   // Dados em tempo real simulados
   const liveMetrics = {
-    activeUsers: Math.floor(2500 + Math.sin(Date.now() / 10000) * 100),
+    activeUsers: Math.floor(1850 + Math.sin(Date.now() / 10000) * 100),
     transactionsToday: Math.floor(15000 + Math.sin(Date.now() / 5000) * 500),
-    totalVolume: '2.8B+',
+    totalVolume: '1.8B+',
     uptime: '99.9%'
   };
 
@@ -238,7 +238,7 @@ export default function HomePage() {
       company: "TechStart",
       image: "/api/placeholder/64/64",
       rating: 5,
-      text: "O FinNEXTHO revolucionou nossa gestão financeira. Em 6 meses, aumentamos nosso ROI em 340% com as sugestões da IA.",
+      text: "O Finnextho revolucionou nossa gestão financeira. Em 6 meses, aumentamos nosso ROI em 340% com as sugestões da IA.",
       results: "ROI +340% em 6 meses",
       videoUrl: "/videos/testimonial-carlos.mp4"
     },
@@ -294,7 +294,7 @@ export default function HomePage() {
         <meta name="description" content="Transforme sua vida financeira com IA avançada. Investimentos inteligentes, automação total e segurança bancária. Junte-se a 2.5K+ usuários que já aumentaram seu ROI em 340%." />
         <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
         <meta name="theme-color" content={resolvedTheme === 'dark' ? '#1f2937' : '#ffffff'} />
-        <meta property="og:title" content="FinNEXTHO - Revolução Financeira com IA" />
+        <meta property="og:title" content="Finnextho - Revolução Financeira com IA" />
         <meta property="og:description" content="Plataforma de gestão financeira com IA que já ajudou milhares de usuários a aumentar seu ROI em até 340%" />
         <meta property="og:image" content="/og-image.jpg" />
         <meta property="og:url" content="https://finnextho.com" />
@@ -321,11 +321,11 @@ export default function HomePage() {
       >  
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center space-x-3">
-            <Image src="/finnextho.png" alt="FinNEXTHO" width={40} height={40} />
+            <Image src="/finnextho.png" alt="Finnextho" width={40} height={40} />
             <span className={`text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 ${
               resolvedTheme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
-              Fin<span className="text-blue-300">NEXTHO</span>
+              Fin<span className="text-blue-300">nextho</span>
             </span>
           </Link>
 
@@ -695,7 +695,7 @@ export default function HomePage() {
                 <FiUsers className="w-5 h-5 text-blue-500" />
                 <span className={`text-sm ${
                   resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>2.5K+ Usuários Ativos</span>
+                }`}>1.1K+ Usuários Ativos</span>
               </div>
               <div className="flex items-center space-x-2">
                 <FiAward className="w-5 h-5 text-yellow-500" />
@@ -1208,7 +1208,7 @@ export default function HomePage() {
             <p className={`text-xl max-w-3xl mx-auto mb-12 ${
               resolvedTheme === 'dark' ? 'text-blue-200' : 'text-blue-900'
             }`}>
-              Junte-se a mais de 15.000 usuários que já transformaram sua relação com o dinheiro.
+              Junte-se a mais de 5.000 usuários que já transformaram sua relação com o dinheiro.
             </p>
 
             <div className="flex flex-col sm:flex-row justify-center gap-6">
@@ -1257,11 +1257,11 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
             <div className="lg:col-span-2">
               <Link href="/" className="flex items-center space-x-3 mb-6">
-                <Image src="/finnextho.png" alt="FinNEXTHO" width={40} height={40} />
+                <Image src="/finnextho.png" alt="Finnextho" width={40} height={40} />
                 <span className={`text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 ${
                   resolvedTheme === 'dark' ? '' : 'text-gray-900'
                 }`}>
-                  Fin<span className={resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}>NEXTHO</span>
+                  Fin<span className={resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}>nextho</span>
                 </span>
               </Link>
               <p className={`mb-6 ${
@@ -1378,7 +1378,7 @@ export default function HomePage() {
             resolvedTheme === 'dark' ? 'border-gray-800' : 'border-gray-300'
           }`}>
             <p className={resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
-              &copy; {new Date().getFullYear()} FinNEXTHO. Todos os direitos reservados.
+              &copy; {new Date().getFullYear()} Finnextho. Todos os direitos reservados.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <Link 
@@ -1407,8 +1407,8 @@ export default function HomePage() {
       {/* WhatsApp Float Button - apenas para usuários não logados */}
       {!loading && !user && (
         <WhatsAppFloat 
-          phoneNumber="5562999667963" // Substitua pelo número real da FinNEXTHO
-          message="Olá! Gostaria de saber mais sobre o FinNEXTHO e como ele pode me ajudar com minhas finanças."
+          phoneNumber="5562999667963" 
+          message="Olá! Gostaria de saber mais sobre o Finnextho e como ele pode me ajudar com minhas finanças."
           position="bottom-right"
         />
       )}

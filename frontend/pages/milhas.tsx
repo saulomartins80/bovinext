@@ -252,12 +252,6 @@ const MilhasRedesign = () => {
   // Componente de Header moderno
   const ModernHeader = () => (
     <div className="relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-pink-500 to-orange-500 rounded-full blur-3xl"></div>
-      </div>
-      
       <div className="relative z-10 p-6">
         <div className="flex justify-between items-start mb-8">
           <div>
@@ -1284,13 +1278,13 @@ const MilhasRedesign = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 flex items-center justify-center p-4 z-50"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
           >
             <motion.div
               initial={{ scale: 0.9, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.9, y: 20 }}
-              className={`${themeClasses.cardBg} rounded-3xl shadow-2xl w-full max-w-sm p-4 sm:p-6`}
+              className={`${themeClasses.cardBg} rounded-3xl shadow-2xl w-full max-w-md p-6 border ${themeClasses.border}`}
             >
               <div className="flex justify-between items-center mb-6">
                 <h2 className={`text-xl font-bold ${themeClasses.text}`}>
@@ -1328,13 +1322,13 @@ const MilhasRedesign = () => {
               <div className="flex gap-3">
                 <button
                   onClick={() => setDeleteModal({ open: false, type: '', item: null, index: -1 })}
-                  className={`flex-1 py-2 px-4 rounded-xl border ${themeClasses.border} ${themeClasses.text} text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors`}
+                  className={`flex-1 py-3 px-4 rounded-xl border ${themeClasses.border} ${themeClasses.text} font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors`}
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleDeleteConfirm}
-                  className="flex-1 py-2 px-4 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl text-sm font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-xl font-medium hover:shadow-lg transition-all flex items-center justify-center gap-2"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polyline points="3,6 5,6 21,6" />

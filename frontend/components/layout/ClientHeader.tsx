@@ -31,7 +31,7 @@ export function ClientHeader() {
               <FiTrendingUp className="text-white w-5 h-5" />
             </div>
             <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
-              Fin<span className="text-blue-300">NEXTHO</span>
+              Fin<span className="text-blue-300">nextho</span>
             </span>
           </Link>
 

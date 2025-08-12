@@ -130,7 +130,7 @@ export const Footer: React.FC = () => {
 
         <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
           <p className="text-base text-gray-500 dark:text-gray-400 text-center">
-            &copy; {currentYear} FinNEXTHO. Todos os direitos reservados.
+            &copy; {currentYear} Finnextho. Todos os direitos reservados.
           </p>
         </div>
       </div>

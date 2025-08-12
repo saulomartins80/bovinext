@@ -12,6 +12,7 @@ import api, { metaAPI } from '../services/api';
 import { getAuth } from 'firebase/auth';
 import { useTheme } from "../context/ThemeContext"; // Import useTheme
 import { useRouter } from 'next/router';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 ChartJS.register(ArcElement, Tooltip, Legend, LinearScale, BarElement, CategoryScale);
 
@@ -58,6 +59,11 @@ const MetasDashboard = () => {
       prioridade: ''
     },
     expandedMeta: null as string | null
+  });
+
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    meta: null as Meta | null
   });
 
   const router = useRouter();
@@ -187,15 +193,20 @@ const MetasDashboard = () => {
 };
 
   // Operação de Delete (AGORA USANDO metaAPI)
-  const handleDeleteMeta = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta meta?")) return;
+  const handleDeleteMeta = (meta: Meta) => {
+    setDeleteModal({ open: true, meta });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal.meta?._id) return;
 
     try {
       // Usando metaAPI.delete()
-      await metaAPI.delete(id);
+      await metaAPI.delete(deleteModal.meta._id);
 
       toast.success("Meta excluída com sucesso!");
       fetchMetas(); // Atualiza a lista após excluir
+      setDeleteModal({ open: false, meta: null });
     } catch (error: any) {
       console.error("Erro ao excluir meta:", error);
        // Tratamento de erro mais robusto com Axios
@@ -679,7 +690,7 @@ const MetasDashboard = () => {
                               Editar
                             </button>
                             <button
-                              onClick={(e) => { e.stopPropagation(); handleDeleteMeta(meta._id!); }}
+                              onClick={(e) => { e.stopPropagation(); handleDeleteMeta(meta); }}
                               className="px-4 py-2 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 rounded-lg hover:bg-red-200 dark:hover:bg-red-800 transition-colors flex items-center gap-2"
                             >
                               <Trash size={16} />
@@ -891,6 +902,16 @@ const MetasDashboard = () => {
           >
             <Plus size={24} />
           </button>
+
+          <ConfirmationModal
+            isOpen={deleteModal.open}
+            onClose={() => setDeleteModal({ open: false, meta: null })}
+            onConfirm={confirmDelete}
+            title="Excluir Meta"
+            message={`Tem certeza que deseja excluir a meta "${deleteModal.meta?.meta}"?`}
+            confirmText="Excluir"
+            confirmColor="red"
+          />
 
           <ToastContainer
             position="top-right"

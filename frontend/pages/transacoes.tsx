@@ -15,7 +15,7 @@ import { useAuth } from "../context/AuthContext";
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAddItemCallback } from "../src/hooks/useAddItemCallback";
 import { useLayoutContext } from "../components/Layout";
-
+import ConfirmationModal from "../components/ConfirmationModal";
 
 const Transacoes = () => {
   const { user } = useAuth();
@@ -34,6 +34,11 @@ const Transacoes = () => {
     conta: "",
   });
   const [isMobileView, setIsMobileView] = useState(false);
+
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    transacao: null as Transacao | null
+  });
 
   // Detectar se está no mobile
   useEffect(() => {
@@ -138,6 +143,26 @@ const Transacoes = () => {
     setIsSubmitting(false);
   }
 };
+
+  const handleDelete = (transacao: Transacao) => {
+    setDeleteModal({ open: true, transacao });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal.transacao?._id) return;
+
+    try {
+      const transacaoId = deleteModal.transacao._id as string;
+      
+      await transacaoAPI.delete(transacaoId);
+      toast.success('Transação excluída com sucesso!');
+      await fetchTransacoes();
+      setDeleteModal({ open: false, transacao: null });
+    } catch (error) {
+      console.error('Erro ao excluir transação:', error);
+      toast.error('Erro ao excluir transação');
+    }
+  };
 
   const totalReceitas = transacoes
     .filter((t) => t.tipo === "receita")
@@ -288,15 +313,10 @@ const Transacoes = () => {
             <TransactionTable
               transacoes={transacoes}
               onEdit={openModal}
-              onDelete={async (id) => {
-                if (!window.confirm("Tem certeza que deseja excluir esta transação?")) return;
-                try {
-                  await transacaoAPI.delete(id);
-                  setTransacoes((prev) => prev.filter((t) => t._id !== id));
-                  toast.success("Transação excluída com sucesso!");
-                } catch (error) {
-                  toast.error("Erro ao excluir transação");
-                  console.error(error);
+              onDelete={(id) => {
+                const transacao = transacoes.find(t => (t._id as string) === id);
+                if (transacao) {
+                  handleDelete(transacao);
                 }
               }}
               theme={resolvedTheme === 'dark' ? 'dark' : 'light'}
@@ -373,6 +393,18 @@ const Transacoes = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Modal de Confirmação de Exclusão */}
+      <ConfirmationModal
+        isOpen={deleteModal.open}
+        onClose={() => setDeleteModal({ open: false, transacao: null })}
+        onConfirm={confirmDelete}
+        title="Excluir Transação"
+        message="Você está prestes a excluir"
+        itemName={deleteModal.transacao?.descricao}
+        confirmText="Excluir"
+        confirmColor="red"
+      />
 
       <ToastContainer
         position="top-right"         

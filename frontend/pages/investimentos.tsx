@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Plus, Edit, Trash, Filter, X, DollarSign, PieChart, Loader2, Shield, TrendingUp, Home, Bitcoin, Layers, Globe, Activity, BarChart } from 'lucide-react';
-import { toast } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
 import dynamic from 'next/dynamic';
 import { investimentoAPI } from '../services/api';
 import { motion } from 'framer-motion';
@@ -8,6 +8,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { useTheme } from "../context/ThemeContext";
 import { useRouter } from 'next/router';
 import { Investimento } from '../types';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 // API response types
 type APIError = {
@@ -48,6 +49,11 @@ const InvestimentosDashboard = () => {
     open: false,
     mode: 'add' as 'add' | 'edit',
     data: {} as Partial<Investimento>
+  });
+
+  const [deleteModal, setDeleteModal] = useState({
+    open: false,
+    investimento: null as Investimento | null
   });
 
   const tipoCores = {
@@ -392,18 +398,23 @@ const InvestimentosDashboard = () => {
   }
 };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Tem certeza que deseja excluir este investimento?')) return;
+  const handleDelete = (investimento: Investimento) => {
+    setDeleteModal({ open: true, investimento });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteModal.investimento) return;
 
     try {
-      await investimentoAPI.delete(id);
+      await investimentoAPI.delete(deleteModal.investimento._id);
       toast.success('Investimento excluído com sucesso!');
       await fetchInvestimentos();
+      setDeleteModal({ open: false, investimento: null });
     } catch (err) {
       console.error('Erro ao excluir:', err);
-    const error = err as APIError;
-    const errorMessage = error?.response?.data?.message || error.message || 'Erro ao excluir investimento';
-    toast.error(errorMessage);
+      const error = err as APIError;
+      const errorMessage = error?.response?.data?.message || error.message || 'Erro ao excluir investimento';
+      toast.error(errorMessage);
     }
   };
 
@@ -783,7 +794,7 @@ const InvestimentosDashboard = () => {
                               <Edit size={18} />
                             </button>
                             <button
-                              onClick={() => handleDelete(investimento._id)}
+                              onClick={() => handleDelete(investimento)}
                               className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 transition-colors p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                               aria-label="Excluir"
                             >
@@ -837,7 +848,7 @@ const InvestimentosDashboard = () => {
                           <Edit size={18} />
                         </button>
                         <button
-                          onClick={() => handleDelete(investimento._id)}
+                          onClick={() => handleDelete(investimento)}
                           className="text-red-600 dark:text-red-400 p-1 rounded-full hover:bg-red-50 dark:hover:bg-gray-700"
                           aria-label="Excluir"
                         >
@@ -964,6 +975,32 @@ const InvestimentosDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* Modal de Confirmação de Exclusão */}
+        <ConfirmationModal
+          isOpen={deleteModal.open}
+          onClose={() => setDeleteModal({ open: false, investimento: null })}
+          onConfirm={confirmDelete}
+          title="Excluir Investimento"
+          message="Você está prestes a excluir"
+          itemName={deleteModal.investimento?.nome}
+          confirmText="Excluir"
+          confirmColor="red"
+        />
+
+        {/* Toast Container */}
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          toastClassName={`text-sm rounded-xl shadow-lg ${resolvedTheme === "dark" ? "bg-gray-700 text-gray-100" : "bg-white text-gray-800"}`}
+        />
       </div>
     </div>
   );

@@ -10,12 +10,15 @@ export const PROTECTED_ROUTES = [
   '/investimentos', 
   '/metas',
   '/milhas',
+  '/cartoes',
   '/configuracoes',
   '/profile',
   '/relatorios',
   '/assinaturas',
   '/sistema',
   '/payment',
+  '/ebook',
+  '/suporte',
   '/payment/sucesso'
 ];
 
@@ -48,10 +51,8 @@ export const SAMPLE_PUBLIC_ROUTES = [
   '/juridico',
   '/empresa',
   '/licencas',
-  '/parceiros',
-  '/suporte',
-  '/demo',
-  '/ebook',
+  '/parceiros',  
+  '/demo',  
   '/connect',
   '/test-toast',
   // Add any other public routes here

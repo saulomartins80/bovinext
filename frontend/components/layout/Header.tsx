@@ -28,7 +28,7 @@ export const Header: React.FC = () => {
               <Image
                 className="h-8 w-auto"
                 src="/logo.svg"
-                alt="FinNEXTHO"
+                alt="Finnextho"
                 width={32}
                 height={32}
               />
