@@ -1,10 +1,10 @@
-# FinnExtho
+# Finnextho
 
-Este é o repositório do projeto FinnExtho, uma aplicação completa de finanças pessoais com recursos avançados de IA e integração com APIs financeiras.
+Este é o repositório do projeto Finnextho, uma aplicação completa de finanças pessoais com recursos avançados de IA e integração com APIs financeiras.
 
 ## 🚀 Sobre o Projeto
 
-FinnExtho é uma plataforma financeira moderna que oferece:
+Finnextho é uma plataforma financeira moderna que oferece:
 - **Gestão de finanças pessoais** com interface intuitiva
 - **IA integrada** para análise e sugestões financeiras
 - **Integração com APIs** (Stripe, Pluggy, Yahoo Finance)
@@ -108,4 +108,4 @@ Para suporte, envie um email para suporte@finnextho.com ou abra uma issue no Git
 
 ---
 
-**FinnExtho** - Transformando a gestão financeira pessoal com tecnologia avançada. 
+**Finnetho** - Transformando a gestão financeira pessoal com tecnologia avançada. 
