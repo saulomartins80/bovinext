@@ -296,6 +296,9 @@ export default function HomePage() {
         <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
         <meta name="theme-color" content={resolvedTheme === 'dark' ? '#1f2937' : '#ffffff'} />
         
+        {/* Google Search Console Verification */}
+        <meta name="google-site-verification" content="886NHfTVyCMCJ5E_pejK0KFfC4PhcUBYc4mcmBOSy6o" />
+        
         {/* Open Graph / Facebook */}
         <meta property="og:type" content="website" />
         <meta property="og:title" content="finnextho - Revolução Financeira com IA" />
