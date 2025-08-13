@@ -3,11 +3,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { FiGithub, FiTwitter, FiLinkedin, FiInstagram } from 'react-icons/fi';
-import useI18n from '../../hooks/useI18n';
 
 export const Footer: React.FC = () => {
   const router = useRouter();
-  const { t } = useI18n('common');
   const currentYear = new Date().getFullYear();
 
   const footerLinks = {
@@ -35,7 +33,7 @@ export const Footer: React.FC = () => {
   const filteredProdutoLinks = footerLinks.produto.filter(link => link.href !== currentPath);
 
   const socialLinks = [
-    { icon: FiGithub, href: 'https://github.com/theclosen' },
+    { icon: FiGithub, href: 'https://github.com/fin' },
     { icon: FiTwitter, href: 'https://twitter.com/theclosen' },
     { icon: FiLinkedin, href: 'https://linkedin.com/company/theclosen' },
     { icon: FiInstagram, href: 'https://instagram.com/theclosen' },
@@ -46,17 +44,14 @@ export const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
-            <div className="h-8 w-auto relative">
-              <Image
-                src="/logo.svg"
-                alt="TheClosen"
-                width={32} // Set appropriate width
-                height={32} // Set appropriate height
-                className="object-contain"
-              />
-            </div>
+            <Link href="/" className="flex items-center space-x-3">
+              <Image src="/finnextho.png" alt="Finnextho" width={40} height={40} />
+              <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+                fin<span className="text-blue-300">nextho</span>
+              </span>
+            </Link>
             <p className="text-gray-600 dark:text-gray-400 text-sm">
-              {t('footer.description')}
+              A plataforma financeira mais avançada do mercado, com tecnologia de ponta para transformar sua relação com o dinheiro.
             </p>
             <div className="flex space-x-4">
               {socialLinks.map((social) => (
@@ -75,7 +70,7 @@ export const Footer: React.FC = () => {
 
           <div>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">
-              {t('footer.product')}
+              Produto
             </h3>
             <ul className="mt-4 space-y-4">
               {filteredProdutoLinks.map((link) => (
@@ -93,7 +88,7 @@ export const Footer: React.FC = () => {
 
           <div>
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">
-              {t('footer.company')}
+              Empresa
               </h3>
               <ul className="mt-4 space-y-4">
               {footerLinks.empresa.map((link) => (
@@ -111,7 +106,7 @@ export const Footer: React.FC = () => {
 
           <div>
             <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">
-              {t('footer.legal')}
+              Jurídico
             </h3>
             <ul className="mt-4 space-y-4">
               {footerLinks.legal.map((link) => (
@@ -130,7 +125,7 @@ export const Footer: React.FC = () => {
 
         <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
           <p className="text-base text-gray-500 dark:text-gray-400 text-center">
-            &copy; {currentYear} Finnextho. Todos os direitos reservados.
+            &copy; {currentYear} finnextho. Todos os direitos reservados.
           </p>
         </div>
       </div>

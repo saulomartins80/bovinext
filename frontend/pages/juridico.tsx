@@ -1,25 +1,25 @@
 import { useTheme } from '../context/ThemeContext';
 import Head from 'next/head';
-import Link from 'next/link';
-import { FiArrowLeft, FiShield } from 'react-icons/fi';
+import { FiShield } from 'react-icons/fi';
+import { InstitutionalHeader } from '../components/layout/InstitutionalHeader';
+import { Footer } from '../components/layout/Footer';
 
 export default function Juridico() {
   const { resolvedTheme } = useTheme();
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Jurídico | FinNEXTHO</title>
-        <meta name="description" content="Informações jurídicas e legais da FinNEXTHO" />
+        <title>Jurídico | finnextho</title>
+        <meta name="description" content="Informações jurídicas e legais da finnextho" />
       </Head>
+      
+      <InstitutionalHeader 
+        title="Jurídico" 
+        icon={<FiShield className="w-6 h-6 text-blue-500" />}
+        breadcrumb="Jurídico"
+      />
+      
       <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-        <header className={`py-6 ${resolvedTheme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-sm`}>
-          <div className="max-w-4xl mx-auto px-6">
-            <Link href="/" className={`inline-flex items-center text-sm font-medium ${resolvedTheme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
-              <FiArrowLeft className="w-4 h-4 mr-2" />
-              Voltar ao início
-            </Link>
-          </div>
-        </header>
         <main className="max-w-4xl mx-auto px-6 py-12">
           <div className={`${resolvedTheme === 'dark' ? 'bg-gray-800' : 'bg-white'} rounded-lg shadow-lg p-8`}>
             <div className="flex items-center mb-8">
@@ -39,6 +39,8 @@ export default function Juridico() {
           </div>
         </main>
       </div>
+      
+      <Footer />
     </div>
   );
 } 

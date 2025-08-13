@@ -3,7 +3,6 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { 
-  FiArrowLeft, 
   FiLock, 
   FiShield, 
   FiEye, 
@@ -15,6 +14,8 @@ import {
   FiClock,
   FiAward
 } from 'react-icons/fi';
+import { InstitutionalHeader } from '../components/layout/InstitutionalHeader';
+import { Footer } from '../components/layout/Footer';
 
 export default function Seguranca() {
   const { resolvedTheme } = useTheme();
@@ -83,20 +84,17 @@ export default function Seguranca() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Segurança | FinNEXTHO - Proteção de Dados e Privacidade</title>
-        <meta name="description" content="Conheça as medidas de segurança da FinNEXTHO. Criptografia AES-256, monitoramento 24/7, conformidade LGPD e certificações internacionais." />
+        <title>Segurança | finnextho - Proteção de Dados e Privacidade</title>
+        <meta name="description" content="Conheça as medidas de segurança da finnextho. Criptografia AES-256, monitoramento 24/7, conformidade LGPD e certificações internacionais." />
       </Head>
       
+      <InstitutionalHeader 
+        title="Segurança" 
+        icon={<FiShield className="w-6 h-6 text-blue-500" />}
+        breadcrumb="Segurança"
+      />
+      
       <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-        {/* Header */}
-        <header className={`py-6 ${resolvedTheme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-sm`}>
-          <div className="max-w-7xl mx-auto px-6">
-            <Link href="/" className={`inline-flex items-center text-sm font-medium ${resolvedTheme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
-              <FiArrowLeft className="w-4 h-4 mr-2" />
-              Voltar ao início
-            </Link>
-          </div>
-        </header>
 
         {/* Hero Section */}
         <section className="py-20">
@@ -309,6 +307,8 @@ export default function Seguranca() {
           </div>
         </section>
       </div>
+      
+      <Footer />
     </div>
   );
 }

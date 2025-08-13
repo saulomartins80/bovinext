@@ -63,29 +63,29 @@ export default function Contato() {
     {
       icon: <FiMail className="w-6 h-6" />,
       title: 'Email',
-      value: 'contato@finnextho.com',
+      value: 'suporte@finnextho.com',
       description: 'Resposta em até 2 horas',
-      action: 'mailto:contato@finnextho.com'
+      action: 'mailto:suporte@finnextho.com'
     },
     {
       icon: <FiPhone className="w-6 h-6" />,
       title: 'Telefone',
-      value: '+55 (11) 9 9999-9999',
+      value: '+55 (62) 99966-7963',
       description: 'Seg-Sex, 8h às 18h',
-      action: 'tel:+5511999999999'
+      action: 'tel:+5562999667963'
     },
     {
       icon: <FaWhatsapp className="w-6 h-6" />,
       title: 'WhatsApp',
-      value: '+55 (11) 9 9999-9999',
+      value: '+55 (62) 99966-7963',
       description: 'Suporte 24/7',
-      action: 'https://wa.me/5511999999999'
+      action: 'https://wa.me/5562999667963'
     },
     {
       icon: <FiMapPin className="w-6 h-6" />,
       title: 'Endereço',
-      value: 'São Paulo, SP',
-      description: 'Av. Paulista, 1000',
+      value: 'Goiânia, GO',
+      description: 'Centro Empresarial',
       action: 'https://maps.google.com'
     }
   ];

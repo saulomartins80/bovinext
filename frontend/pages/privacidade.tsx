@@ -1,7 +1,8 @@
 import { useTheme } from '../context/ThemeContext';
 import Head from 'next/head';
-import Link from 'next/link';
-import { FiArrowLeft, FiShield, FiEye, FiLock, FiDatabase } from 'react-icons/fi';
+import { FiShield, FiEye, FiLock, FiDatabase } from 'react-icons/fi';
+import { InstitutionalHeader } from '../components/layout/InstitutionalHeader';
+import { Footer } from '../components/layout/Footer';
 
 export default function Privacidade() {
   const { resolvedTheme } = useTheme();
@@ -9,25 +10,17 @@ export default function Privacidade() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Política de Privacidade | FinNEXTHO</title>
+        <title>Política de Privacidade | finnextho</title>
         <meta name="description" content="Nossa política de privacidade e proteção de dados" />
       </Head>
 
+      <InstitutionalHeader 
+        title="Política de Privacidade" 
+        icon={<FiShield className="w-6 h-6 text-blue-500" />}
+        breadcrumb="Jurídico / Privacidade"
+      />
+
       <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-        {/* Header */}
-        <header className={`py-6 ${resolvedTheme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-sm`}>
-          <div className="max-w-4xl mx-auto px-6">
-            <Link 
-              href="/"
-              className={`inline-flex items-center text-sm font-medium ${
-                resolvedTheme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-              } transition-colors`}
-            >
-              <FiArrowLeft className="w-4 h-4 mr-2" />
-              Voltar ao início
-            </Link>
-          </div>
-        </header>
 
         {/* Content */}
         <main className="max-w-4xl mx-auto px-6 py-12">
@@ -164,6 +157,8 @@ export default function Privacidade() {
           </div>
         </main>
       </div>
+      
+      <Footer />
     </div>
   );
 } 

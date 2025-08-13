@@ -1,7 +1,8 @@
 import { useTheme } from '../context/ThemeContext';
 import Head from 'next/head';
-import Link from 'next/link';
-import { FiArrowLeft, FiFileText, FiCheckCircle, FiAlertTriangle, FiShield } from 'react-icons/fi';
+import { FiFileText, FiCheckCircle, FiAlertTriangle, FiShield } from 'react-icons/fi';
+import { InstitutionalHeader } from '../components/layout/InstitutionalHeader';
+import { Footer } from '../components/layout/Footer';
 
 export default function Termos() {
   const { resolvedTheme } = useTheme();
@@ -9,25 +10,17 @@ export default function Termos() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Termos de Serviço | FinNEXTHO</title>
-        <meta name="description" content="Termos de serviço e condições de uso da plataforma FinNEXTHO" />
+        <title>Termos de Serviço | finnextho</title>
+        <meta name="description" content="Termos de serviço e condições de uso da plataforma finnextho" />
       </Head>
 
+      <InstitutionalHeader 
+        title="Termos de Serviço" 
+        icon={<FiFileText className="w-6 h-6 text-blue-500" />}
+        breadcrumb="Jurídico / Termos"
+      />
+
       <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-        {/* Header */}
-        <header className={`py-6 ${resolvedTheme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-sm`}>
-          <div className="max-w-4xl mx-auto px-6">
-            <Link 
-              href="/"
-              className={`inline-flex items-center text-sm font-medium ${
-                resolvedTheme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-              } transition-colors`}
-            >
-              <FiArrowLeft className="w-4 h-4 mr-2" />
-              Voltar ao início
-            </Link>
-          </div>
-        </header>
 
         {/* Content */}
         <main className="max-w-4xl mx-auto px-6 py-12">
@@ -202,6 +195,8 @@ export default function Termos() {
           </div>
         </main>
       </div>
+      
+      <Footer />
     </div>
   );
 } 

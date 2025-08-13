@@ -34,23 +34,23 @@ const SuportePage = () => {
       title: 'WhatsApp',
       description: 'Atendimento via WhatsApp 24/7',
       icon: <Zap className="w-6 h-6" />,
-      action: () => window.open('https://wa.me/5511999999999', '_blank'),
+      action: () => window.open('https://wa.me/5562999667963', '_blank'),
       color: 'bg-green-500'
     },
     {
       id: 'email',
       title: 'E-mail',
-      description: 'suporte@seudominio.com.br',
+      description: 'suporte@finnextho.com',
       icon: <Mail className="w-6 h-6" />,
-      action: () => window.location.href = 'mailto:suporte@seudominio.com.br',
+      action: () => window.location.href = 'mailto:suporte@finnextho.com',
       color: 'bg-red-500'
     },
     {
       id: 'phone',
       title: 'Telefone',
-      description: '0800 123 4567',
+      description: '(62) 99966-7963',
       icon: <Phone className="w-6 h-6" />,
-      action: () => window.location.href = 'tel:08001234567',
+      action: () => window.location.href = 'tel:+5562999667963',
       color: 'bg-purple-500'
     }
   ];
@@ -98,8 +98,8 @@ const SuportePage = () => {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
       <Head>
-        <title>Suporte | Seu App Financeiro</title>
-        <meta name="description" content="Central de suporte e ajuda do seu app financeiro" />
+        <title>Suporte | finnextho</title>
+        <meta name="description" content="Central de suporte e ajuda do finnextho - sua plataforma financeira inteligente" />
       </Head>
 
       <main className="container mx-auto px-4 py-8">
@@ -234,7 +234,7 @@ const SuportePage = () => {
             Para situações urgentes, entre em contato com nossa equipe de suporte prioritário.
           </p>
           <button
-            onClick={() => window.open('https://wa.me/5511999999999', '_blank')}
+            onClick={() => window.open('https://wa.me/5562999667963', '_blank')}
             className="inline-flex items-center px-6 py-3 rounded-lg font-medium bg-red-500 hover:bg-red-600 text-white"
           >
             <Zap className="mr-2" />

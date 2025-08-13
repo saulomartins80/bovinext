@@ -109,7 +109,7 @@ export default function ProfileMenu() {
       divider: true,
       external: true,
       action: () => { 
-        window.open('mailto:suporte@seudominio.com', '_blank');
+        window.open('mailto:suporte@finnextho.com', '_blank');
         setIsOpen(false); // Close menu after action
         return;
       }
@@ -119,7 +119,7 @@ export default function ProfileMenu() {
       label: 'Documentação',
       external: true,
       action: () => { 
-        window.open('https://docs.seudominio.com', '_blank');
+        window.open('https://docs.finnextho.com', '_blank');
         setIsOpen(false); // Close menu after action
         return;
       }

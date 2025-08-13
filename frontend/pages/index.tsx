@@ -290,16 +290,53 @@ export default function HomePage() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>FinNEXTHO - Revolução Financeira com Inteligência Artificial</title>
+        <title>finnextho - Revolução Financeira com Inteligência Artificial</title>
         <meta name="description" content="Transforme sua vida financeira com IA avançada. Investimentos inteligentes, automação total e segurança bancária. Junte-se a 2.5K+ usuários que já aumentaram seu ROI em 340%." />
+        <meta name="keywords" content="finnextho, gestão financeira, inteligência artificial, investimentos, IA, finanças pessoais, automação financeira" />
         <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
         <meta name="theme-color" content={resolvedTheme === 'dark' ? '#1f2937' : '#ffffff'} />
-        <meta property="og:title" content="Finnextho - Revolução Financeira com IA" />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="finnextho - Revolução Financeira com IA" />
         <meta property="og:description" content="Plataforma de gestão financeira com IA que já ajudou milhares de usuários a aumentar seu ROI em até 340%" />
-        <meta property="og:image" content="/og-image.jpg" />
+        <meta property="og:image" content="https://finnextho.com/og-image.jpg" />
         <meta property="og:url" content="https://finnextho.com" />
+        <meta property="og:site_name" content="finnextho" />
+        <meta property="og:locale" content="pt_BR" />
+        
+        {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
-        <link rel="icon" href="/favicon.ico" />
+        <meta name="twitter:title" content="finnextho - Revolução Financeira com IA" />
+        <meta name="twitter:description" content="Plataforma de gestão financeira com IA que já ajudou milhares de usuários a aumentar seu ROI em até 340%" />
+        <meta name="twitter:image" content="https://finnextho.com/og-image.jpg" />
+        <meta name="twitter:site" content="@finnextho" />
+        
+        {/* Estrutured Data */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "finnextho",
+              "url": "https://finnextho.com",
+              "logo": "https://finnextho.com/finnextho.png",
+              "description": "Plataforma de gestão financeira com inteligência artificial",
+              "contactPoint": {
+                "@type": "ContactPoint",
+                "telephone": "+55-62-99966-7963",
+                "contactType": "customer service",
+                "email": "suporte@finnextho.com"
+              },
+              "sameAs": [
+                "https://twitter.com/finnextho",
+                "https://linkedin.com/company/finnextho",
+                "https://instagram.com/finnextho"
+              ]
+            })
+          }}
+        />
 
       </Head>
 
@@ -322,10 +359,8 @@ export default function HomePage() {
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center space-x-3">
             <Image src="/finnextho.png" alt="Finnextho" width={40} height={40} />
-            <span className={`text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 ${
-              resolvedTheme === 'dark' ? 'text-white' : 'text-gray-900'
-            }`}>
-              Fin<span className="text-blue-300">nextho</span>
+            <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+              fin<span className="text-blue-300">nextho</span>
             </span>
           </Link>
 
@@ -488,9 +523,9 @@ export default function HomePage() {
 
               <div className="mt-6 pt-6 border-t border-gray-800 flex justify-center space-x-4">
                 {[
-                  { icon: <FiX className="w-5 h-5" />, name: 'X', url: 'https://x.com' },
-                  { icon: <FiLinkedin className="w-5 h-5" />, name: 'LinkedIn', url: 'https://linkedin.com' },
-                  { icon: <FiInstagram className="w-5 h-5" />, name: 'Instagram', url: 'https://instagram.com' },
+                  { icon: <FiX className="w-5 h-5" />, name: 'X', url: 'https://x.com/finnextho' },
+                  { icon: <FiLinkedin className="w-5 h-5" />, name: 'LinkedIn', url: 'https://linkedin.com/company/finnextho' },
+                  { icon: <FiInstagram className="w-5 h-5" />, name: 'Instagram', url: 'https://instagram.com/finnextho' },
                 ].map((social) => (
                   <a
                     key={social.name}
@@ -639,7 +674,7 @@ export default function HomePage() {
                   />
                   <span className="relative z-10 flex items-center">
                     <FaRocket className="mr-2 md:mr-3 w-4 h-4 md:w-5 md:h-5" />
-                    Começar Grátis Agora
+                    Começar Gratuitamente
                     <FiArrowRight className="ml-2 md:ml-3 group-hover:translate-x-2 transition-transform duration-300" />
                   </span>
                 </Link>
@@ -667,7 +702,7 @@ export default function HomePage() {
                   />
                   <span className="relative z-10 flex items-center">
                     <FiPlay className="mr-2 md:mr-3 w-4 h-4 md:w-5 md:h-5" />
-                    Ver Demo ao Vivo
+                    Falar com Especialista
                     <motion.div
                       className="ml-2 md:ml-3 w-2 h-2 bg-red-500 rounded-full"
                       animate={{ scale: [1, 1.2, 1] }}
@@ -1221,11 +1256,11 @@ export default function HomePage() {
                 }`}
                 onClick={() => handleClick('final_cta')}
               >
-                Comece Agora 
+                Começar Gratuitamente
               </Link>
 
               <Link
-                href="/demo"
+                href="/contato"
                 className={`px-10 py-5 rounded-xl font-bold text-lg transition-all duration-300 flex items-center justify-center border-2 ${
                   resolvedTheme === 'dark'
                     ? 'bg-transparent border-white text-white hover:bg-white/10'
@@ -1234,7 +1269,7 @@ export default function HomePage() {
                 onClick={() => handleClick('demo_cta')}
               >
                 <FiPlay className="mr-2" />
-                Experimentar Agora
+                Falar com Especialista
               </Link>
             </div>
 
@@ -1261,7 +1296,7 @@ export default function HomePage() {
                 <span className={`text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 ${
                   resolvedTheme === 'dark' ? '' : 'text-gray-900'
                 }`}>
-                  Fin<span className={resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}>nextho</span>
+                  fin<span className={resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}>nextho</span>
                 </span>
               </Link>
               <p className={`mb-6 ${
@@ -1271,11 +1306,11 @@ export default function HomePage() {
               </p>
               <div className="flex space-x-4">
                 {[
-                  { icon: <FiX className="w-5 h-5" />, name: 'X', url: 'https://x.com' },
-                  { icon: <FiLinkedin className="w-5 h-5" />, name: 'LinkedIn', url: 'https://linkedin.com' },
-                  { icon: <FiFacebook className="w-5 h-5" />, name: 'Facebook', url: 'https://facebook.com' },
-                  { icon: <FiInstagram className="w-5 h-5" />, name: 'Instagram', url: 'https://instagram.com' },
-                  { icon: <FiYoutube className="w-5 h-5" />, name: 'YouTube', url: 'https://youtube.com' },                  
+                  { icon: <FiX className="w-5 h-5" />, name: 'X', url: 'https://x.com/finnextho' },
+                  { icon: <FiLinkedin className="w-5 h-5" />, name: 'LinkedIn', url: 'https://linkedin.com/company/finnextho' },
+                  { icon: <FiFacebook className="w-5 h-5" />, name: 'Facebook', url: 'https://facebook.com/finnextho' },
+                  { icon: <FiInstagram className="w-5 h-5" />, name: 'Instagram', url: 'https://instagram.com/finnextho' },
+                  { icon: <FiYoutube className="w-5 h-5" />, name: 'YouTube', url: 'https://youtube.com/finnextho' },                  
                 ].map((social) => (
                   <a
                     key={social.name}
@@ -1378,7 +1413,7 @@ export default function HomePage() {
             resolvedTheme === 'dark' ? 'border-gray-800' : 'border-gray-300'
           }`}>
             <p className={resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
-              &copy; {new Date().getFullYear()} Finnextho. Todos os direitos reservados.
+              &copy; {new Date().getFullYear()} finnextho. Todos os direitos reservados.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <Link 
@@ -1408,7 +1443,7 @@ export default function HomePage() {
       {!loading && !user && (
         <WhatsAppFloat 
           phoneNumber="5562999667963" 
-          message="Olá! Gostaria de saber mais sobre o Finnextho e como ele pode me ajudar com minhas finanças."
+          message="Olá! Gostaria de saber mais sobre o finnextho e como ele pode me ajudar com minhas finanças."
           position="bottom-right"
         />
       )}

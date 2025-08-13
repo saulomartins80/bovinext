@@ -3,7 +3,6 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { 
-  FiArrowLeft, 
   FiUsers, 
   FiTarget, 
   FiHeart, 
@@ -13,9 +12,12 @@ import {
   FiAward,
   FiCalendar,
   FiLinkedin,
-  FiTwitter
+  FiTwitter,
+  FiInfo
 } from 'react-icons/fi';
 import { useState } from 'react';
+import { InstitutionalHeader } from '../components/layout/InstitutionalHeader';
+import { Footer } from '../components/layout/Footer';
 
 export default function Sobre() {
   const { resolvedTheme } = useTheme();
@@ -32,7 +34,7 @@ export default function Sobre() {
     {
       year: '2023',
       title: 'Fundação',
-      description: 'FinNEXTHO é fundada com a missão de democratizar o acesso a ferramentas financeiras inteligentes.'
+      description: 'Finnextho é fundada com a missão de democratizar o acesso a ferramentas financeiras inteligentes.'
     },
     {
       year: '2023',
@@ -55,7 +57,7 @@ export default function Sobre() {
     {
       name: 'Saulo  Martins',
       role: 'CEO & Fundador',
-      bio: 'Visionário e empreendedor, fundador da FinNEXTHO com expertise em tecnologia financeira e inovação',
+      bio: 'Visionário e empreendedor, fundador da Finnextho com expertise em tecnologia financeira e inovação',
       image: '/api/placeholder/150/150',
       linkedin: '#'
     },
@@ -108,20 +110,17 @@ export default function Sobre() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Sobre Nós | FinNEXTHO</title>
-        <meta name="description" content="Conheça a história, missão e equipe da FinNEXTHO. Transformando a relação das pessoas com o dinheiro através da tecnologia." />
+        <title>Sobre | finnextho</title>
+        <meta name="description" content="Conheça a história, missão e equipe da finnextho. Transformando a relação das pessoas com o dinheiro através da tecnologia e IA." />
       </Head>
       
+      <InstitutionalHeader 
+        title="Sobre Nós" 
+        icon={<FiInfo className="w-6 h-6 text-blue-500" />}
+        breadcrumb="Sobre"
+      />
+      
       <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-        {/* Header */}
-        <header className={`py-6 ${resolvedTheme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-sm`}>
-          <div className="max-w-7xl mx-auto px-6">
-            <Link href="/" className={`inline-flex items-center text-sm font-medium ${resolvedTheme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
-              <FiArrowLeft className="w-4 h-4 mr-2" />
-              Voltar ao início
-            </Link>
-          </div>
-        </header>
 
         {/* Hero Section */}
         <section className="py-20">
@@ -338,7 +337,7 @@ export default function Sobre() {
             >
               <h2 className="text-3xl font-bold mb-6">Junte-se à Nossa Missão</h2>
               <p className={`text-lg mb-8 ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                Faça parte da revolução financeira. Comece sua jornada com a FinNEXTHO hoje mesmo.
+                Faça parte da revolução financeira. Comece sua jornada com a Finnextho hoje mesmo.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link href="/registro" className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
@@ -356,6 +355,8 @@ export default function Sobre() {
           </div>
         </section>
       </div>
+      
+      <Footer />
     </div>
   );
 }

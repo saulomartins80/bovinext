@@ -1,9 +1,7 @@
 import { useTheme } from '../context/ThemeContext';
 import Head from 'next/head';
-import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { 
-  FiArrowLeft, 
   FiBookOpen, 
   FiSearch, 
   FiCalendar, 
@@ -18,6 +16,8 @@ import {
   FiArrowRight
 } from 'react-icons/fi';
 import { useState } from 'react';
+import { InstitutionalHeader } from '../components/layout/InstitutionalHeader';
+import { Footer } from '../components/layout/Footer';
 
 export default function Blog() {
   const { resolvedTheme } = useTheme();
@@ -123,20 +123,17 @@ export default function Blog() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Blog | FinNEXTHO - Educação Financeira e Tecnologia</title>
-        <meta name="description" content="Artigos sobre educação financeira, investimentos, tecnologia e tendências do mercado. Conteúdo exclusivo da FinNEXTHO para sua evolução financeira." />
+        <title>Blog | finnextho - Educação Financeira e Tecnologia</title>
+        <meta name="description" content="Artigos sobre educação financeira, investimentos, tecnologia e tendências do mercado. Conteúdo exclusivo da finnextho para sua evolução financeira." />
       </Head>
       
+      <InstitutionalHeader 
+        title="Blog" 
+        icon={<FiBookOpen className="w-6 h-6 text-blue-500" />}
+        breadcrumb="Blog"
+      />
+      
       <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
-        {/* Header */}
-        <header className={`py-6 ${resolvedTheme === 'dark' ? 'bg-gray-800' : 'bg-white'} shadow-sm`}>
-          <div className="max-w-7xl mx-auto px-6">
-            <Link href="/" className={`inline-flex items-center text-sm font-medium ${resolvedTheme === 'dark' ? 'text-gray-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
-              <FiArrowLeft className="w-4 h-4 mr-2" />
-              Voltar ao início
-            </Link>
-          </div>
-        </header>
 
         {/* Hero Section */}
         <section className="py-16">
@@ -338,6 +335,8 @@ export default function Blog() {
           </div>
         </section>
       </div>
+      
+      <Footer />
     </div>
   );
 }
