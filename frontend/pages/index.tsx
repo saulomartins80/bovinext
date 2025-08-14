@@ -297,7 +297,7 @@ export default function HomePage() {
         <meta name="theme-color" content={resolvedTheme === 'dark' ? '#1f2937' : '#ffffff'} />
         
         {/* Google Search Console Verification */}
-        <meta name="google-site-verification" content="886NHfTVyCMCJ5E_pejK0KFfC4PhcUBYc4mcmBOSy6o" />
+        <meta name="google-site-verification" content="VnzRZbFaeg5ZnIs_cJg1Ld7ejuw4fS8xVNz10JxqKHo" />
         
         {/* Open Graph / Facebook */}
         <meta property="og:type" content="website" />
