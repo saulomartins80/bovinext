@@ -1,4 +1,62 @@
-<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="32" height="32" rx="6" fill="#3B82F6"/>
-  <text x="16" y="22" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="white" text-anchor="middle">f</text>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Blue→Purple gradient for the F -->
+    <linearGradient id="grad-f" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+
+    <!-- Purple gradient for the cube -->
+    <linearGradient id="grad-cube" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9B5CF6"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+
+    <!-- Soft shadow filter -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="5" dy="5" stdDeviation="8" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+
+    <!-- Corner radius -->
+    <clipPath id="round-rect-vert">
+      <rect x="0" y="0" width="220" height="640" rx="30" ry="30"/>
+    </clipPath>
+    <clipPath id="round-rect-long">
+      <rect x="0" y="0" width="420" height="160" rx="30" ry="30"/>
+    </clipPath>
+    <clipPath id="round-rect-mid">
+      <rect x="0" y="0" width="260" height="140" rx="30" ry="30"/>
+    </clipPath>
+  </defs>
+
+  <!-- Group scaled and centered -->
+  <g transform="translate(202,160)" filter="url(#shadow)">
+    <!-- Vertical bar -->
+    <g transform="translate(0,0)">
+      <rect x="0" y="0" width="220" height="640" rx="30" ry="30" fill="url(#grad-f)"/>
+    </g>
+
+    <!-- Top crossbar -->
+    <g transform="translate(200,0)">
+      <rect x="0" y="0" width="420" height="160" rx="30" ry="30" fill="url(#grad-f)"/>
+    </g>
+
+    <!-- Middle bar -->
+    <g transform="translate(200,280)">
+      <rect x="0" y="0" width="260" height="140" rx="30" ry="30" fill="url(#grad-f)"/>
+    </g>
+
+    <!-- Cube (isometric-ish) -->
+    <g transform="translate(520,250)">
+      <!-- Right face -->
+      <polygon points="110,60 170,95 170,175 110,140" fill="#7C3AED"/>
+      <!-- Left face -->
+      <polygon points="110,60 50,95 50,175 110,140" fill="#8B5CF6"/>
+      <!-- Top face -->
+      <polygon points="110,0 170,35 110,70 50,35" fill="#A78BFA"/>
+      <!-- Subtle highlight -->
+      <polygon points="110,60 130,72 130,152 110,140" fill="white" opacity="0.08"/>
+    </g>
+  </g>
 </svg>

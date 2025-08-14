@@ -164,7 +164,7 @@ export default function Solucoes() {
             </p>
             <div className="flex flex-wrap justify-center gap-4">
               <Link href="/auth/register" className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300">
-                Começar Gratuitamente
+                Começar Agora
               </Link>
               <button className={`px-8 py-4 rounded-xl font-semibold border-2 transition-all duration-300 ${
                 resolvedTheme === 'dark' 
@@ -379,14 +379,14 @@ export default function Solucoes() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/auth/register" className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-xl font-semibold hover:shadow-lg transform hover:scale-105 transition-all duration-300">
-                Começar Gratuitamente <FiZap className="inline ml-2" />
+                Começar Agora <FiZap className="inline ml-2" />
               </Link>
               <Link href="/contato" className={`px-8 py-4 rounded-xl font-semibold border-2 transition-all duration-300 ${
                 resolvedTheme === 'dark' 
                   ? 'border-gray-600 text-gray-300 hover:border-white hover:text-white' 
                   : 'border-gray-300 text-gray-700 hover:border-gray-900 hover:text-gray-900'
               }`}>
-                Falar com Especialista
+                Experimentar Demo
               </Link>
             </div>
           </motion.div>

@@ -677,7 +677,7 @@ export default function HomePage() {
                   />
                   <span className="relative z-10 flex items-center">
                     <FaRocket className="mr-2 md:mr-3 w-4 h-4 md:w-5 md:h-5" />
-                    Começar Gratuitamente
+                    Começar Agora
                     <FiArrowRight className="ml-2 md:ml-3 group-hover:translate-x-2 transition-transform duration-300" />
                   </span>
                 </Link>
@@ -705,9 +705,9 @@ export default function HomePage() {
                   />
                   <span className="relative z-10 flex items-center">
                     <FiPlay className="mr-2 md:mr-3 w-4 h-4 md:w-5 md:h-5" />
-                    Falar com Especialista
+                    Experimentar Demo
                     <motion.div
-                      className="ml-2 md:ml-3 w-2 h-2 bg-red-500 rounded-full"
+                      className="ml-2 md:ml-3 w-2 h-2 bg-green-500 rounded-full"
                       animate={{ scale: [1, 1.2, 1] }}
                       transition={{ duration: 2, repeat: Infinity }}
                     />
