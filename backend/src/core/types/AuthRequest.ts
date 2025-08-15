@@ -1,7 +1,8 @@
 import { Request } from 'express';
+import type { Types } from 'mongoose';
 
 export interface AuthUser {
-  _id: string;
+  _id: string | Types.ObjectId;
   firebaseUid: string;
   uid: string;
   id?: string;

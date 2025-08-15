@@ -294,10 +294,7 @@ export default function HomePage() {
         <meta name="description" content="Transforme sua vida financeira com IA avançada. Investimentos inteligentes, automação total e segurança bancária. Junte-se a 2.5K+ usuários que já aumentaram seu ROI em 340%." />
         <meta name="keywords" content="finnextho, gestão financeira, inteligência artificial, investimentos, IA, finanças pessoais, automação financeira" />
         <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-        <meta name="theme-color" content={resolvedTheme === 'dark' ? '#1f2937' : '#ffffff'} />
-        
-        {/* Google Search Console Verification */}
-        <meta name="google-site-verification" content="VnzRZbFaeg5ZnIs_cJg1Ld7ejuw4fS8xVNz10JxqKHo" />
+        <meta name="theme-color" content={resolvedTheme === 'dark' ? '#1f2937' : '#ffffff'} />        
         
         {/* Open Graph / Facebook */}
         <meta property="og:type" content="website" />

@@ -104,9 +104,9 @@ export default function Sidebar({
       label: "Investimentos",
     },
     {
-      path: "/milhas",
+      path: "/cartoes",
       icon: CreditCard,
-      label: "Milhas",
+      label: "Cartões",
     },
     {
       path: "/sistema",
@@ -158,7 +158,7 @@ export default function Sidebar({
               />
             </div>
             <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
-              Fin<span className="text-blue-300">NEXTHO</span>
+              Fin<span className="text-blue-300">nextho</span>
             </span>
           </Link>
         ) : (
@@ -169,7 +169,7 @@ export default function Sidebar({
             <div className="w-8 h-8 flex items-center justify-center relative">
               <Image
                 src="/finnextho.png"
-                alt="Logo FinNEXTHO"
+                alt="Logo Finnextho"
                 width={32}
                 height={32}
                 priority

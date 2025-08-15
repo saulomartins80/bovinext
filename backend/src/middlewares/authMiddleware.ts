@@ -35,33 +35,31 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
 
     console.log(`[AUTH] 🔑 Token recebido (primeiros 20 chars): ${token.substring(0, 20)}...`);
 
-    // ✅ CORREÇÃO: Simplificar verificação do Firebase
+    // ✅ CORREÇÃO: Simplificar verificação do Firebase e garantir _id (ObjectId) do usuário
     try {
       console.log(`[AUTH] 🔥 Tentando verificar token Firebase...`);
       const decoded = await adminAuth.verifyIdToken(token);
       console.log(`[AUTH] ✅ Token Firebase válido para UID: ${decoded.uid}`);
       
-      // ✅ CORREÇÃO: Buscar dados do usuário no banco de dados
-      let userSubscription = { status: 'free', plan: 'free' };
-      try {
-        const user = await User.findOne({ firebaseUid: decoded.uid });
-        if (user && user.subscription) {
-          userSubscription = {
-            status: user.subscription.status || 'free',
-            plan: user.subscription.plan || 'free'
-          };
-          console.log(`[AUTH] 📊 Subscription encontrada:`, userSubscription);
-        } else {
-          console.log(`[AUTH] ⚠️ Usuário não encontrado ou sem subscription`);
-        }
-      } catch (dbError) {
-        console.log(`[AUTH] ⚠️ Erro ao buscar subscription no banco:`, dbError);
-        // Continuar com subscription padrão
+      // Buscar (ou criar) usuário no Mongo para obter o _id (ObjectId)
+      let userDoc = await User.findOne({ firebaseUid: decoded.uid });
+      if (!userDoc) {
+        console.log(`[AUTH] 👤 Criando usuário no Mongo para UID ${decoded.uid}`);
+        userDoc = await User.create({
+          firebaseUid: decoded.uid,
+          email: decoded.email ?? `unknown+${decoded.uid}@example.com`,
+          name: decoded.name ?? 'User'
+        });
       }
-      
-      // ✅ CORREÇÃO: Configurar req.user com dados do banco
+
+      const userSubscription = {
+        status: userDoc.subscription?.status || 'free',
+        plan: userDoc.subscription?.plan || 'free'
+      };
+
+      // Configurar req.user com _id do Mongo
       req.user = {
-        _id: decoded.uid,
+        _id: userDoc._id,
         firebaseUid: decoded.uid,
         uid: decoded.uid,
         email: decoded.email,
@@ -84,8 +82,17 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
       // ✅ CORREÇÃO: Em caso de erro do Firebase, permitir acesso básico para desenvolvimento
       if (process.env.NODE_ENV === 'development') {
         console.log(`[AUTH] 🔧 Modo desenvolvimento: permitindo acesso básico`);
+        try {
+          let devUser = await User.findOne({ firebaseUid: 'dev-user' });
+          if (!devUser) {
+            devUser = await User.create({
+              firebaseUid: 'dev-user',
+              email: 'dev@example.com',
+              name: 'Dev User'
+            });
+          }
         req.user = {
-          _id: 'dev-user',
+            _id: devUser._id,
           firebaseUid: 'dev-user',
           uid: 'dev-user',
           email: 'dev@example.com',
@@ -94,6 +101,10 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
         };
         next();
         return;
+        } catch (devErr) {
+          console.error('[AUTH] 💥 Erro ao preparar usuário de desenvolvimento:', devErr);
+          return next(new AppError(401, 'Token inválido'));
+        }
       }
       
       return next(new AppError(401, 'Token inválido'));

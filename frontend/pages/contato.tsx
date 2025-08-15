@@ -71,7 +71,7 @@ export default function Contato() {
       icon: <FiPhone className="w-6 h-6" />,
       title: 'Telefone',
       value: '+55 (62) 99966-7963',
-      description: 'Seg-Sex, 8h às 18h',
+      description: 'Seg-Sex, 9h às 17h',
       action: 'tel:+5562999667963'
     },
     {

@@ -32,6 +32,7 @@ import mileageRoutes from './routes/mileageRoutes';
 import pluggyRoutes from './routes/pluggyRoutes';
 // 🤖 RPA: Adicionar rotas do sistema RPA
 import rpaRoutes from './routes/rpaRoutes';
+import cardRoutes from './routes/cardRoutes';
 // Removed RPA routes and initialization
 
 interface HealthCheckResponse {
@@ -268,6 +269,7 @@ app.use('/api/automated-actions', automatedActionsRoutes);
 // ✅ CORREÇÃO: Registrar rotas de milhas e pluggy
 app.use('/api/mileage', mileageRoutes);
 app.use('/api/pluggy', pluggyRoutes);
+app.use('/api/cards', cardRoutes);
 // 🤖 RPA: Registrar rotas do sistema RPA
 app.use('/api/rpa', rpaRoutes);
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { 
   Plus, X, Search, DollarSign, CheckCircle,
@@ -11,6 +11,7 @@ import dynamic from 'next/dynamic';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useTheme } from '../context/ThemeContext';
+import { cardAPI } from '../services/api';
 
 // Componente dinâmico para os gráficos
 const Chart = dynamic(() => import('react-apexcharts'), {
@@ -61,16 +62,87 @@ interface MileageProgram {
   expirationDate: string;
 }
 
-interface Invoice {
+
+
+interface InvoiceInterface {
   id: string;
   cardId: string;
   amount: number;
   dueDate: string;
   status: 'paid' | 'pending' | 'overdue';
+  description?: string;
+  paidAt?: string;
+  paymentMethod?: string;
+  transactions?: Array<{
+    date: string;
   description: string;
+    amount: number;
+    category?: string;
+    points?: number;
+  }>;
 }
 
-type ModalItem = CreditCard | MileageProgram | Invoice | null;
+interface Analytics {
+  cards: {
+    total: number;
+    totalLimit: number;
+    totalUsed: number;
+    utilizationPercentage: number;
+    totalCashback: number;
+  };
+  programs: {
+    total: number;
+    totalPoints: number;
+    totalValue: number;
+  };
+  invoices: {
+    pending: number;
+    totalPendingAmount: number;
+  };
+}
+
+interface CreateCardData {
+  name: string;
+  bank: string;
+  program: string;
+  number: string;
+  limit: number;
+  used: number;
+  dueDate: number;
+  closingDate: number;
+  pointsPerReal: number;
+  annualFee: number;
+  benefits: string[];
+  status: 'active' | 'inactive' | 'blocked';
+  color: string;
+  bankLogo?: string;
+  category: 'premium' | 'standard' | 'basic';
+  cashback?: number;
+}
+
+interface CreateProgramData {
+  name: string;
+  airline: string;
+  pointsBalance: number;
+  estimatedValue: number;
+  conversionRate: number;
+  status: 'active' | 'inactive';
+  programLogo?: string;
+  bestUse?: string;
+  expirationPolicy?: string;
+  recentEarned: number;
+  expiringPoints: number;
+  expirationDate: string;
+  balance: number;
+  lastUpdate: string;
+}
+
+interface PaymentData {
+  paymentMethod: string;
+  amount: number;
+}
+
+type ModalItem = CreditCard | MileageProgram | InvoiceInterface | null;
 
 // Type guards
 const isCreditCard = (item: ModalItem): item is CreditCard => item !== null && 'limit' in item;
@@ -111,6 +183,13 @@ const MilhasRedesign = () => {
     index: -1
   });
 
+  // Estados para dados do backend
+  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
+  const [mileagePrograms, setMileagePrograms] = useState<MileageProgram[]>([]);
+  const [invoices, setInvoices] = useState<InvoiceInterface[]>([]); // eslint-disable-line @typescript-eslint/no-unused-vars
+  const [loading, setLoading] = useState(true);
+  const [analytics, setAnalytics] = useState<Analytics | null>(null); // eslint-disable-line @typescript-eslint/no-unused-vars
+
   // Detectar mobile
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -119,119 +198,150 @@ const MilhasRedesign = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Dados mock com logos reais dos bancos
-  const creditCards: CreditCard[] = [
-    {
-      id: '1',
-      name: 'Itaú Personnalité Black',
-      bank: 'Itaú',
-      program: 'Smiles',
-      limit: 25000,
-      used: 8950,
-      dueDate: 15,
-      closingDate: 30,
-      pointsPerReal: 2.5,
-      annualFee: 1295,
-      benefits: ['Sala VIP Prioritária', 'Seguro Viagem Premium', 'Concierge 24h', 'Milhas em Dobro'],
-      status: 'active',
-      lastFourDigits: '4539',
-      color: '#FF6B00',
-      bankLogo: 'https://logoeps.com/wp-content/uploads/2013/03/itau-vector-logo.png',
-      category: 'premium',
-      nextInvoiceAmount: 8950,
-      nextInvoiceDue: '2024-08-15',
-      cashback: 250
-    },
-    {
-      id: '2',
-      name: 'Nubank Ultravioleta',
-      bank: 'Nubank',
-      program: 'Rewards',
-      limit: 15000,
-      used: 4320,
-      dueDate: 20,
-      closingDate: 5,
-      pointsPerReal: 2.0,
-      annualFee: 0,
-      benefits: ['Sem Anuidade', 'Cashback Ilimitado', 'Investimentos', 'Cartão Virtual'],
-      status: 'active',
-      lastFourDigits: '1234',
-      color: '#8A05BE',
-      bankLogo: 'https://logos-world.net/wp-content/uploads/2021/02/Nubank-Logo.png',
-      category: 'premium',
-      nextInvoiceAmount: 4320,
-      nextInvoiceDue: '2024-08-20',
-      cashback: 180
-    },
-    {
-      id: '3',
-      name: 'Santander Select',
-      bank: 'Santander',
-      program: 'Esfera',
-      limit: 12000,
-      used: 2150,
-      dueDate: 25,
-      closingDate: 10,
-      pointsPerReal: 1.8,
-      annualFee: 800,
-      benefits: ['Pontos que não Vencem', 'Desconto em Combustível', 'Cashback Restaurantes'],
-      status: 'active',
-      lastFourDigits: '5678',
-      color: '#EC0000',
-      bankLogo: 'https://logoeps.com/wp-content/uploads/2013/12/santander-vector-logo.png',
-      category: 'standard',
-      nextInvoiceAmount: 2150,
-      nextInvoiceDue: '2024-08-25'
-    }
-  ];
+  // Carregar dados do backend
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const [cardsResponse, programsResponse, invoicesResponse, analyticsResponse] = await Promise.all([
+        cardAPI.getCards(),
+        cardAPI.getMileagePrograms(),
+        cardAPI.getInvoices(),
+        cardAPI.getAnalytics()
+      ]);
 
-  const mileagePrograms: MileageProgram[] = [
-    {
-      id: '1',
-      name: 'Smiles',
-      airline: 'Gol',
-      pointsBalance: 125000,
-      estimatedValue: 3125,
-      conversionRate: 1.4,
-      status: 'active',
-      programLogo: 'https://upload.wikimedia.org/wikipedia/commons/4/4c/Smiles_logo.png',
-      bestUse: 'Voos Nacionais e Internacionais',
-      expirationPolicy: '36 meses',
-      recentEarned: 15420,
-      expiringPoints: 8500,
-      expirationDate: '2024-12-15'
-    },
-    {
-      id: '2',
-      name: 'TudoAzul',
-      airline: 'Azul',
-      pointsBalance: 89000,
-      estimatedValue: 2225,
-      conversionRate: 1.2,
-      status: 'active',
-      programLogo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/TudoAzul_logo.png/200px-TudoAzul_logo.png',
-      bestUse: 'Voos Internacionais',
-      expirationPolicy: '24 meses',
-      recentEarned: 8950,
-      expiringPoints: 12000,
-      expirationDate: '2024-10-30'
-    },
-    {
-      id: '3',
-      name: 'Latam Pass',
-      airline: 'Latam',
-      pointsBalance: 67500,
-      estimatedValue: 1687,
-      conversionRate: 1.0,
-      status: 'active',
-      programLogo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/LATAM_Pass_Logo.png/200px-LATAM_Pass_Logo.png',
-      bestUse: 'Voos Internacionais Premium',
-      expirationPolicy: '36 meses',
-      recentEarned: 4320,
-      expiringPoints: 5000,
-      expirationDate: '2025-01-20'
+      if (cardsResponse.success) {
+        setCreditCards(cardsResponse.cards || []);
+      }
+      if (programsResponse.success) {
+        setMileagePrograms(programsResponse.programs || []);
+      }
+      if (invoicesResponse.success) {
+        setInvoices(invoicesResponse.invoices || []);
+      }
+      if (analyticsResponse.success) {
+        setAnalytics(analyticsResponse.analytics);
+      }
+      
+      console.log('Dados carregados com sucesso');
+    } catch (error) {
+      console.error('Erro ao carregar dados:', error);
+      toast.error('Erro ao carregar dados do servidor.');
+      // Não carregar dados fake - deixar vazio
+    } finally {
+      setLoading(false);
     }
-  ];
+  }, []); // ✅ CORREÇÃO: Remover dependências que causam loop infinito
+
+
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Funções para gerenciar cartões
+  const handleCreateCard = async (cardData: CreateCardData) => {
+    try {
+      const response = await cardAPI.createCard(cardData);
+      if (response.success) {
+        setCreditCards(prev => [...prev, response.card]);
+        toast.success('Cartão adicionado com sucesso!');
+        setShowAddModal(false);
+      }
+    } catch (error) {
+      console.error('Erro ao criar cartão:', error);
+      toast.error('Erro ao adicionar cartão');
+    }
+  };
+
+  const handleUpdateCard = async (cardId: string, cardData: Partial<CreditCard>) => {
+    try {
+      const response = await cardAPI.updateCard(cardId, cardData);
+      if (response.success) {
+        setCreditCards(prev => prev.map(card => 
+          card.id === cardId ? response.card : card
+        ));
+        toast.success('Cartão atualizado com sucesso!');
+        setEditModal({ open: false, type: '', item: null, index: -1 });
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar cartão:', error);
+      toast.error('Erro ao atualizar cartão');
+    }
+  };
+
+  const handleDeleteCard = async (cardId: string) => {
+    try {
+      await cardAPI.deleteCard(cardId);
+      setCreditCards(prev => prev.filter(card => card.id !== cardId));
+      toast.success('Cartão removido com sucesso!');
+      setDeleteModal({ open: false, type: '', item: null, index: -1 });
+    } catch (error) {
+      console.error('Erro ao deletar cartão:', error);
+      toast.error('Erro ao remover cartão');
+    }
+  };
+
+  // Funções para programas de milhas
+  const handleCreateProgram = async (programData: CreateProgramData) => {
+    try {
+      const response = await cardAPI.createMileageProgram(programData);
+      if (response.success) {
+        setMileagePrograms(prev => [...prev, response.program]);
+        toast.success('Programa adicionado com sucesso!');
+        setShowAddModal(false);
+      }
+    } catch (error) {
+      console.error('Erro ao criar programa:', error);
+      toast.error('Erro ao adicionar programa');
+    }
+  };
+
+  const handleUpdateProgram = async (programId: string, programData: Partial<MileageProgram>) => {
+    try {
+      const response = await cardAPI.updateMileageProgram(programId, programData);
+      if (response.success) {
+        setMileagePrograms(prev => prev.map(program => 
+          program.id === programId ? response.program : program
+        ));
+        toast.success('Programa atualizado com sucesso!');
+        setEditModal({ open: false, type: '', item: null, index: -1 });
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar programa:', error);
+      toast.error('Erro ao atualizar programa');
+    }
+  };
+
+  const handleDeleteProgram = async (programId: string) => {
+    try {
+      await cardAPI.deleteMileageProgram(programId);
+      setMileagePrograms(prev => prev.filter(program => program.id !== programId));
+      toast.success('Programa removido com sucesso!');
+      setDeleteModal({ open: false, type: '', item: null, index: -1 });
+    } catch (error) {
+      console.error('Erro ao deletar programa:', error);
+      toast.error('Erro ao remover programa');
+    }
+  };
+
+  // Função para pagar fatura
+  const handlePayInvoice = async (invoiceId: string, paymentData: PaymentData) => {
+    try {
+      const response = await cardAPI.payInvoice(invoiceId, paymentData);
+      if (response.success) {
+        // Atualizar faturas e cartões
+        await loadData();
+        toast.success('Fatura paga com sucesso!');
+        setPaymentModal({ open: false, cardId: '', amount: 0, cardName: '' });
+      }
+    } catch (error) {
+      console.error('Erro ao pagar fatura:', error);
+      toast.error('Erro ao pagar fatura');
+    }
+  };
+
+
+
 
   // Função para obter classes de tema
   const getThemeClasses = () => {
@@ -305,7 +415,7 @@ const MilhasRedesign = () => {
               <span className="text-xs text-red-500 font-medium">-5%</span>
             </div>
             <h3 className={`text-2xl font-bold ${themeClasses.text} mb-1`}>
-              {showBalances ? `R$ ${creditCards.reduce((total, card) => total + card.nextInvoiceAmount, 0).toLocaleString()}` : '••••••'}
+              {showBalances ? `R$ ${creditCards.reduce((total, card) => total + (card.nextInvoiceAmount || 0), 0).toLocaleString()}` : '••••••'}
             </h3>
             <p className={`text-sm ${themeClasses.textSecondary}`}>Fatura Total</p>
           </motion.div>
@@ -405,14 +515,28 @@ const MilhasRedesign = () => {
         {/* Card Header */}
         <div className="relative z-10 flex justify-between items-start mb-6">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl overflow-hidden bg-white p-2">
+            <div className="w-12 h-12 rounded-2xl overflow-hidden bg-white p-2 flex items-center justify-center">
+              {card.bankLogo ? (
               <Image 
-                src={card.bankLogo || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzNCODJGNiIvPgo8dGV4dCB4PSIyMCIgeT0iMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0iQXJpYWwiPkM8L3RleHQ+Cjwvc3ZnPgo='} 
+                  src={card.bankLogo} 
                 alt={card.bank}
                 width={40}
                 height={40}
                 className="w-full h-full object-contain"
-              />
+                  onError={(e) => {
+                    // Se a imagem falhar, esconder e mostrar fallback
+                    e.currentTarget.style.display = 'none';
+                    const parent = e.currentTarget.parentElement;
+                    if (parent) {
+                      parent.innerHTML = `<div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">${card.bank.charAt(0)}</div>`;
+                    }
+                  }}
+                />
+              ) : (
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                  {card.bank.charAt(0)}
+                </div>
+              )}
             </div>
             <div>
               <h3 className={`font-bold ${themeClasses.text}`}>{card.name}</h3>
@@ -478,7 +602,7 @@ const MilhasRedesign = () => {
           <div>
             <p className={`text-sm ${themeClasses.textSecondary} mb-1`}>Próxima Fatura</p>
             <p className={`text-xl font-bold ${themeClasses.text}`}>
-              {showBalances ? `R$ ${card.nextInvoiceAmount.toLocaleString()}` : '••••••'}
+              {showBalances ? `R$ ${(card.nextInvoiceAmount || 0).toLocaleString()}` : '••••••'}
             </p>
           </div>
         </div>
@@ -579,14 +703,27 @@ const MilhasRedesign = () => {
       {/* Header */}
       <div className="flex justify-between items-start mb-6">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl overflow-hidden bg-white p-2">
+          <div className="w-12 h-12 rounded-2xl overflow-hidden bg-white p-2 flex items-center justify-center">
+            {program.programLogo ? (
             <Image 
-              src={program.programLogo || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzEwQjk4MSIvPgo8dGV4dCB4PSIyMCIgeT0iMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0iQXJpYWwiPk08L3RleHQ+Cjwvc3ZnPgo='} 
+                src={program.programLogo} 
               alt={program.name}
               width={40}
               height={40}
               className="w-full h-full object-contain"
-            />
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  const parent = e.currentTarget.parentElement;
+                  if (parent) {
+                    parent.innerHTML = `<div class="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">${program.name.charAt(0)}</div>`;
+                  }
+                }}
+              />
+            ) : (
+              <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                {program.name.charAt(0)}
+              </div>
+            )}
           </div>
           <div>
             <h3 className={`font-bold ${themeClasses.text}`}>{program.name}</h3>
@@ -643,16 +780,16 @@ const MilhasRedesign = () => {
       <div className="mb-6">
         <div className="flex items-baseline gap-2 mb-2">
           <span className={`text-3xl font-bold ${themeClasses.text}`}>
-            {showBalances ? program.pointsBalance.toLocaleString() : '••••••'}
+            {showBalances ? (program.pointsBalance || 0).toLocaleString() : '••••••'}
           </span>
           <span className={`text-sm ${themeClasses.textSecondary}`}>pontos</span>
         </div>
         <div className="flex items-center gap-2">
           <span className={`text-lg font-semibold text-green-600`}>
-            {showBalances ? `R$ ${program.estimatedValue.toLocaleString()}` : '••••••'}
+            {showBalances ? `R$ ${(program.estimatedValue || 0).toLocaleString()}` : '••••••'}
           </span>
           <span className="text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded-full">
-            +{program.recentEarned.toLocaleString()} este mês
+            +{(program.recentEarned || 0).toLocaleString()} este mês
           </span>
         </div>
       </div>
@@ -667,7 +804,7 @@ const MilhasRedesign = () => {
             </span>
           </div>
           <p className="text-xs text-yellow-700 dark:text-yellow-300">
-            {program.expiringPoints.toLocaleString()} pontos vencem em {program.expirationDate}
+            {(program.expiringPoints || 0).toLocaleString()} pontos vencem em {program.expirationDate || 'data não definida'}
           </p>
         </div>
       )}
@@ -708,14 +845,27 @@ const MilhasRedesign = () => {
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl overflow-hidden bg-white p-2">
+              <div className="w-12 h-12 rounded-2xl overflow-hidden bg-white p-2 flex items-center justify-center">
+                {card.bankLogo ? (
                 <Image 
-                  src={card.bankLogo || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiByeD0iOCIgZmlsbD0iIzNCODJGNiIvPgo8dGV4dCB4PSIyMCIgeT0iMjUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IndoaXRlIiBmb250LXNpemU9IjE0IiBmb250LWZhbWlseT0iQXJpYWwiPkM8L3RleHQ+Cjwvc3ZnPgo='} 
+                    src={card.bankLogo} 
                   alt={card.bank}
                   width={40}
                   height={40}
                   className="w-full h-full object-contain"
-                />
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const parent = e.currentTarget.parentElement;
+                      if (parent) {
+                        parent.innerHTML = `<div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">${card.bank.charAt(0)}</div>`;
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+                    {card.bank.charAt(0)}
+                  </div>
+                )}
               </div>
               <div>
                 <h3 className={`font-bold ${themeClasses.text}`}>{card.name}</h3>
@@ -727,7 +877,7 @@ const MilhasRedesign = () => {
             
             <div className="text-right">
               <p className={`text-2xl font-bold ${themeClasses.text}`}>
-                {showBalances ? `R$ ${card.nextInvoiceAmount.toLocaleString()}` : '••••••'}
+                {showBalances ? `R$ ${(card.nextInvoiceAmount || 0).toLocaleString()}` : '••••••'}
               </p>
               <div className="flex items-center gap-2 mt-1">
                 {card.nextInvoiceAmount > 0 ? (
@@ -862,7 +1012,7 @@ const MilhasRedesign = () => {
               </button>
             </div>
 
-            <div className="space-y-3 sm:space-y-4">
+            <form id="cardForm" className="space-y-3 sm:space-y-4">
               {activeTab === 'cards' ? (
                 <>
                   <div>
@@ -871,23 +1021,50 @@ const MilhasRedesign = () => {
                     </label>
                     <input
                       type="text"
+                      name="name"
                       className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
                       placeholder="Ex: Itaú Personnalité Black"
+                      required
                     />
                   </div>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className={`block text-sm font-medium ${themeClasses.text} mb-2`}>
-                        Banco
+                        Banco/Instituição
                       </label>
-                      <select className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}>
-                        <option>Selecione o banco</option>
-                        <option>Itaú</option>
-                        <option>Nubank</option>
-                        <option>Santander</option>
-                        <option>Bradesco</option>
-                        <option>Inter</option>
+                      <select name="bank" className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`} required>
+                        <option value="">Selecione a instituição</option>
+                        <optgroup label="🏦 Bancos Tradicionais">
+                          <option value="Itaú">Itaú</option>
+                          <option value="Bradesco">Bradesco</option>
+                          <option value="Santander">Santander</option>
+                          <option value="Banco do Brasil">Banco do Brasil</option>
+                          <option value="Caixa">Caixa Econômica Federal</option>
+                        </optgroup>
+                        <optgroup label="🚀 Bancos Digitais">
+                          <option value="Nubank">Nubank</option>
+                          <option value="Inter">Inter</option>
+                          <option value="C6 Bank">C6 Bank</option>
+                          <option value="Next">Next</option>
+                          <option value="Neon">Neon</option>
+                          <option value="PagBank">PagBank</option>
+                        </optgroup>
+                        <optgroup label="💳 Cartões de Crédito">
+                          <option value="American Express">American Express</option>
+                          <option value="Diners Club">Diners Club</option>
+                        </optgroup>
+                        <optgroup label="🏪 Varejistas">
+                          <option value="Magazine Luiza">Magazine Luiza</option>
+                          <option value="Riachuelo">Riachuelo</option>
+                          <option value="Renner">Renner</option>
+                          <option value="C&A">C&A</option>
+                        </optgroup>
+                        <optgroup label="⛽ Postos/Combustível">
+                          <option value="Petrobras">Petrobras</option>
+                          <option value="Shell">Shell</option>
+                          <option value="Ipiranga">Ipiranga</option>
+                        </optgroup>
                       </select>
                     </div>
                     
@@ -895,12 +1072,31 @@ const MilhasRedesign = () => {
                       <label className={`block text-sm font-medium ${themeClasses.text} mb-2`}>
                         Programa
                       </label>
-                      <select className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}>
-                        <option>Selecione o programa</option>
-                        <option>Smiles</option>
-                        <option>TudoAzul</option>
-                        <option>Latam Pass</option>
-                        <option>Livelo</option>
+                      <select name="program" className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`} required>
+                        <option value="">Selecione o programa</option>
+                        <optgroup label="✈️ Programas Aéreos">
+                          <option value="Smiles">Smiles (Gol)</option>
+                          <option value="TudoAzul">TudoAzul (Azul)</option>
+                          <option value="Latam Pass">Latam Pass</option>
+                          <option value="Avianca LifeMiles">Avianca LifeMiles</option>
+                        </optgroup>
+                        <optgroup label="🏨 Programas Hoteleiros">
+                          <option value="Marriott Bonvoy">Marriott Bonvoy</option>
+                          <option value="Hilton Honors">Hilton Honors</option>
+                          <option value="IHG Rewards">IHG Rewards</option>
+                          <option value="Accor Live Limitless">Accor Live Limitless</option>
+                        </optgroup>
+                        <optgroup label="🛍️ Programas Multibenefícios">
+                          <option value="Livelo">Livelo</option>
+                          <option value="Esfera">Esfera (Santander)</option>
+                          <option value="Multiplus">Multiplus</option>
+                          <option value="Dotz">Dotz</option>
+                        </optgroup>
+                        <optgroup label="💳 Programas de Bancos">
+                          <option value="Rewards">Rewards (Nubank)</option>
+                          <option value="Membership Rewards">Membership Rewards (Amex)</option>
+                          <option value="Ponto Certo">Ponto Certo (Itaú)</option>
+                        </optgroup>
                       </select>
                     </div>
                   </div>
@@ -912,20 +1108,69 @@ const MilhasRedesign = () => {
                       </label>
                       <input
                         type="number"
+                        name="limit"
                         className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
                         placeholder="5000"
+                        required
                       />
                     </div>
                     
                     <div>
                       <label className={`block text-sm font-medium ${themeClasses.text} mb-2`}>
-                        Pontos por R$
+                        Últimos 4 dígitos
+                      </label>
+                      <input
+                        type="text"
+                        name="number"
+                        maxLength={4}
+                        className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
+                        placeholder="1234"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className={`block text-sm font-medium ${themeClasses.text} mb-2`}>
+                        Vencimento (dia)
                       </label>
                       <input
                         type="number"
-                        step="0.1"
-                        className={`w-full p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text}`}
-                        placeholder="2.5"
+                        name="dueDate"
+                        min="1"
+                        max="31"
+                        className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
+                        placeholder="15"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className={`block text-sm font-medium ${themeClasses.text} mb-2`}>
+                        Fechamento (dia)
+                      </label>
+                      <input
+                        type="number"
+                        name="closingDate"
+                        min="1"
+                        max="31"
+                        className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
+                        placeholder="30"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className={`block text-sm font-medium ${themeClasses.text} mb-2`}>
+                        Anuidade (R$)
+                      </label>
+                      <input
+                        type="number"
+                        name="annualFee"
+                        className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
+                        placeholder="0"
+                        required
                       />
                     </div>
                   </div>
@@ -936,12 +1181,12 @@ const MilhasRedesign = () => {
                     <label className={`block text-sm font-medium ${themeClasses.text} mb-2`}>
                       Programa de Milhas
                     </label>
-                    <select className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}>
-                      <option>Selecione o programa</option>
-                      <option>Smiles (Gol)</option>
-                      <option>TudoAzul (Azul)</option>
-                      <option>Latam Pass (Latam)</option>
-                      <option>Livelo</option>
+                    <select name="program" className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`} required>
+                      <option value="">Selecione o programa</option>
+                      <option value="Smiles">Smiles (Gol)</option>
+                      <option value="TudoAzul">TudoAzul (Azul)</option>
+                      <option value="Latam Pass">Latam Pass (Latam)</option>
+                      <option value="Livelo">Livelo</option>
                     </select>
                   </div>
                   
@@ -952,8 +1197,10 @@ const MilhasRedesign = () => {
                       </label>
                       <input
                         type="number"
+                        name="balance"
                         className={`w-full p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text}`}
                         placeholder="125000"
+                        required
                       />
                     </div>
                     
@@ -963,8 +1210,10 @@ const MilhasRedesign = () => {
                       </label>
                       <input
                         type="number"
+                        name="value"
                         className={`w-full p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text}`}
                         placeholder="3125"
+                        required
                       />
                     </div>
                   </div>
@@ -1026,16 +1275,108 @@ const MilhasRedesign = () => {
                   Cancelar
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
+                    // Aqui implementar a lógica para salvar baseado no activeTab
+                    if (activeTab === 'cards') {
+                      // Coletar dados do formulário de cartão
+                      const form = document.querySelector('#cardForm') as HTMLFormElement;
+                      if (!form) return;
+                      
+                      const formData = new FormData(form);
+                      
+                      // ✅ VALIDAÇÃO: Verificar campos obrigatórios
+                      const name = formData.get('name') as string;
+                      const bank = formData.get('bank') as string;
+                      const program = formData.get('program') as string;
+                      const number = formData.get('number') as string;
+                      const limit = formData.get('limit') as string;
+                      
+                      if (!name?.trim()) {
+                        toast.error('Nome do cartão é obrigatório');
+                        return;
+                      }
+                      if (!bank?.trim()) {
+                        toast.error('Banco/Instituição é obrigatório');
+                        return;
+                      }
+                      if (!program?.trim()) {
+                        toast.error('Programa de milhas é obrigatório');
+                        return;
+                      }
+                      if (!number?.trim() || number.length !== 4) {
+                        toast.error('Últimos 4 dígitos são obrigatórios');
+                        return;
+                      }
+                      if (!limit || isNaN(Number(limit)) || Number(limit) <= 0) {
+                        toast.error('Limite deve ser um valor válido maior que zero');
+                        return;
+                      }
+                      
+                      const cardData: CreateCardData = {
+                        name: name.trim(),
+                        bank: bank.trim(),
+                        program: program.trim(),
+                        number: number.trim(),
+                        limit: Number(limit),
+                        used: 0,
+                        dueDate: Number(formData.get('dueDate')) || 10,
+                        closingDate: Number(formData.get('closingDate')) || 5,
+                        pointsPerReal: 1.0, // Valor padrão
+                        annualFee: Number(formData.get('annualFee')) || 0,
+                        benefits: [], // Pode ser expandido depois
+                        status: 'active',
+                        color: '#3B82F6',
+                        category: 'standard' // Valor padrão
+                      };
+                      await handleCreateCard(cardData);
+                    } else if (activeTab === 'programs') {
+                      // Lógica para programas
+                      const form = document.querySelector('#cardForm') as HTMLFormElement;
+                      if (!form) return;
+                      
+                      const formData = new FormData(form);
+                      
+                      // ✅ VALIDAÇÃO: Verificar campos obrigatórios
+                      const program = formData.get('program') as string;
+                      const balance = formData.get('balance') as string;
+                      const value = formData.get('value') as string;
+                      
+                      if (!program?.trim()) {
+                        toast.error('Programa de milhas é obrigatório');
+                        return;
+                      }
+                      if (!balance || isNaN(Number(balance)) || Number(balance) < 0) {
+                        toast.error('Saldo deve ser um valor válido maior ou igual a zero');
+                        return;
+                      }
+                      if (!value || isNaN(Number(value)) || Number(value) < 0) {
+                        toast.error('Valor estimado deve ser um valor válido maior ou igual a zero');
+                        return;
+                      }
+                      
+                      const programData: CreateProgramData = {
+                        name: program.trim(),
+                        airline: program.includes('Gol') ? 'Gol' : program.includes('Azul') ? 'Azul' : program.includes('Latam') ? 'Latam' : 'Outros',
+                        pointsBalance: Number(balance),
+                        estimatedValue: Number(value),
+                        conversionRate: 1.0,
+                        balance: Number(balance),
+                        lastUpdate: new Date().toISOString(),
+                        status: 'active',
+                        recentEarned: 0,
+                        expiringPoints: 0,
+                        expirationDate: new Date().toISOString()
+                      };
+                      await handleCreateProgram(programData);
+                    }
                     setShowAddModal(false);
-                    // Aqui você adicionaria a lógica para salvar
                   }}
                   className="flex-1 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
                 >
                   Adicionar
                 </button>
               </div>
-            </div>
+            </form>
           </motion.div>
         </motion.div>
       )}
@@ -1044,7 +1385,7 @@ const MilhasRedesign = () => {
 
   // Modal de Edição
   const EditModal = () => {
-    const [editData, setEditData] = useState<Partial<CreditCard | MileageProgram | Invoice>>({});
+    const [editData, setEditData] = useState<Partial<CreditCard | MileageProgram | InvoiceInterface>>({});
 
     useEffect(() => {
       if (editModal.open && editModal.item) {
@@ -1052,18 +1393,21 @@ const MilhasRedesign = () => {
       }
     }, []);
 
-    const handleEditSubmit = (e: React.FormEvent) => {
+    const handleEditSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       
-      const itemType = editModal.type === 'card' ? 'cartão' : 
-                      editModal.type === 'program' ? 'programa' : 'fatura';
+      if (!editModal.item || !editModal.item.id) return;
       
-      // Simular atualização dos dados
-      setTimeout(() => {
-        toast.success(`${itemType.charAt(0).toUpperCase() + itemType.slice(1)} atualizado com sucesso!`);
-        setEditModal({ open: false, type: '', item: null, index: -1 });
+      try {
+        if (editModal.type === 'card') {
+          await handleUpdateCard(editModal.item.id, editData as Partial<CreditCard>);
+        } else if (editModal.type === 'program') {
+          await handleUpdateProgram(editModal.item.id, editData as Partial<MileageProgram>);
+        }
         setEditData({});
-      }, 500);
+      } catch (error) {
+        console.error('Erro ao atualizar item:', error);
+      }
     };
 
     const getEditTitle = () => {
@@ -1243,15 +1587,18 @@ const MilhasRedesign = () => {
 
   // Modal de Exclusão
   const DeleteModal = () => {
-    const handleDeleteConfirm = () => {
-      const itemType = deleteModal.type === 'card' ? 'cartão' : 
-                      deleteModal.type === 'program' ? 'programa' : 'fatura';
+    const handleDeleteConfirm = async () => {
+      if (!deleteModal.item || !deleteModal.item.id) return;
       
-      // Simular exclusão dos dados
-      setTimeout(() => {
-        toast.success(`${itemType.charAt(0).toUpperCase() + itemType.slice(1)} excluído com sucesso!`);
-        setDeleteModal({ open: false, type: '', item: null, index: -1 });
-      }, 500);
+      try {
+        if (deleteModal.type === 'card') {
+          await handleDeleteCard(deleteModal.item.id);
+        } else if (deleteModal.type === 'program') {
+          await handleDeleteProgram(deleteModal.item.id);
+        }
+      } catch (error) {
+        console.error('Erro ao deletar item:', error);
+      }
     };
 
     const getDeleteTitle = () => {
@@ -1355,19 +1702,19 @@ const MilhasRedesign = () => {
       customAmount: ''
     });
 
-    const handlePaymentSubmit = (e: React.FormEvent) => {
+    const handlePaymentSubmit = async (e: React.FormEvent) => {
       e.preventDefault();
       
       const paymentAmount = paymentData.paymentType === 'minimum' 
         ? Math.round(paymentModal.amount * 0.15)
         : paymentModal.amount;
       
-      const paymentTypeText = paymentData.paymentType === 'minimum' ? 'Mínimo' : 'Total';
-      
-      // Simular processamento de pagamento
-      setTimeout(() => {
-        toast.success(`Pagamento ${paymentTypeText} de R$ ${paymentAmount.toLocaleString()} realizado com sucesso! Cartão: ${paymentModal.cardName}`);
-        setPaymentModal({ open: false, cardId: '', amount: 0, cardName: '' });
+      try {
+        await handlePayInvoice(paymentModal.cardId, {
+          paymentMethod: paymentData.method,
+          amount: paymentAmount
+        });
+        
         setPaymentData({ 
           method: 'pix', 
           installments: '1', 
@@ -1376,7 +1723,9 @@ const MilhasRedesign = () => {
           paymentType: 'full',
           customAmount: ''
         });
-      }, 1000);
+      } catch (error) {
+        console.error('Erro ao processar pagamento:', error);
+      }
     };
 
     return (
@@ -1412,7 +1761,7 @@ const MilhasRedesign = () => {
                   <div className="flex justify-between items-center">
                     <span className={`text-sm ${themeClasses.textSecondary}`}>Valor Total da Fatura</span>
                     <span className={`text-2xl font-bold ${themeClasses.text}`}>
-                      R$ {paymentModal.amount.toLocaleString()}
+                      R$ {(paymentModal.amount || 0).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -1441,7 +1790,7 @@ const MilhasRedesign = () => {
                     >
                       Pagamento Total
                       <div className="text-xs mt-1 opacity-80">
-                        R$ {paymentModal.amount.toLocaleString()}
+                        R$ {(paymentModal.amount || 0).toLocaleString()}
                       </div>
                     </button>
                     <button
@@ -1455,7 +1804,7 @@ const MilhasRedesign = () => {
                     >
                       Pagamento Mínimo
                       <div className="text-xs mt-1 opacity-80">
-                        R$ {Math.round(paymentModal.amount * 0.15).toLocaleString()}
+                        R$ {Math.round((paymentModal.amount || 0) * 0.15).toLocaleString()}
                       </div>
                     </button>
                   </div>
@@ -1663,7 +2012,7 @@ const MilhasRedesign = () => {
               <div>
                 <p className={`${themeClasses.textSecondary} text-sm font-medium`}>Total de Pontos</p>
                 <p className={`text-2xl md:text-3xl font-bold ${themeClasses.text} mt-2`}>
-                  {showBalances ? mileagePrograms.reduce((total, program) => total + program.pointsBalance, 0).toLocaleString() : '••••••'}
+                  {showBalances ? mileagePrograms.reduce((total, program) => total + (program.pointsBalance || 0), 0).toLocaleString() : '••••••'}
                 </p>
               </div>
               <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
@@ -1682,7 +2031,7 @@ const MilhasRedesign = () => {
               <div>
                 <p className={`${themeClasses.textSecondary} text-sm font-medium`}>Valor Estimado</p>
                 <p className={`text-2xl md:text-3xl font-bold ${themeClasses.text} mt-2`}>
-                  {showBalances ? `R$ ${mileagePrograms.reduce((total, program) => total + program.estimatedValue, 0).toLocaleString()}` : '••••••'}
+                  {showBalances ? `R$ ${mileagePrograms.reduce((total, program) => total + (program.estimatedValue || 0), 0).toLocaleString()}` : '••••••'}
                 </p>
                 <p className={`text-sm ${themeClasses.textSecondary} mt-1`}>
                   Valor total das milhas
@@ -1920,11 +2269,31 @@ const MilhasRedesign = () => {
                 Novo Cartão
               </button>
             </div>
+            
+            {creditCards.length === 0 ? (
+              <div className={`${themeClasses.cardBg} rounded-3xl p-12 border ${themeClasses.border} text-center`}>
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl flex items-center justify-center">
+                  <CreditCardIcon className="text-white" size={32} />
+                </div>
+                <h3 className={`text-xl font-bold ${themeClasses.text} mb-2`}>Nenhum cartão cadastrado</h3>
+                <p className={`${themeClasses.textSecondary} mb-6 max-w-md mx-auto`}>
+                  Comece adicionando seu primeiro cartão de crédito para acompanhar limites, faturas e benefícios.
+                </p>
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+                >
+                  <Plus size={20} />
+                  Adicionar Primeiro Cartão
+                </button>
+              </div>
+            ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {creditCards.map((card) => (
                 <ModernCreditCard key={card.id} card={card} />
               ))}
             </div>
+            )}
           </div>
         );
       
@@ -1944,11 +2313,31 @@ const MilhasRedesign = () => {
                 Novo Programa
               </button>
             </div>
+            
+            {mileagePrograms.length === 0 ? (
+              <div className={`${themeClasses.cardBg} rounded-3xl p-12 border ${themeClasses.border} text-center`}>
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center">
+                  <Award className="text-white" size={32} />
+                </div>
+                <h3 className={`text-xl font-bold ${themeClasses.text} mb-2`}>Nenhum programa cadastrado</h3>
+                <p className={`${themeClasses.textSecondary} mb-6 max-w-md mx-auto`}>
+                  Adicione seus programas de milhas para acompanhar saldos, valores estimados e pontos que vencem.
+                </p>
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+                >
+                  <Plus size={20} />
+                  Adicionar Primeiro Programa
+                </button>
+              </div>
+            ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {mileagePrograms.map((program) => (
                 <ModernMileageProgram key={program.id} program={program} />
               ))}
             </div>
+            )}
           </div>
         );
       
@@ -1968,7 +2357,27 @@ const MilhasRedesign = () => {
                 Nova Fatura
               </button>
             </div>
+            
+            {creditCards.length === 0 ? (
+              <div className={`${themeClasses.cardBg} rounded-3xl p-12 border ${themeClasses.border} text-center`}>
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl flex items-center justify-center">
+                  <Banknote className="text-white" size={32} />
+                </div>
+                <h3 className={`text-xl font-bold ${themeClasses.text} mb-2`}>Nenhuma fatura encontrada</h3>
+                <p className={`${themeClasses.textSecondary} mb-6 max-w-md mx-auto`}>
+                  Adicione cartões primeiro para poder gerenciar suas faturas e acompanhar vencimentos.
+                </p>
+                <button
+                  onClick={() => setActiveTab('cards')}
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+                >
+                  <CreditCardIcon size={20} />
+                  Ir para Cartões
+                </button>
+              </div>
+            ) : (
             <ModernInvoicesList />
+            )}
           </div>
         );
       
@@ -1979,6 +2388,18 @@ const MilhasRedesign = () => {
         return null;
     }
   };
+
+  // Loading spinner
+  if (loading) {
+    return (
+      <div className={`min-h-screen ${themeClasses.bg} flex items-center justify-center`}>
+        <div className="text-center">
+          <Loader2 className="animate-spin text-blue-500 mx-auto mb-4" size={48} />
+          <p className={`${themeClasses.text} text-lg`}>Carregando seus cartões...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen ${themeClasses.bg} transition-colors duration-300`}>

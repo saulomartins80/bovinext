@@ -49,7 +49,30 @@ interface ErrorResponse {
   message?: string;
 }
 
-// Mileage types
+// Card and Mileage types
+interface CreditCard {
+  id?: string;
+  name: string;
+  bank: string;
+  program: string;
+  number: string; // Últimos 4 dígitos
+  limit: number;
+  used: number;
+  dueDate: number; // Dia do vencimento
+  closingDate: number; // Dia do fechamento
+  pointsPerReal: number;
+  annualFee: number;
+  benefits: string[];
+  status: 'active' | 'inactive' | 'blocked';
+  color: string;
+  bankLogo?: string;
+  category: 'premium' | 'standard' | 'basic';
+  cashback?: number;
+  // Campos para compatibilidade com o frontend
+  nextInvoiceAmount?: number;
+  nextInvoiceDue?: string;
+}
+
 interface MileageCard {
   id?: string;
   name: string;
@@ -566,7 +589,188 @@ export const dashboardAPI = {
   }
 };
 
-// API para Sistema de Milhas
+// API para Sistema de Cartões, Milhas e Faturas
+export const cardAPI = {
+  // CARTÕES
+  getCards: async () => {
+    console.log('[cardAPI] Buscando cartões');
+    try {
+      const response = await api.get('/api/cards/cards');
+      console.log('[cardAPI] Cartões obtidos com sucesso:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[cardAPI] Erro ao buscar cartões:', error);
+      throw error;
+    }
+  },
+
+  createCard: async (cardData: Omit<CreditCard, 'id'>) => {
+    console.log('[cardAPI] Criando cartão:', cardData);
+    try {
+      const response = await api.post('/api/cards/cards', cardData);
+      console.log('[cardAPI] Cartão criado com sucesso:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[cardAPI] Erro ao criar cartão:', error);
+      throw error;
+    }
+  },
+
+  updateCard: async (cardId: string, cardData: Partial<CreditCard>) => {
+    console.log('[cardAPI] Atualizando cartão:', cardId, cardData);
+    try {
+      const response = await api.put(`/api/cards/cards/${cardId}`, cardData);
+      console.log('[cardAPI] Cartão atualizado com sucesso:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[cardAPI] Erro ao atualizar cartão:', error);
+      throw error;
+    }
+  },
+
+  deleteCard: async (cardId: string) => {
+    console.log('[cardAPI] Removendo cartão:', cardId);
+    try {
+      await api.delete(`/api/cards/cards/${cardId}`);
+      console.log('[cardAPI] Cartão removido com sucesso');
+    } catch (error) {
+      console.error('[cardAPI] Erro ao remover cartão:', error);
+      throw error;
+    }
+  },
+
+  // FATURAS
+  getInvoices: async (filters?: { cardId?: string; status?: string }) => {
+    console.log('[cardAPI] Buscando faturas:', filters);
+    try {
+      const response = await api.get('/api/cards/invoices', { params: filters });
+      console.log('[cardAPI] Faturas obtidas com sucesso:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[cardAPI] Erro ao buscar faturas:', error);
+      throw error;
+    }
+  },
+
+  createInvoice: async (invoiceData: {
+    cardId: string;
+    amount: number;
+    dueDate: string;
+    closingDate: string;
+    description?: string;
+    transactions?: Array<{
+      date: string;
+      description: string;
+      amount: number;
+      category?: string;
+      points?: number;
+    }>;
+  }) => {
+    console.log('[cardAPI] Criando fatura:', invoiceData);
+    try {
+      const response = await api.post('/api/cards/invoices', invoiceData);
+      console.log('[cardAPI] Fatura criada com sucesso:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[cardAPI] Erro ao criar fatura:', error);
+      throw error;
+    }
+  },
+
+  updateInvoice: async (invoiceId: string, invoiceData: {
+    amount?: number;
+    dueDate?: string;
+    closingDate?: string;
+    status?: 'paid' | 'pending' | 'overdue';
+    description?: string;
+    paymentMethod?: string;
+  }) => {
+    console.log('[cardAPI] Atualizando fatura:', invoiceId, invoiceData);
+    try {
+      const response = await api.put(`/api/cards/invoices/${invoiceId}`, invoiceData);
+      console.log('[cardAPI] Fatura atualizada com sucesso:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[cardAPI] Erro ao atualizar fatura:', error);
+      throw error;
+    }
+  },
+
+  payInvoice: async (invoiceId: string, paymentData: { paymentMethod: string; amount: number }) => {
+    console.log('[cardAPI] Pagando fatura:', invoiceId, paymentData);
+    try {
+      const response = await api.post(`/api/cards/invoices/${invoiceId}/pay`, paymentData);
+      console.log('[cardAPI] Fatura paga com sucesso:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[cardAPI] Erro ao pagar fatura:', error);
+      throw error;
+    }
+  },
+
+  // PROGRAMAS DE MILHAS
+  getMileagePrograms: async () => {
+    console.log('[cardAPI] Buscando programas de milhas');
+    try {
+      const response = await api.get('/api/cards/programs');
+      console.log('[cardAPI] Programas obtidos com sucesso:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[cardAPI] Erro ao buscar programas:', error);
+      throw error;
+    }
+  },
+
+  createMileageProgram: async (programData: Omit<MileageProgram, 'id'>) => {
+    console.log('[cardAPI] Criando programa de milhas:', programData);
+    try {
+      const response = await api.post('/api/cards/programs', programData);
+      console.log('[cardAPI] Programa criado com sucesso:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[cardAPI] Erro ao criar programa:', error);
+      throw error;
+    }
+  },
+
+  updateMileageProgram: async (programId: string, programData: Partial<MileageProgram>) => {
+    console.log('[cardAPI] Atualizando programa:', programId, programData);
+    try {
+      const response = await api.put(`/api/cards/programs/${programId}`, programData);
+      console.log('[cardAPI] Programa atualizado com sucesso:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[cardAPI] Erro ao atualizar programa:', error);
+      throw error;
+    }
+  },
+
+  deleteMileageProgram: async (programId: string) => {
+    console.log('[cardAPI] Removendo programa:', programId);
+    try {
+      await api.delete(`/api/cards/programs/${programId}`);
+      console.log('[cardAPI] Programa removido com sucesso');
+    } catch (error) {
+      console.error('[cardAPI] Erro ao remover programa:', error);
+      throw error;
+    }
+  },
+
+  // ANALYTICS
+  getAnalytics: async () => {
+    console.log('[cardAPI] Buscando analytics');
+    try {
+      const response = await api.get('/api/cards/analytics');
+      console.log('[cardAPI] Analytics obtidos com sucesso:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[cardAPI] Erro ao buscar analytics:', error);
+      throw error;
+    }
+  }
+};
+
+// API para Sistema de Milhas (mantida para compatibilidade)
 export const mileageAPI = {
   // Pluggy Integration
   getConnectToken: async () => {
