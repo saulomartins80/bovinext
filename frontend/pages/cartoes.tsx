@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
-import { toast } from 'react-toastify';
+import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useTheme } from '../context/ThemeContext';
 import { cardAPI } from '../services/api';
@@ -210,10 +210,20 @@ const MilhasRedesign = () => {
       ]);
 
       if (cardsResponse.success) {
-        setCreditCards(cardsResponse.cards || []);
+        // ✅ CORREÇÃO: Mapear _id para id para compatibilidade
+        const mappedCards = (cardsResponse.cards || []).map((card: CreditCard & { _id?: string }) => ({
+          ...card,
+          id: card._id || card.id
+        }));
+        setCreditCards(mappedCards);
       }
       if (programsResponse.success) {
-        setMileagePrograms(programsResponse.programs || []);
+        // ✅ CORREÇÃO: Mapear _id para id para compatibilidade
+        const mappedPrograms = (programsResponse.programs || []).map((program: MileageProgram & { _id?: string }) => ({
+          ...program,
+          id: program._id || program.id
+        }));
+        setMileagePrograms(mappedPrograms);
       }
       if (invoicesResponse.success) {
         setInvoices(invoicesResponse.invoices || []);
@@ -243,7 +253,12 @@ const MilhasRedesign = () => {
     try {
       const response = await cardAPI.createCard(cardData);
       if (response.success) {
-        setCreditCards(prev => [...prev, response.card]);
+        // ✅ CORREÇÃO: Mapear _id para id
+        const mappedCard = {
+          ...response.card,
+          id: response.card._id || response.card.id
+        };
+        setCreditCards(prev => [...prev, mappedCard]);
         toast.success('Cartão adicionado com sucesso!');
         setShowAddModal(false);
       }
@@ -257,8 +272,13 @@ const MilhasRedesign = () => {
     try {
       const response = await cardAPI.updateCard(cardId, cardData);
       if (response.success) {
+        // ✅ CORREÇÃO: Mapear _id para id
+        const mappedCard = {
+          ...response.card,
+          id: response.card._id || response.card.id
+        };
         setCreditCards(prev => prev.map(card => 
-          card.id === cardId ? response.card : card
+          card.id === cardId ? mappedCard : card
         ));
         toast.success('Cartão atualizado com sucesso!');
         setEditModal({ open: false, type: '', item: null, index: -1 });
@@ -286,7 +306,12 @@ const MilhasRedesign = () => {
     try {
       const response = await cardAPI.createMileageProgram(programData);
       if (response.success) {
-        setMileagePrograms(prev => [...prev, response.program]);
+        // ✅ CORREÇÃO: Mapear _id para id
+        const mappedProgram = {
+          ...response.program,
+          id: response.program._id || response.program.id
+        };
+        setMileagePrograms(prev => [...prev, mappedProgram]);
         toast.success('Programa adicionado com sucesso!');
         setShowAddModal(false);
       }
@@ -300,8 +325,13 @@ const MilhasRedesign = () => {
     try {
       const response = await cardAPI.updateMileageProgram(programId, programData);
       if (response.success) {
+        // ✅ CORREÇÃO: Mapear _id para id
+        const mappedProgram = {
+          ...response.program,
+          id: response.program._id || response.program.id
+        };
         setMileagePrograms(prev => prev.map(program => 
-          program.id === programId ? response.program : program
+          program.id === programId ? mappedProgram : program
         ));
         toast.success('Programa atualizado com sucesso!');
         setEditModal({ open: false, type: '', item: null, index: -1 });
@@ -2439,6 +2469,20 @@ const MilhasRedesign = () => {
       
       {/* Modal de Pagamento */}
       <PaymentModal />
+      
+      {/* Toast Container */}
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={true}
+        closeOnClick={true}
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
     </div>
   );
 };
