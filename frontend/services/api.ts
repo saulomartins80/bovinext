@@ -328,6 +328,28 @@ export const chatbotAPI = {
       throw error;
     }
   },
+  deleteSession: async (chatId: string) => {
+    console.log('[chatbotAPI] Deletando sessão:', chatId);
+    try {
+      const response = await api.delete(`/api/chatbot/sessions/${encodeURIComponent(chatId)}`);
+      console.log('[chatbotAPI] Sessão deletada com sucesso:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[chatbotAPI] Erro ao deletar sessão:', error);
+      throw error;
+    }
+  },
+  deleteAllSessions: async () => {
+    console.log('[chatbotAPI] Deletando todas as sessões do usuário logado');
+    try {
+      const response = await api.delete('/api/chatbot/sessions');
+      console.log('[chatbotAPI] Todas as sessões deletadas com sucesso:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[chatbotAPI] Erro ao deletar todas as sessões:', error);
+      throw error;
+    }
+  },
   getSession: async (chatId: string) => {
     console.log('[chatbotAPI] Buscando sessão:', chatId);
     try {

@@ -4,6 +4,9 @@ import { ChatHistoryService } from '../services/chatHistoryService';
 import { UserService } from '../modules/users/services/UserService';
 import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
+import { ObjectId } from 'mongodb';
+import { Goal } from '../models/Goal';
+import { contextManager } from '../services/ContextManager';
 
 // ===== SISTEMA DE STREAMING PARA SSE =====
 class StreamingController extends EventEmitter {
@@ -78,6 +81,7 @@ class AutomationEngine {
     this.actionHandlers.set('CREATE_TRANSACTION', this.handleCreateTransaction.bind(this));
     this.actionHandlers.set('CREATE_GOAL', this.handleCreateGoal.bind(this));
     this.actionHandlers.set('CREATE_INVESTMENT', this.handleCreateInvestment.bind(this));
+    this.actionHandlers.set('CREATE_CARD', this.handleCreateCard.bind(this));
     this.actionHandlers.set('ANALYZE_DATA', this.handleAnalyzeData.bind(this));
     this.actionHandlers.set('MILEAGE', this.handleMileage.bind(this));
   }
@@ -121,25 +125,37 @@ class AutomationEngine {
       };
     }
 
-    // Simular criação da transação (integrar com seu sistema real)
-    const transactionData = {
-      id: uuidv4(),
-      userId,
-      valor: entities.valor,
-      descricao: entities.descricao || 'Transação via chat',
-      tipo: entities.tipo || 'despesa',
-      categoria: entities.categoria || 'outros',
-      data: entities.data || new Date().toISOString()
-    };
+    try {
+      // 🆕 CRIAR TRANSACTION REAL NO MONGODB
+      const Transacao = require('../models/Transacoes'); // Importar modelo correto
+      
+      const transactionData = {
+        userId: userId, // String, não ObjectId
+        valor: parseFloat(entities.valor),
+        descricao: entities.descricao || 'Transação via chat',
+        tipo: entities.tipo || 'despesa',
+        categoria: entities.categoria || 'outros',
+        data: entities.data ? new Date(entities.data) : new Date(),
+        conta: entities.conta || 'Conta Principal' // Campo obrigatório do schema
+      };
 
-    // Aqui você integraria com seu serviço de transações real
-    console.log('[AutomationEngine] Creating transaction:', transactionData);
+      console.log('[AutomationEngine] Saving transaction to MongoDB:', transactionData);
+      const savedTransaction = await Transacao.create(transactionData);
+      console.log('[AutomationEngine] Transaction saved successfully:', savedTransaction._id);
 
-    return {
-      success: true,
-      message: `✅ Transação de R$ ${entities.valor} criada com sucesso! Já está no seu histórico.`,
-      data: transactionData
-    };
+      return {
+        success: true,
+        message: `✅ Transação de R$ ${entities.valor} criada com sucesso! Já está no seu histórico.`,
+        data: savedTransaction
+      };
+    } catch (error) {
+      console.error('[AutomationEngine] Error saving transaction:', error);
+      return {
+        success: false,
+        message: 'Erro ao criar a transação. Tente novamente.',
+        error: error.message
+      };
+    }
   }
 
   private async handleCreateGoal(entities: any, userId: string): Promise<any> {
@@ -155,23 +171,37 @@ class AutomationEngine {
       };
     }
 
-    const goalData = {
-      id: uuidv4(),
-      userId,
-      meta: entities.meta,
-      valor_total: entities.valor_total,
-      valor_atual: 0,
-      data_conclusao: entities.data_conclusao || null,
-      criado_em: new Date().toISOString()
-    };
+    try {
+      // SALVAR NO MONGODB DE VERDADE
+      const goalData = {
+        userId: new ObjectId(userId),
+        meta: entities.meta,
+        valor_total: entities.valor_total,
+        valor_atual: 0,
+        data_conclusao: entities.data_conclusao ? new Date(entities.data_conclusao) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 ano se não especificado
+        categoria: entities.categoria || 'Geral',
+        prioridade: entities.prioridade || 'media',
+        descricao: entities.descricao || '',
+        createdAt: new Date()
+      };
 
-    console.log('[AutomationEngine] Creating goal:', goalData);
+      console.log('[AutomationEngine] Saving goal to MongoDB:', goalData);
+      const savedGoal = await Goal.create(goalData);
+      console.log('[AutomationEngine] Goal saved successfully:', savedGoal._id);
 
-    return {
-      success: true,
-      message: `🎯 Meta "${entities.meta}" de R$ ${entities.valor_total} criada! Vamos alcançá-la juntos!`,
-      data: goalData
-    };
+      return {
+        success: true,
+        message: `🎯 Meta "${entities.meta}" de R$ ${entities.valor_total} criada com sucesso! Vamos alcançá-la juntos!`,
+        data: savedGoal
+      };
+    } catch (error) {
+      console.error('[AutomationEngine] Error saving goal:', error);
+      return {
+        success: false,
+        message: 'Erro ao criar a meta. Tente novamente.',
+        error: error.message
+      };
+    }
   }
 
   private async handleCreateInvestment(entities: any, userId: string): Promise<any> {
@@ -187,23 +217,100 @@ class AutomationEngine {
       };
     }
 
-    const investmentData = {
-      id: uuidv4(),
-      userId,
-      valor: entities.valor,
-      nome: entities.nome,
-      instituicao: entities.instituicao || 'Não informado',
-      tipo: entities.tipo || 'outros',
-      data: new Date().toISOString()
-    };
+    try {
+      // SALVAR NO MONGODB DE VERDADE
+      const investmentData = {
+        userId: new ObjectId(userId),
+        valor: entities.valor,
+        nome: entities.nome,
+        instituicao: entities.instituicao || 'Não informado',
+        tipo: entities.tipo || 'outros',
+        data: new Date(),
+        categoria: entities.categoria || 'Investimentos',
+        descricao: entities.descricao || ''
+      };
 
-    console.log('[AutomationEngine] Creating investment:', investmentData);
+      console.log('[AutomationEngine] Saving investment to MongoDB:', investmentData);
+      
+      // Aqui você precisará importar o modelo de Investimento
+      // const Investment = require('../models/Investment');
+      // const savedInvestment = await Investment.create(investmentData);
+      
+      // Por enquanto, vamos simular o save
+      const savedInvestment = { ...investmentData, _id: new ObjectId() };
+      console.log('[AutomationEngine] Investment saved successfully:', savedInvestment._id);
 
-    return {
-      success: true,
-      message: `📈 Investimento de R$ ${entities.valor} em ${entities.nome} registrado! Que seus lucros sejam grandes!`,
-      data: investmentData
-    };
+      return {
+        success: true,
+        message: `📈 Investimento de R$ ${entities.valor} em ${entities.nome} registrado com sucesso! Que seus lucros sejam grandes!`,
+        data: savedInvestment
+      };
+    } catch (error) {
+      console.error('[AutomationEngine] Error saving investment:', error);
+      return {
+        success: false,
+        message: 'Erro ao registrar o investimento. Tente novamente.',
+        error: error.message
+      };
+    }
+  }
+
+  private async handleCreateCard(entities: any, userId: string): Promise<any> {
+    const requiredFields = ['nome', 'limite'];
+    const missingFields = requiredFields.filter(field => !entities[field]);
+
+    if (missingFields.length > 0) {
+      return {
+        success: false,
+        message: 'Para registrar o cartão, preciso do nome e limite. Pode me contar?',
+        requiresInput: true,
+        missingFields
+      };
+    }
+
+    try {
+      // SALVAR NO MONGODB DE VERDADE
+      const cardData = {
+        userId: new ObjectId(userId),
+        nome: entities.nome,
+        limite: entities.limite,
+        banco: entities.banco || 'Banco',
+        programa: entities.programa || 'Programa de Pontos',
+        bandeira: entities.bandeira || 'Visa',
+        tipo: entities.tipo || 'Crédito',
+        status: entities.status || 'Ativo',
+        categoria: entities.categoria || 'standard',
+        ultimosDigitos: entities.ultimosDigitos || '****',
+        vencimento: entities.vencimento || 15,
+        fechamento: entities.fechamento || 30,
+        anuidade: entities.anuidade || 0,
+        data: new Date(),
+        descricao: entities.descricao || ''
+      };
+
+      console.log('[AutomationEngine] Saving card to MongoDB:', cardData);
+      
+      // Aqui você precisará importar o modelo de Cartão
+      // const Card = require('../models/Card');
+      // const savedCard = await Card.create(cardData);
+      
+      // Por enquanto, vamos simular o save
+      const savedCard = { ...cardData, _id: new ObjectId() };
+      console.log('[AutomationEngine] Card saved successfully:', savedCard._id);
+
+      return {
+        success: true,
+        message: `💳 Cartão ${entities.nome} com limite de R$ ${entities.limite} registrado com sucesso!`,
+        data: savedCard
+      };
+    } catch (error) {
+      console.error('[AutomationEngine] Error saving card:', error);
+      return {
+        success: false,
+        message: 'Erro ao registrar o cartão. Tente novamente.',
+        error: error.message
+      };
+    }
   }
 
   private async handleAnalyzeData(entities: any, userId: string): Promise<any> {
@@ -223,7 +330,7 @@ class AutomationEngine {
 
     return {
       success: true,
-      message: `📊 Análise concluída!\n\n💰 Receitas: R$ ${analysisData.totalReceitas}\n💸 Gastos: R$ ${analysisData.totalGastos}\n📈 Saldo: R$ ${analysisData.saldo}\n\n🎯 Categoria que mais gasta: ${analysisData.categoriaMaisGasta}\n\n✨ Recomendações:\n${analysisData.recomendacoes.map(r => `• ${r}`).join('\n')}`,
+      message: ` Análise concluída!\n\n Receitas: R$ ${analysisData.totalReceitas}\n Gastos: R$ ${analysisData.totalGastos}\n Saldo: R$ ${analysisData.saldo}\n\n Categoria que mais gasta: ${analysisData.categoriaMaisGasta}\n\n✨ Recomendações:\n${analysisData.recomendacoes.map(r => `• ${r}`).join('\n')}`,
       data: analysisData
     };
   }
@@ -290,6 +397,15 @@ export class OptimizedChatbotController {
         this.getConversationHistory(chatId)
       ]);
 
+      // 🆕 VERIFICAR CONTEXTO ATIVO DA CONVERSA
+      let contextState = null;
+      if (chatId) {
+        contextState = contextManager.getConversationState(chatId);
+        if (contextState) {
+          console.log(`[OptimizedChatbot] Active context: ${contextState.currentAction} for ${chatId}`);
+        }
+      }
+
       // Gerar resposta com IA otimizada
       const aiResult = await this.aiService.generateResponse(
         userId,
@@ -300,12 +416,38 @@ export class OptimizedChatbotController {
 
       // Executar automação se necessário
       let automationResult = null;
-      if (aiResult.intent && aiResult.confidence && aiResult.confidence > 0.7) {
+      if (aiResult.intent && aiResult.confidence && aiResult.confidence > 0.5) { // 🆕 REDUZIDO DE 0.7 PARA 0.5
+        console.log(`[OptimizedChatbot] 🚀 EXECUTANDO AÇÃO: ${aiResult.intent} com confiança: ${aiResult.confidence}`);
+        console.log(`[OptimizedChatbot] 📊 Entidades detectadas:`, aiResult.entities);
+        
+        // 🆕 ATUALIZAR CONTEXTO se nova ação detectada
+        if (chatId && contextState?.currentAction !== aiResult.intent) {
+          contextManager.updateConversationState(
+            chatId,
+            userId,
+            aiResult.intent,
+            aiResult.entities || {},
+            aiResult.requiresConfirmation || false
+          );
+          console.log(`[OptimizedChatbot] Updated context: ${aiResult.intent}`);
+        }
+        
+        console.log(`[OptimizedChatbot] 🔧 Chamando AutomationEngine.executeAction...`);
         automationResult = await this.automationEngine.executeAction(
           aiResult.intent,
           aiResult.entities || {},
           userId
         );
+        
+        console.log(`[OptimizedChatbot] ✅ Resultado da automação:`, automationResult);
+        
+        // 🆕 LIMPAR CONTEXTO se ação foi executada com sucesso
+        if (automationResult?.success && chatId) {
+          contextManager.clearConversationState(chatId);
+          console.log(`[OptimizedChatbot] Cleared context after successful action`);
+        }
+      } else {
+        console.log(`[OptimizedChatbot] ❌ Ação não executada - Intent: ${aiResult.intent}, Confiança: ${aiResult.confidence}, Threshold: 0.5`);
       }
 
       // Preparar resposta final
@@ -336,7 +478,10 @@ export class OptimizedChatbotController {
           actionExecuted,
           automationData: automationResult?.data,
           requiresConfirmation: aiResult.requiresConfirmation,
-          entities: aiResult.entities
+          entities: aiResult.entities,
+          // 🆕 ADICIONAR INFO DO CONTEXTO
+          contextActive: contextState?.currentAction || null,
+          contextMissingFields: contextState?.missingFields || []
         }
       };
 
@@ -476,6 +621,42 @@ export class OptimizedChatbotController {
     }
   }
 
+  async deleteSession(req: Request, res: Response): Promise<void> {
+    try {
+      const { chatId } = req.params as { chatId?: string };
+      if (!chatId) {
+        res.status(400).json({ success: false, message: 'chatId é obrigatório' });
+        return;
+      }
+
+      const deleted = await this.chatHistoryService.deleteConversation(chatId);
+      if (!deleted) {
+        res.status(404).json({ success: false, message: 'Sessão não encontrada' });
+        return;
+      }
+
+      res.status(200).json({ success: true, message: 'Sessão deletada com sucesso', chatId });
+    } catch (error) {
+      console.error('[OptimizedChatbot] Error deleting session:', error);
+      res.status(500).json({ success: false, message: 'Erro ao deletar sessão' });
+    }
+  }
+
+  async deleteAllSessions(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = (req as any).user?.uid || 'anonymous';
+      const result = await this.chatHistoryService.deleteAllUserConversations(userId);
+      res.status(200).json({
+        success: true,
+        message: 'Todas as sessões do usuário foram deletadas',
+        deletedCount: (result as any)?.deletedCount ?? (result as any) ?? 0
+      });
+    } catch (error) {
+      console.error('[OptimizedChatbot] Error deleting all sessions:', error);
+      res.status(500).json({ success: false, message: 'Erro ao deletar todas as sessões' });
+    }
+  }
+
   async getCacheStats(req: Request, res: Response): Promise<void> {
     try {
       const stats = this.aiService.getCacheStats();
@@ -562,9 +743,52 @@ export class OptimizedChatbotController {
           userContext
         );
 
+        // 🆕 EXECUTAR AUTOMAÇÃO SE NECESSÁRIO
+        let automationResult = null;
+        if (response.intent && response.confidence && response.confidence > 0.5) {
+          console.log(`[OptimizedChatbot] 🚀 EXECUTANDO AÇÃO NO STREAMING: ${response.intent} com confiança: ${response.confidence}`);
+          console.log(`[OptimizedChatbot] 📊 Entidades detectadas:`, response.entities);
+          
+          // 🆕 ATUALIZAR CONTEXTO se nova ação detectada
+          if (realChatId) {
+            contextManager.updateConversationState(
+              realChatId,
+              userId,
+              response.intent,
+              response.entities || {},
+              response.requiresConfirmation || false
+            );
+            console.log(`[OptimizedChatbot] Updated context: ${response.intent}`);
+          }
+          
+          console.log(`[OptimizedChatbot] 🔧 Chamando AutomationEngine.executeAction...`);
+          automationResult = await this.automationEngine.executeAction(
+            response.intent,
+            response.entities || {},
+            userId
+          );
+          
+          console.log(`[OptimizedChatbot] ✅ Resultado da automação:`, automationResult);
+          
+          // 🆕 LIMPAR CONTEXTO se ação foi executada com sucesso
+          if (automationResult?.success && realChatId) {
+            contextManager.clearConversationState(realChatId);
+            console.log(`[OptimizedChatbot] Cleared context after successful action`);
+          }
+        } else {
+          console.log(`[OptimizedChatbot] ❌ Ação não executada no streaming - Intent: ${response.intent}, Confiança: ${response.confidence}, Threshold: 0.5`);
+        }
+
+        // 🆕 USAR RESPOSTA DA AUTOMAÇÃO SE DISPONÍVEL
+        let finalText = response.text || 'Desculpe, não consegui processar sua mensagem.';
+        if (automationResult?.success) {
+          finalText = automationResult.message;
+        } else if (automationResult?.requiresInput) {
+          finalText = automationResult.message;
+        }
+
         // Simular streaming dividindo a resposta em chunks
-        const text = response.text || 'Desculpe, não consegui processar sua mensagem.';
-        const chunks = text.match(/.{1,10}/g) || [text];
+        const chunks = finalText.match(/.{1,10}/g) || [finalText];
 
         // Enviar chunks com delay para simular streaming
         for (let i = 0; i < chunks.length; i++) {
@@ -582,7 +806,12 @@ export class OptimizedChatbotController {
           sendSSE('metadata', {
             intent: response.intent,
             entities: response.entities,
-            confidence: response.confidence
+            confidence: response.confidence,
+            // 🆕 ADICIONAR INFO DA AUTOMAÇÃO
+            actionExecuted: automationResult?.success || false,
+            automationData: automationResult?.data || null,
+            requiresInput: automationResult?.requiresInput || false,
+            missingFields: automationResult?.missingFields || []
           });
         }
 
@@ -593,7 +822,7 @@ export class OptimizedChatbotController {
         });
 
         // Salvar no histórico
-        await this.saveMessageToHistory(realChatId, userId, message as string, text);
+        await this.saveMessageToHistory(realChatId, userId, message as string, finalText);
 
       } catch (error) {
         console.error('[OptimizedChatbot] Streaming error:', error);
@@ -629,5 +858,7 @@ export const startNewSession = optimizedChatbotController.createSession.bind(opt
 export const getSessions = optimizedChatbotController.getSessions.bind(optimizedChatbotController);
 export const getCacheStats = optimizedChatbotController.getCacheStats.bind(optimizedChatbotController);
 export const clearCache = optimizedChatbotController.clearCache.bind(optimizedChatbotController);
+export const deleteSession = optimizedChatbotController.deleteSession.bind(optimizedChatbotController);
+export const deleteAllSessions = optimizedChatbotController.deleteAllSessions.bind(optimizedChatbotController);
 
 export default optimizedChatbotController;

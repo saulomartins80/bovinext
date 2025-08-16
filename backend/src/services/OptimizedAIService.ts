@@ -260,7 +260,7 @@ export class OptimizedAIService {
 
   // Prompts otimizados e mais diretos
   private readonly SYSTEM_PROMPTS = {
-    FINN_CORE: `Você é Finn, assistente financeiro da FinNEXTHO. Seja direto, útil e amigável.
+    FINN_CORE: `Você é Finn, assistente financeiro da Finnextho. Seja direto, útil e amigável.
     
 REGRAS:
 - Respostas em português brasileiro

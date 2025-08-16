@@ -14,7 +14,7 @@ export interface IChatMessage extends Document {
     expertise?: string;
     confidence?: number;
     isImportant?: boolean;
-    messageType?: 'basic' | 'premium' | 'analysis' | 'guidance';
+    messageType?: 'basic' | 'premium' | 'analysis' | 'guidance' | 'streaming';
   };
   expiresAt?: Date;
   isImportant: boolean;
@@ -57,7 +57,7 @@ const ChatMessageSchema = new Schema<IChatMessage>({
     isImportant: Boolean,
     messageType: {
       type: String,
-      enum: ['basic', 'premium', 'analysis', 'guidance'],
+      enum: ['basic', 'premium', 'analysis', 'guidance', 'streaming'],
       default: 'basic'
     }
   },

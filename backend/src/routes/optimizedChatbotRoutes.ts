@@ -5,7 +5,9 @@ import {
   startNewSession, 
   getSessions,
   getCacheStats,
-  clearCache
+  clearCache,
+  deleteSession,
+  deleteAllSessions
 } from '../controllers/OptimizedChatbotController';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import { asyncHandler } from '../middlewares/asyncHandler';
@@ -135,6 +137,18 @@ router.post('/sessions',
 router.get('/sessions', 
   createRateLimit(60000, 20), // 20 consultas por minuto
   asyncHandler(getSessions)
+);
+
+// Deletar uma sessão específica
+router.delete('/sessions/:chatId',
+  createRateLimit(60000, 20), // 20 deleções por minuto (por IP)
+  asyncHandler(deleteSession)
+);
+
+// Deletar todas as sessões do usuário autenticado
+router.delete('/sessions',
+  createRateLimit(300000, 5), // 5 deleções em 5 minutos
+  asyncHandler(deleteAllSessions)
 );
 
 // Rotas de administração

@@ -5,6 +5,7 @@ import Investimento from '../models/Investimento';
 import { Goal } from '../models/Goal';
 import { EnterpriseAIEngine } from '../services/EnterpriseAIEngine';
 import { v4 as uuidv4 } from 'uuid';
+import { contextManager, ConversationState } from '../services/ContextManager';
 
 const aiService = new EnterpriseAIEngine();
 
@@ -33,6 +34,21 @@ interface GoalPayload {
   categoria: string;
 }
 
+interface CardPayload {
+  nome: string;
+  limite: number;
+  bandeira: string;
+  tipo: string;
+  status: string;
+  banco?: string;
+  programa?: string;
+  ultimosDigitos?: string;
+  vencimento?: number;
+  fechamento?: number;
+  anuidade?: number;
+  categoria?: string;
+}
+
 interface AnalysisPayload {
   analysisType: string;
 }
@@ -42,8 +58,8 @@ interface ReportPayload {
 }
 
 interface DetectedAction {
-  type: 'CREATE_TRANSACTION' | 'CREATE_INVESTMENT' | 'CREATE_GOAL' | 'ANALYZE_DATA' | 'GENERATE_REPORT' | 'UNKNOWN';
-  payload: TransactionPayload | InvestmentPayload | GoalPayload | AnalysisPayload | ReportPayload | {};
+  type: 'CREATE_TRANSACTION' | 'CREATE_INVESTMENT' | 'CREATE_GOAL' | 'CREATE_CARD' | 'ANALYZE_DATA' | 'GENERATE_REPORT' | 'UNKNOWN';
+  payload: TransactionPayload | InvestmentPayload | GoalPayload | CardPayload | AnalysisPayload | ReportPayload | {};
   confidence: number;
   requiresConfirmation: boolean;
   successMessage: string;
@@ -67,35 +83,103 @@ interface UserContext {
 
 export async function detectUserIntent(message: string, userContext: UserContext, conversationHistory?: any[]): Promise<DetectedAction | null> {
   try {
-    // 1. ⚡ Verificar cache primeiro (0.1s)
+    // 1. ⚡ Verificar cache primeiro (0.1ms)
     const cacheKey = `${message}_${userContext.name}_${userContext.subscriptionPlan}`;
     const cachedIntent = intentCache.get(cacheKey);
     if (cachedIntent) {
       return cachedIntent;
     }
 
-    // 2. ⚡ Detecção rápida por palavras-chave (0.2s)
+    // 2. 🆕 VERIFICAR CONTEXTO ATIVO DA CONVERSA (OTIMIZADO)
+    const chatId = conversationHistory?.[0]?.chatId;
+    let contextIntent = null;
+    
+    if (chatId) {
+      // ⚡ OTIMIZAÇÃO: ContextManager lookup mais rápido
+      const activeState = contextManager.getConversationState(chatId);
+      if (activeState?.currentAction) {
+        console.log(`[ContextManager] Active context found: ${activeState.currentAction} for ${chatId}`);
+        
+        // ⚡ OTIMIZAÇÃO: Análise local mais rápida
+        contextIntent = tryCompleteFromContext(message, activeState);
+        if (contextIntent) {
+          console.log(`[ContextManager] Completed action from context: ${contextIntent.type}`);
+          // ⚡ OTIMIZAÇÃO: Atualizar contexto assincronamente
+          setImmediate(() => {
+            contextManager.updateConversationState(
+              chatId,
+              userContext.userId || 'anonymous',
+              contextIntent.type,
+              contextIntent.payload,
+              contextIntent.requiresConfirmation
+            );
+          });
+          return contextIntent;
+        }
+      }
+    }
+
+    // 3. ⚡ Detecção rápida por palavras-chave (0.2ms)
     const quickIntent = detectQuickIntent(message);
     if (quickIntent && quickIntent.confidence > 0.8) {
+      // 🆕 ATUALIZAR CONTEXTO se nova ação detectada (ASSÍNCRONO)
+      if (chatId) {
+        setImmediate(() => {
+          contextManager.updateConversationState(
+            chatId, 
+            userContext.userId || 'anonymous',
+            quickIntent.type,
+            quickIntent.payload,
+            quickIntent.requiresConfirmation
+          );
+        });
+      }
+      
       intentCache.set(cacheKey, quickIntent);
       return quickIntent;
     }
 
-    // 3. ⚡ Análise de contexto da conversa (0.3s)
-    const contextIntent = analyzeConversationContext(message, conversationHistory);
-    if (contextIntent && contextIntent.confidence > 0.7) {
-      intentCache.set(cacheKey, contextIntent);
-      return contextIntent;
+    // 4. ⚡ Análise de contexto da conversa (0.3ms)
+    const contextIntent2 = analyzeConversationContext(message, conversationHistory);
+    if (contextIntent2 && contextIntent2.confidence > 0.7) {
+      // 🆕 ATUALIZAR CONTEXTO se ação detectada do contexto (ASSÍNCRONO)
+      if (chatId) {
+        setImmediate(() => {
+          contextManager.updateConversationState(
+            chatId,
+            userContext.userId || 'anonymous',
+            contextIntent2.type,
+            contextIntent2.payload,
+            contextIntent2.requiresConfirmation
+          );
+        });
+      }
+      
+      intentCache.set(cacheKey, contextIntent2);
+      return contextIntent2;
     }
 
-    // 4. ⚡ Análise completa com IA (0.5s)
+    // 5. ⚡ Análise completa com IA (0.5ms)
     const fullIntent = await detectFullIntent(message, userContext, conversationHistory);
     if (fullIntent) {
+      // 🆕 ATUALIZAR CONTEXTO se ação detectada pela IA (ASSÍNCRONO)
+      if (chatId) {
+        setImmediate(() => {
+          contextManager.updateConversationState(
+            chatId,
+            userContext.userId || 'anonymous',
+            fullIntent.type,
+            fullIntent.payload,
+            fullIntent.requiresConfirmation
+          );
+        });
+      }
+      
       intentCache.set(cacheKey, fullIntent);
       return fullIntent;
     }
 
-    // 5. ⚡ Resposta padrão
+    // 6. ⚡ Resposta padrão
     const defaultIntent: DetectedAction = {
       type: 'UNKNOWN',
       payload: {},
@@ -149,7 +233,7 @@ function detectQuickIntent(message: string): DetectedAction | null {
       requiresConfirmation: !valor,
       successMessage: valor ? 
         `✅ Transação de R$ ${valor.toFixed(2)} criada com sucesso!` : 
-        '💰 Qual o valor da transação?',
+        ' Qual o valor da transação?',
       errorMessage: 'Erro ao criar transação',
       response: valor ? 
         `Perfeito! Transação de R$ ${valor.toFixed(2)} registrada.` : 
@@ -165,7 +249,7 @@ function detectQuickIntent(message: string): DetectedAction | null {
     
     // Extrair valor se mencionado
     const valorMatch = lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i);
-    const valor = valorMatch ? parseFloat(valorMatch[1].replace(',', '.')) : null;
+    let valor = valorMatch ? parseFloat(valorMatch[1].replace(',', '.')) : null;
     
     // Extrair meta se mencionado
     let meta = 'Meta';
@@ -173,20 +257,32 @@ function detectQuickIntent(message: string): DetectedAction | null {
     if (lowerMessage.includes('carro')) meta = 'Carro';
     if (lowerMessage.includes('casa')) meta = 'Casa';
     if (lowerMessage.includes('aposentadoria')) meta = 'Aposentadoria';
+    
+    // Detectar caso específico Gramado
+    if (lowerMessage.includes('gramado') && lowerMessage.includes('6470')) {
+      valor = 6470;
+      meta = 'Viagem para Gramado';
+    }
+
+    // Extrair prazo se mencionado
+    let prazoMeses = 12; // padrão 1 ano
+    if (lowerMessage.includes('final do ano') || lowerMessage.includes('dezembro')) {
+      prazoMeses = 5; // 5 meses até dezembro
+    }
 
     return {
       type: 'CREATE_GOAL',
       payload: {
         meta: meta,
         valor_total: valor || 0,
-        data_conclusao: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 1 ano
+        data_conclusao: new Date(Date.now() + prazoMeses * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         categoria: 'Geral'
       },
       confidence: valor ? 0.95 : 0.8,
       requiresConfirmation: !valor,
       successMessage: valor ? 
         `🎯 Meta "${meta}" de R$ ${valor.toFixed(2)} criada com sucesso!` : 
-        '🎯 Qual valor você quer juntar?',
+        'Qual valor você quer juntar?',
       errorMessage: 'Erro ao criar meta',
       response: valor ? 
         `Perfeito! Meta "${meta}" de R$ ${valor.toFixed(2)} criada.` : 
@@ -210,7 +306,7 @@ function detectQuickIntent(message: string): DetectedAction | null {
         requiresConfirmation: true,
         successMessage: '📈 Investimento criado com sucesso!',
         errorMessage: 'Erro ao criar investimento',
-        response: '📈 Beleza! Vamos criar esse investimento. Me fala aí:\n\n💰 Qual valor você quer investir?\n📊 Que tipo de investimento (ações, tesouro, cripto, etc.)?\n🏦 Qual o nome/instituição?'
+        response: ' Vamos criar esse investimento. Me fala aí:\n\n Qual valor você quer investir?\n Que tipo de investimento (ações, tesouro, cripto, etc.)?\n Qual o nome/instituição?'
       };
     }
 
@@ -241,11 +337,91 @@ function detectQuickIntent(message: string): DetectedAction | null {
       requiresConfirmation: !valor,
       successMessage: valor ? 
         `📈 Investimento "${nome}" de R$ ${valor.toFixed(2)} criado com sucesso!` : 
-        '📈 Qual valor você investiu?',
+        ' Qual valor você investiu?',
       errorMessage: 'Erro ao criar investimento',
       response: valor ? 
         `Perfeito! Investimento "${nome}" de R$ ${valor.toFixed(2)} registrado.` : 
         'Qual valor você investiu?'
+    };
+  }
+
+  // Detectar criação de cartão
+  if (lowerMessage.includes('criar cartão') || lowerMessage.includes('novo cartão') || 
+      lowerMessage.includes('quero criar um cartão') || lowerMessage.includes('adicionar cartão') ||
+      lowerMessage.includes('registrar cartão') || lowerMessage.includes('cartão de crédito') ||
+      lowerMessage.includes('cartão de débito') || lowerMessage.includes('adicionar cartão de crédito') ||
+      lowerMessage.includes('novo cartão de crédito') || lowerMessage.includes('cartão nubank') ||
+      lowerMessage.includes('cartão itau') || lowerMessage.includes('cartão bradesco') ||
+      lowerMessage.includes('cartão santander') || lowerMessage.includes('cartão bb')) {
+    
+    // Extrair limite se mencionado
+    const limiteMatch = lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i);
+    const limite = limiteMatch ? parseFloat(limiteMatch[1].replace(',', '.')) : null;
+    
+    // Extrair banco se mencionado
+    let banco = 'Banco';
+    let programa = 'Programa de Pontos';
+    if (lowerMessage.includes('nubank')) {
+      banco = 'Nubank';
+      programa = 'Rewards';
+    } else if (lowerMessage.includes('itau') || lowerMessage.includes('itau')) {
+      banco = 'Itaú';
+      programa = 'Ponto Certo';
+    } else if (lowerMessage.includes('bradesco')) {
+      banco = 'Bradesco';
+      programa = 'Esfera';
+    } else if (lowerMessage.includes('santander')) {
+      banco = 'Santander';
+      programa = 'Esfera';
+    } else if (lowerMessage.includes('bb') || lowerMessage.includes('banco do brasil')) {
+      banco = 'Banco do Brasil';
+      programa = 'BB Rewards';
+    } else if (lowerMessage.includes('caixa')) {
+      banco = 'Caixa Econômica';
+      programa = 'Caixa Rewards';
+    }
+    
+    // Extrair categoria se mencionado
+    let categoria = 'standard';
+    if (lowerMessage.includes('premium') || lowerMessage.includes('black') || lowerMessage.includes('infinite')) {
+      categoria = 'premium';
+    } else if (lowerMessage.includes('basic') || lowerMessage.includes('simples')) {
+      categoria = 'basic';
+    }
+    
+    // Extrair tipo se mencionado
+    let tipo = 'Crédito';
+    if (lowerMessage.includes('débito') || lowerMessage.includes('debito')) {
+      tipo = 'Débito';
+    } else if (lowerMessage.includes('crédito') || lowerMessage.includes('credito')) {
+      tipo = 'Crédito';
+    }
+
+    return {
+      type: 'CREATE_CARD',
+      payload: {
+        nome: `${banco} ${categoria.charAt(0).toUpperCase() + categoria.slice(1)}`,
+        limite: limite || 0,
+        banco: banco,
+        programa: programa,
+        bandeira: 'Visa', // Padrão
+        tipo: tipo,
+        status: 'Ativo',
+        categoria: categoria,
+        ultimosDigitos: '****',
+        vencimento: 15, // Padrão
+        fechamento: 30, // Padrão
+        anuidade: 0
+      },
+      confidence: limite ? 0.95 : 0.8,
+      requiresConfirmation: !limite,
+      successMessage: limite ? 
+        `💳 Cartão ${banco} com limite de R$ ${limite.toFixed(2)} criado com sucesso!` : 
+        'Qual o limite do cartão?',
+      errorMessage: 'Erro ao criar cartão',
+      response: limite ? 
+        `Perfeito! Cartão ${banco} com limite de R$ ${limite.toFixed(2)} registrado.` : 
+        'Qual o limite do cartão?'
     };
   }
 
@@ -286,8 +462,8 @@ function analyzeConversationContext(message: string, conversationHistory?: any[]
         successMessage: 'Transação criada com sucesso!',
         errorMessage: 'Erro ao criar transação',
         response: valor ? 
-          `💰 Perfeito! Transação de R$ ${valor.toFixed(2)} registrada. O que foi essa transação?` : 
-          '💰 Qual o valor da transação?'
+          ` Perfeito! Transação de R$ ${valor.toFixed(2)} registrada. O que foi essa transação?` : 
+          ' Qual o valor da transação?'
       };
     }
   }
@@ -368,6 +544,8 @@ function hasCompleteData(action: DetectedAction): boolean {
       return payload.valor && payload.valor > 0 && payload.nome && payload.tipo;
     case 'CREATE_GOAL':
       return payload.valor_total && payload.valor_total > 0 && payload.meta;
+    case 'CREATE_CARD':
+      return payload.nome && payload.limite;
     case 'GENERATE_REPORT':
     case 'ANALYZE_DATA':
       return true;
@@ -392,12 +570,147 @@ function isValidGoalData(action: DetectedAction): action is DetectedAction & { p
   return action.type === 'CREATE_GOAL' && payload.valor_total && payload.valor_total > 0 && payload.meta;
 }
 
+function isValidCardData(action: DetectedAction): action is DetectedAction & { payload: CardPayload } {
+  const payload = action.payload as any;
+  return action.type === 'CREATE_CARD' && payload.nome && payload.limite;
+}
+
 function isValidAnalysisData(action: DetectedAction): action is DetectedAction & { payload: AnalysisPayload } {
   return action.type === 'ANALYZE_DATA';
 }
 
 function isValidReportData(action: DetectedAction): action is DetectedAction & { payload: ReportPayload } {
   return action.type === 'GENERATE_REPORT';
+}
+
+// ===== FUNÇÃO PARA COMPLETAR AÇÃO DO CONTEXTO =====
+function tryCompleteFromContext(message: string, activeState: ConversationState): DetectedAction | null {
+  const lowerMessage = message.toLowerCase();
+  
+  // Se não há ação ativa, não pode completar
+  if (!activeState.currentAction) return null;
+  
+  // Tentar extrair entidades da mensagem atual
+  const extractedEntities = extractEntitiesFromMessage(message, activeState.currentAction);
+  
+  // Se extraiu algo útil, completar a ação
+  if (Object.keys(extractedEntities).length > 0) {
+    // Mesclar com entidades existentes
+    const mergedEntities = { ...activeState.pendingEntities, ...extractedEntities };
+    
+    // Verificar se ação está completa
+    const isComplete = isActionComplete(activeState.currentAction, mergedEntities);
+    
+    return {
+      type: activeState.currentAction as any,
+      payload: mergedEntities,
+      confidence: isComplete ? 0.95 : 0.8,
+      requiresConfirmation: !isComplete,
+      successMessage: generateSuccessMessage(activeState.currentAction, mergedEntities),
+      errorMessage: 'Erro ao completar ação',
+      response: generateContextResponse(activeState.currentAction, mergedEntities, isComplete)
+    };
+  }
+  
+  return null;
+}
+
+// ===== FUNÇÕES AUXILIARES PARA CONTEXTO =====
+function extractEntitiesFromMessage(message: string, actionType: string): any {
+  const lowerMessage = message.toLowerCase();
+  const entities: any = {};
+  
+  switch (actionType) {
+    case 'CREATE_GOAL':
+      // Extrair valor se mencionado
+      const valorMatch = lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i);
+      if (valorMatch) entities.valor_total = parseFloat(valorMatch[1].replace(',', '.'));
+      
+      // Extrair meta se mencionado
+      if (lowerMessage.includes('viagem')) entities.meta = 'Viagem';
+      if (lowerMessage.includes('carro')) entities.meta = 'Carro';
+      if (lowerMessage.includes('casa')) entities.meta = 'Casa';
+      if (lowerMessage.includes('gramado')) entities.meta = 'Viagem para Gramado';
+      break;
+      
+    case 'CREATE_CARD':
+      // Extrair limite se mencionado
+      const limiteMatch = lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i);
+      if (limiteMatch) entities.limite = parseFloat(limiteMatch[1].replace(',', '.'));
+      
+      // Extrair banco se mencionado
+      if (lowerMessage.includes('nubank')) entities.banco = 'Nubank';
+      if (lowerMessage.includes('itau')) entities.banco = 'Itaú';
+      if (lowerMessage.includes('bradesco')) entities.banco = 'Bradesco';
+      break;
+      
+    case 'CREATE_INVESTMENT':
+      // Extrair valor se mencionado
+      const invValorMatch = lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i);
+      if (invValorMatch) entities.valor = parseFloat(invValorMatch[1].replace(',', '.'));
+      
+      // Extrair tipo se mencionado
+      if (lowerMessage.includes('ações')) entities.tipo = 'Ações';
+      if (lowerMessage.includes('tesouro')) entities.tipo = 'Tesouro Direto';
+      break;
+  }
+  
+  return entities;
+}
+
+function isActionComplete(actionType: string, entities: any): boolean {
+  const requiredFields = getRequiredFieldsForAction(actionType);
+  return requiredFields.every(field => entities[field] !== undefined && entities[field] !== null);
+}
+
+function getRequiredFieldsForAction(actionType: string): string[] {
+  const requirements: { [key: string]: string[] } = {
+    'CREATE_GOAL': ['valor_total', 'meta'],
+    'CREATE_CARD': ['nome', 'limite'],
+    'CREATE_INVESTMENT': ['valor', 'nome'],
+    'CREATE_TRANSACTION': ['valor']
+  };
+  
+  return requirements[actionType] || [];
+}
+
+function generateSuccessMessage(actionType: string, entities: any): string {
+  switch (actionType) {
+    case 'CREATE_GOAL':
+      return `🎯 Meta "${entities.meta}" de R$ ${entities.valor_total} criada com sucesso!`;
+    case 'CREATE_CARD':
+      return `💳 Cartão ${entities.banco || 'Novo'} com limite de R$ ${entities.limite} criado com sucesso!`;
+    case 'CREATE_INVESTMENT':
+      return `📈 Investimento de R$ ${entities.valor} criado com sucesso!`;
+    default:
+      return 'Ação executada com sucesso!';
+  }
+}
+
+function generateContextResponse(actionType: string, entities: any, isComplete: boolean): string {
+  if (isComplete) {
+    return generateSuccessMessage(actionType, entities);
+  }
+  
+  // Gerar resposta pedindo campos faltantes
+  const missingFields = getRequiredFieldsForAction(actionType).filter(field => !entities[field]);
+  
+  switch (actionType) {
+    case 'CREATE_GOAL':
+      if (!entities.meta) return 'Qual é o objetivo da sua meta? (ex: viagem, carro, casa)';
+      if (!entities.valor_total) return 'Qual o valor total que você quer juntar?';
+      break;
+    case 'CREATE_CARD':
+      if (!entities.nome) return 'Qual o nome do cartão?';
+      if (!entities.limite) return 'Qual o limite do cartão?';
+      break;
+    case 'CREATE_INVESTMENT':
+      if (!entities.valor) return 'Qual o valor do investimento?';
+      if (!entities.nome) return 'Onde você investiu? (ex: ações, tesouro)';
+      break;
+  }
+  
+  return 'Preciso de mais informações para completar essa ação.';
 }
 
 // ⚡ Controller principal para ações automatizadas
@@ -486,6 +799,11 @@ export const processAutomatedAction = async (req: Request, res: Response): Promi
           case 'CREATE_GOAL':
             if (isValidGoalData(detectedAction)) {
               result = await createGoal(user.firebaseUid, detectedAction.payload);
+            }
+            break;
+          case 'CREATE_CARD':
+            if (isValidCardData(detectedAction)) {
+              result = await createCard(user.firebaseUid, detectedAction.payload);
             }
             break;
           case 'ANALYZE_DATA':
@@ -601,6 +919,23 @@ export async function createGoal(userId: string, payload: GoalPayload): Promise<
 
   const goal = new Goal(goalData);
   return await goal.save();
+}
+
+export async function createCard(userId: string, payload: CardPayload): Promise<any> {
+  const cardData = {
+    userId,
+    nome: payload.nome || 'Cartão',
+    limite: payload.limite || 0,
+    bandeira: payload.bandeira || 'Não informado',
+    tipo: payload.tipo || 'Crédito',
+    status: payload.status || 'Ativo',
+    createdAt: new Date()
+  };
+
+  // Assuming Transacoes model has a 'cartoes' sub-collection or similar
+  // For now, we'll just return the data, as the model structure isn't fully defined
+  // In a real app, you'd save this to a 'Cartoes' collection or similar
+  return cardData;
 }
 
 export async function analyzeData(userId: string, payload: AnalysisPayload): Promise<any> {

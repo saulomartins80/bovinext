@@ -789,6 +789,50 @@ export const useOptimizedChat = () => {
     });
   }, [updateState]);
 
+  // Limpar ação pendente manualmente
+  const clearPendingAction = useCallback(() => {
+    setState(prev => ({ ...prev, pendingAction: null }));
+  }, []);
+
+  // ===== DELEÇÃO DE SESSÕES =====
+  const deleteSession = useCallback(async (targetChatId: string): Promise<void> => {
+    try {
+      await chatbotAPI.deleteSession(targetChatId);
+      // Limpar cache da sessão deletada
+      messageCache.current.remove(targetChatId);
+      // Se for a sessão atual, limpar mensagens e chatId
+      if (state.chatId === targetChatId) {
+        setState(prev => ({ ...prev, messages: [], chatId: null }));
+      }
+    } catch (error) {
+      console.error('[useOptimizedChat] Error deleting session:', error);
+      throw error;
+    }
+  }, [state.chatId]);
+
+  const deleteAllSessions = useCallback(async (): Promise<void> => {
+    try {
+      await chatbotAPI.deleteAllSessions();
+      // Limpar todo cache e estado de mensagens
+      messageCache.current.clear();
+      setState(prev => ({ ...prev, messages: [], chatId: null }));
+    } catch (error) {
+      console.error('[useOptimizedChat] Error deleting all sessions:', error);
+      throw error;
+    }
+  }, []);
+
+  // ===== LISTAR SESSÕES (opcional, para futura UI) =====
+  const getSessions = useCallback(async (): Promise<unknown> => {
+    try {
+      const sessions = await chatbotAPI.getSessions();
+      return sessions;
+    } catch (error) {
+      console.error('[useOptimizedChat] Error fetching sessions:', error);
+      throw error;
+    }
+  }, []);
+
   // ===== CLEANUP =====
   useEffect(() => {
     const eventSource = eventSourceRef.current;
@@ -813,6 +857,7 @@ export const useOptimizedChat = () => {
     error: state.error,
     chatId: state.chatId,
     connectionStatus: state.connectionStatus,
+    pendingAction: state.pendingAction,
     
     // Ações
     sendMessage,
@@ -820,6 +865,10 @@ export const useOptimizedChat = () => {
     clearMessages,
     retryLastMessage,
     cancelCurrentRequest,
+    clearPendingAction,
+    deleteSession,
+    deleteAllSessions,
+    getSessions,
     
     // Utilitários
     hasMessages: state.messages.length > 0,

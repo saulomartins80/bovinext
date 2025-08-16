@@ -337,8 +337,18 @@ const EnterpriseMessageBubble: React.FC<{
           ${isStreaming ? 'animate-pulse' : ''}
         `}>
           {/* Conteúdo */}
-          <div className="whitespace-pre-wrap">
-            {typeof message.content === 'string' ? message.content : message.content}
+          <div className="whitespace-pre-wrap leading-relaxed text-sm">
+            {typeof message.content === 'string' ? (
+              <div className="space-y-1 break-words">
+                {message.content.split('\n').map((line, index) => (
+                  <div key={index} className={line.trim() === '' ? 'h-2' : 'leading-6'}>
+                    {line.trim() === '' ? null : line}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              message.content
+            )}
           </div>
           
           {/* Indicador de confiança */}
@@ -468,7 +478,9 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
     clearMessages,
     retryLastMessage,
     cancelCurrentRequest,
-    hasMessages
+    hasMessages,
+    pendingAction,
+    clearPendingAction
   } = useOptimizedChat();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -502,6 +514,25 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
       createSession();
     }
   }, [isOpen, chatId, createSession]);
+
+  // Toast ao iniciar autoexecução
+  useEffect(() => {
+    if (pendingAction?.autoExecute && !pendingAction.executed) {
+      toast.info('Executando ação automaticamente...', { toastId: 'autoexec-start' });
+    }
+  }, [pendingAction?.autoExecute, pendingAction?.executed]);
+
+  // Toast quando ação for executada (auto ou confirmada)
+  useEffect(() => {
+    if (!messages || messages.length === 0) return;
+    const last = messages[messages.length - 1] as EnterpriseMessage;
+    const executed = Array.isArray(last?.metadata?.actions)
+      ? last.metadata.actions.some((a: { executed: boolean }) => a.executed)
+      : false;
+    if (executed) {
+      toast.success('Ação executada com sucesso!');
+    }
+  }, [messages]);
 
   // Handler para envio de mensagem
   const handleSendMessage = useCallback(async (content: string) => {
@@ -665,25 +696,94 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
 
         {/* Input Area */}
         <div className="border-t border-gray-200 dark:border-gray-700 p-4">
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage(inputValue)}
-              placeholder={
-                theme.name === 'Enterprise' 
-                  ? 'Digite sua solicitação financeira...'
-                  : 'Digite sua mensagem...'
-              }
-              className={`flex-1 px-4 py-2 rounded-lg ${theme.inputBg} focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm`}
-              disabled={isLoading || isStreaming}
-            />
+          {/* Banner de confirmação de ação pendente */}
+          {pendingAction && !pendingAction.executed && !pendingAction.autoExecute && (
+            <div className="mb-3 p-3 rounded-lg border border-yellow-300 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20">
+              <div className="text-sm font-medium flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-yellow-600" />
+                Confirma executar a ação detectada?
+              </div>
+              <div className="text-xs text-gray-700 dark:text-gray-300 mt-1 break-words">
+                {pendingAction.action.replace('CREATE_', '').toLowerCase()} — dados: {JSON.stringify(pendingAction.payload)}
+              </div>
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={() => sendMessage('sim', { useStreaming: true })}
+                  className={`px-3 py-1 text-xs rounded ${theme.button} text-white`}
+                >
+                  Confirmar
+                </button>
+                <button
+                  onClick={() => clearPendingAction()}
+                  className="px-3 py-1 text-xs rounded border border-gray-300 dark:border-gray-600"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-end gap-2">
+            <div className="flex-1 relative">
+              <textarea
+                ref={(el) => {
+                  if (el) {
+                    // Auto-resize do textarea
+                    el.style.height = 'auto';
+                    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+                  }
+                }}
+                value={inputValue}
+                onChange={(e) => {
+                  setInputValue(e.target.value);
+                  // Auto-resize em tempo real
+                  const target = e.target;
+                  target.style.height = 'auto';
+                  target.style.height = Math.min(target.scrollHeight, 120) + 'px';
+                }}
+                onKeyDown={(e) => {
+                  // Alt+Enter = nova linha, Enter = enviar
+                  if (e.key === 'Enter' && !e.shiftKey && !e.altKey) {
+                    e.preventDefault();
+                    handleSendMessage(inputValue);
+                  } else if (e.key === 'Enter' && e.altKey) {
+                    // Alt+Enter = nova linha
+                    e.preventDefault();
+                    const cursorPos = e.currentTarget.selectionStart;
+                    const newValue = inputValue.slice(0, cursorPos) + '\n' + inputValue.slice(cursorPos);
+                    setInputValue(newValue);
+                    
+                    // Atualizar cursor para depois da nova linha
+                    setTimeout(() => {
+                      e.currentTarget.setSelectionRange(cursorPos + 1, cursorPos + 1);
+                    }, 0);
+                  }
+                }}
+                placeholder={
+                  theme.name === 'Enterprise' 
+                    ? 'Digite sua solicitação financeira... (Alt+Enter para nova linha)'
+                    : 'Digite sua mensagem... (Alt+Enter para nova linha)'
+                }
+                className={`w-full px-4 py-2 rounded-lg ${theme.inputBg} focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm resize-none overflow-hidden min-h-[40px] max-h-[120px]`}
+                disabled={isLoading || isStreaming}
+                rows={1}
+                style={{ 
+                  minHeight: '40px',
+                  maxHeight: '120px',
+                  lineHeight: '1.5'
+                }}
+              />
+              
+              {/* Indicador de atalhos */}
+              <div className="absolute bottom-1 right-2 text-xs text-gray-400 pointer-events-none">
+                Alt+Enter
+              </div>
+            </div>
             
             {isLoading || isStreaming ? (
               <button
                 onClick={cancelCurrentRequest}
-                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex-shrink-0"
                 title="Cancelar"
               >
                 <X className="w-4 h-4" />
@@ -692,7 +792,8 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
               <button
                 onClick={() => handleSendMessage(inputValue)}
                 disabled={!inputValue.trim()}
-                className={`p-2 ${theme.button} text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`p-2 ${theme.button} text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0`}
+                title="Enviar (Enter)"
               >
                 <Send className="w-4 h-4" />
               </button>

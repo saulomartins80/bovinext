@@ -312,19 +312,21 @@ export class ChatHistoryService {
     }
   }
 
-  async deleteConversation(chatId: string): Promise<void> {
+  async deleteConversation(chatId: string): Promise<number> {
     try {
       console.log(`Excluindo conversa: ${chatId}`);
       // Excluir a conversa do MongoDB - CORRIGIDO: usar deleteMany em vez de deleteOne
-      await ChatMessageModel.deleteMany({ chatId });
-      console.log(`Conversa ${chatId} excluída com sucesso`);
+      const result = await ChatMessageModel.deleteMany({ chatId });
+      const count = result.deletedCount || 0;
+      console.log(`Conversa ${chatId} excluída com sucesso (${count} mensagens removidas)`);
+      return count;
     } catch (error) {
       console.error(error);
       throw new AppError(500, 'Erro ao excluir conversa');
     }
   }
 
-  async deleteAllUserConversations(userId: string): Promise<void> {
+  async deleteAllUserConversations(userId: string): Promise<number> {
     try {
       console.log(`Excluindo todas as conversas do usuário: ${userId}`);
       // Buscar todas as conversas do usuário
@@ -332,12 +334,14 @@ export class ChatHistoryService {
       
       if (chatIds.length === 0) {
         console.log('Nenhuma conversa encontrada para excluir');
-        return;
+        return 0;
       }
 
       // Excluir todas as conversas
-      await ChatMessageModel.deleteMany({ userId });
-      console.log(`${chatIds.length} conversas excluídas com sucesso`);
+      const result = await ChatMessageModel.deleteMany({ userId });
+      const count = result.deletedCount || 0;
+      console.log(`${chatIds.length} conversas (${count} mensagens) excluídas com sucesso`);
+      return count;
     } catch (error) {
       console.error(error);
       throw new AppError(500, 'Erro ao excluir conversas');
