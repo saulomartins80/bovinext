@@ -116,8 +116,8 @@ export default function Cookies() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Política de Cookies | FinNEXTHO - Gerenciar Preferências</title>
-        <meta name="description" content="Política de cookies da FinNEXTHO. Gerencie suas preferências e saiba como utilizamos cookies para melhorar sua experiência." />
+        <title>Política de Cookies | Finnextho - Gerenciar Preferências</title>
+        <meta name="description" content="Política de cookies da Finnextho. Gerencie suas preferências e saiba como utilizamos cookies para melhorar sua experiência." />
       </Head>
       <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
         {/* Cookie Banner */}
@@ -197,7 +197,7 @@ export default function Cookies() {
               </h1>
             </div>
             <p className={`text-xl max-w-3xl mx-auto ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-              Transparência total sobre como utilizamos cookies para melhorar sua experiência na FinNEXTHO.
+              Transparência total sobre como utilizamos cookies para melhorar sua experiência na Finnextho.
             </p>
           </motion.div>
 
@@ -221,7 +221,7 @@ export default function Cookies() {
                     uma experiência personalizada.
                   </p>
                   <p className={`mb-4 ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                    Na FinNEXTHO, utilizamos cookies de forma responsável e transparente, sempre respeitando 
+                    Na Finnextho, utilizamos cookies de forma responsável e transparente, sempre respeitando 
                     sua privacidade e dando a você controle total sobre suas preferências.
                   </p>
                 </div>

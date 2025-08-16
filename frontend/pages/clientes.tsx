@@ -36,7 +36,7 @@ export default function Clientes() {
       role: 'CEO',
       company: 'TechStart Brasil',
       avatar: '/avatars/carlos.jpg',
-      content: 'O FinNEXTHO revolucionou nossa gestão financeira. Com a IA preditiva, conseguimos identificar oportunidades que aumentaram nossos investimentos em 42% no último ano. A plataforma é intuitiva e o suporte é excepcional.',
+      content: 'O Finnextho revolucionou nossa gestão financeira. Com a IA preditiva, conseguimos identificar oportunidades que aumentaram nossos investimentos em 42% no último ano. A plataforma é intuitiva e o suporte é excepcional.',
       rating: 5,
       results: 'Aumento de 42% nos investimentos',
       social: { linkedin: '#', twitter: '#' }
@@ -130,9 +130,9 @@ export default function Clientes() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Clientes e Cases de Sucesso | FinNEXTHO</title>
-        <meta name="description" content="Descubra como nossos clientes transformaram suas finanças com o FinNEXTHO. Cases reais, resultados comprovados." />
-        <meta property="og:title" content="Clientes e Cases de Sucesso | FinNEXTHO" />
+        <title>Clientes e Cases de Sucesso | Finnextho</title>
+        <meta name="description" content="Descubra como nossos clientes transformaram suas finanças com o Finnextho. Cases reais, resultados comprovados." />
+        <meta property="og:title" content="Clientes e Cases de Sucesso | Finnextho" />
         <meta property="og:description" content="Cases reais de sucesso com resultados comprovados" />
       </Head>
 
@@ -198,7 +198,7 @@ export default function Clientes() {
             <h2 className={`text-3xl font-bold mb-4 ${
               resolvedTheme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
-              Empresas que Confiam no FinNEXTHO
+              Empresas que Confiam no Finnextho
             </h2>
           </motion.div>
 

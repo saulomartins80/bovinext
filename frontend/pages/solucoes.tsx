@@ -135,9 +135,9 @@ export default function Solucoes() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Soluções Financeiras Inteligentes | FinNEXTHO</title>
+        <title>Soluções Financeiras Inteligentes | Finnextho</title>
         <meta name="description" content="Descubra nossas soluções financeiras personalizadas com IA integrada para pessoas físicas e empresas" />
-        <meta property="og:title" content="Soluções Financeiras Inteligentes | FinNEXTHO" />
+        <meta property="og:title" content="Soluções Financeiras Inteligentes | Finnextho" />
         <meta property="og:description" content="Transforme sua vida financeira com nossas soluções inteligentes" />
       </Head>
 

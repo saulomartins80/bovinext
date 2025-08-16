@@ -24,3 +24,4 @@ The ResponseBuilder is a utility class to manage response templates and build cu
   - **Enterprise Touch:** Adds corporate jargon for enterprise users.
   - **Urgency Touch:** Emphasizes urgency in responses for critical financial situations.
   - **Welcome Touch:** Adds a welcoming message for new users.
+

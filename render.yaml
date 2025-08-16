@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: theclosen-backend
+    name: finnextho-backend
     env: node
     plan: starter
     rootDir: backend
@@ -26,7 +26,7 @@ services:
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
       - key: FRONTEND_URL
-        value: https://theclosen-frontend.onrender.com
+        value: https://finnextho-frontend.onrender.com
       - key: REDIS_URL
         value: redis://red-d1gsqdvgi27c73c34r8g:6379
       - key: OPENAI_API_KEY
@@ -55,6 +55,6 @@ services:
     autoDeploy: true
 
 databases:
-  - name: theclosen-mongodb
+  - name: finnextho-mongodb
     databaseName: finnextho
     plan: starter 

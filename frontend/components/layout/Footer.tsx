@@ -34,9 +34,9 @@ export const Footer: React.FC = () => {
 
   const socialLinks = [
     { icon: FiGithub, href: 'https://github.com/fin' },
-    { icon: FiTwitter, href: 'https://twitter.com/theclosen' },
-    { icon: FiLinkedin, href: 'https://linkedin.com/company/theclosen' },
-    { icon: FiInstagram, href: 'https://instagram.com/theclosen' },
+    { icon: FiTwitter, href: 'https://twitter.com/finnextho' },
+    { icon: FiLinkedin, href: 'https://linkedin.com/company/finnextho' },
+    { icon: FiInstagram, href: 'https://instagram.com/finnextho' },
   ];
 
   return (

@@ -116,7 +116,7 @@ export default function Comunidade() {
       type: 'presencial',
       attendees: 45,
       maxAttendees: 80,
-      speaker: 'Comunidade FinNEXTHO',
+      speaker: 'Comunidade Finnextho',
       image: '/events/meetup1.jpg'
     }
   ];
@@ -138,7 +138,7 @@ export default function Comunidade() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Comunidade FinNEXTHO | Conecte-se com Investidores</title>
+        <title>Comunidade Finnextho | Conecte-se com Investidores</title>
         <meta name="description" content="Faça parte da maior comunidade de investidores e entusiastas financeiros do Brasil" />
       </Head>
 
@@ -156,7 +156,7 @@ export default function Comunidade() {
             <h1 className={`text-5xl md:text-6xl font-bold mb-6 ${
               resolvedTheme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
-              Comunidade <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">FinNEXTHO</span>
+              Comunidade <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Finnextho</span>
             </h1>
             <p className={`text-xl md:text-2xl mb-8 max-w-3xl mx-auto ${
               resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'

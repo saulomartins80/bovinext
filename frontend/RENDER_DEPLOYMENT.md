@@ -1,4 +1,4 @@
-# Deploy no Render - TheClosen Frontend
+# Deploy no Render - finnextho Frontend
 
 ## Configuração do Render
 
@@ -8,7 +8,7 @@
 - Conecte seu repositório GitHub
 
 ### 2. Configurar Web Service
-- **Nome**: `theclosen-frontend`
+- **Nome**: `finnextho-frontend`
 - **Environment**: `Node`
 - **Build Command**: `npm install && npm run build`
 - **Start Command**: `npm start`
@@ -20,7 +20,7 @@ Configure as seguintes variáveis de ambiente no painel do Render:
 #### Obrigatórias:
 - `NODE_ENV`: `production`
 - `PORT`: `3000`
-- `NEXT_PUBLIC_API_URL`: `https://theclosen-backend.onrender.com`
+- `NEXT_PUBLIC_API_URL`: `https://finnextho-backend.onrender.com`
 - `NEXT_PUBLIC_FIREBASE_API_KEY`: Chave da API Firebase
 - `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`: Domínio de autenticação Firebase
 - `NEXT_PUBLIC_FIREBASE_PROJECT_ID`: ID do projeto Firebase

@@ -66,7 +66,7 @@ export default function Parceiros() {
     {
       icon: FiGlobe,
       title: 'Canais de Distribuição',
-      description: 'Revenda e distribuição de soluções FinNEXTHO',
+      description: 'Revenda e distribuição de soluções Finnextho',
       benefits: ['Margens atrativas', 'Treinamento completo', 'Suporte comercial']
     }
   ];
@@ -94,7 +94,7 @@ export default function Parceiros() {
     {
       icon: FiAward,
       title: 'Reconhecimento',
-      description: 'Destaque como parceiro oficial FinNEXTHO'
+      description: 'Destaque como parceiro oficial Finnextho'
     },
     {
       icon: FiZap,
@@ -106,7 +106,7 @@ export default function Parceiros() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Parceiros | FinNEXTHO - Parcerias Estratégicas</title>
+        <title>Parceiros | Finnextho - Parcerias Estratégicas</title>
         <meta name="description" content="Conheça nossos parceiros e oportunidades de colaboração. Programas de afiliados, integrações tecnológicas e parcerias estratégicas." />
       </Head>
       <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
@@ -131,7 +131,7 @@ export default function Parceiros() {
             <div className="flex items-center justify-center mb-6">
               <FiUsers className={`w-12 h-12 mr-4 ${resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`} />
               <h1 className="text-4xl md:text-5xl font-bold">
-                Parceiros <span className={resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'}>FinNEXTHO</span>
+                Parceiros <span className={resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'}>Finnextho</span>
               </h1>
             </div>
             <p className={`text-xl max-w-3xl mx-auto ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
@@ -204,7 +204,7 @@ export default function Parceiros() {
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold mb-4">Nossos Parceiros</h2>
               <p className={`text-lg ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                Empresas que confiam na FinNEXTHO
+                Empresas que confiam na Finnextho
               </p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
@@ -402,11 +402,11 @@ export default function Parceiros() {
             </p>
             <div className="flex flex-wrap justify-center gap-6">
               <a 
-                href="mailto:parcerias@finnextho.com"
+                href="mailto:parcerias@Finnextho.com"
                 className="inline-flex items-center px-6 py-3 bg-white bg-opacity-20 rounded-lg hover:bg-opacity-30 transition-colors"
               >
                 <FiMail className="w-5 h-5 mr-2" />
-                parcerias@finnextho.com
+                parcerias@Finnextho.com
               </a>
               <a 
                 href="tel:+5511999999999"

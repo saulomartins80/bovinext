@@ -277,7 +277,7 @@ AÇÕES DISPONÍVEIS:
 
 Responda de forma natural e conversacional.`,
 
-    QUICK_HELP: `Responda rapidamente sobre funcionalidades da FinNEXTHO. Seja conciso e direto.`,
+    QUICK_HELP: `Responda rapidamente sobre funcionalidades da Finnextho. Seja conciso e direto.`,
     
     AUTOMATION: `Analise a mensagem e determine se é uma solicitação de automação. Responda em JSON:
 {
@@ -533,3 +533,4 @@ Responda de forma natural e conversacional.`,
 }
 
 export default OptimizedAIService;
+

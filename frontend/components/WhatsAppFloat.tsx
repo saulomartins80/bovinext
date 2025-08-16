@@ -34,9 +34,9 @@ interface WhatsAppFloatProps {
 
 const WhatsAppFloat = ({ 
   phoneNumber = '5511999999999',
-  // message = 'Olá! Gostaria de saber mais sobre o FinNEXTHO.',
+  // message = 'Olá! Gostaria de saber mais sobre o Finnextho.',
   position = 'bottom-right',
-  companyName = 'FinNEXTHO',
+  companyName = 'Finnextho',
   // brandColor = '#10B981'
 }: WhatsAppFloatProps) => {
   const { resolvedTheme } = useTheme();
@@ -57,7 +57,7 @@ const WhatsAppFloat = ({
       role: 'Vendas e Consultoria',
       avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=80&h=80&fit=crop&crop=face',
       phone: phoneNumber,
-      message: 'Olá! Somos a equipe comercial da FinNEXTHO. Como podemos ajudá-lo com nossos serviços financeiros?',
+      message: 'Olá! Somos a equipe comercial da Finnextho. Como podemos ajudá-lo com nossos serviços financeiros?',
       icon: <FaShoppingCart className="w-4 h-4" />,
       status: 'online'
     },
@@ -77,7 +77,7 @@ const WhatsAppFloat = ({
       role: 'Informações Gerais',
       avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=80&h=80&fit=crop&crop=face',
       phone: phoneNumber,
-      message: 'Olá! Como posso ajudá-lo com informações sobre a FinNEXTHO?',
+      message: 'Olá! Como posso ajudá-lo com informações sobre a Finnextho?',
       icon: <FaUser className="w-4 h-4" />,
       status: 'online'
     }
@@ -446,3 +446,4 @@ const WhatsAppFloat = ({
 };
 
 export default WhatsAppFloat;
+

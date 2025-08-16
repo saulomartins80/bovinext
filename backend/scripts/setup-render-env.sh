@@ -6,7 +6,7 @@
 echo "🚀 Configurando variáveis de ambiente no Render..."
 
 # Variáveis que você precisa definir manualmente (substitua pelos valores reais)
-SERVICE_NAME="theclosen-backend"
+SERVICE_NAME="finnextho-backend"
 
 # Configurar variáveis de ambiente
 echo "📝 Configurando variáveis de ambiente..."
@@ -14,7 +14,7 @@ echo "📝 Configurando variáveis de ambiente..."
 # Variáveis com valores padrão
 render env set NODE_ENV production --service $SERVICE_NAME
 render env set PORT 10000 --service $SERVICE_NAME
-render env set FRONTEND_URL "https://theclosen-frontend.onrender.com" --service $SERVICE_NAME
+render env set FRONTEND_URL "https://finnextho-frontend.onrender.com" --service $SERVICE_NAME
 render env set REDIS_URL "redis://red-d1gsqdvgi27c73c34r8g:6379" --service $SERVICE_NAME
 render env set RATE_LIMIT_WINDOW_MS 900000 --service $SERVICE_NAME
 render env set RATE_LIMIT_MAX 1000 --service $SERVICE_NAME

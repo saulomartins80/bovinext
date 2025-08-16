@@ -9,8 +9,8 @@ export default function Empresa() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Empresa | finnextho</title>
-        <meta name="description" content="Sobre a empresa finnextho, missão, visão e valores." />
+        <title>Empresa | Finnextho</title>
+        <meta name="description" content="Sobre a empresa Finnextho, missão, visão e valores." />
       </Head>
       
       <InstitutionalHeader 
@@ -27,7 +27,7 @@ export default function Empresa() {
               <h1 className="text-3xl font-bold">Empresa</h1>
             </div>
             <div className="prose prose-lg max-w-none">
-              <p className={`mb-6 ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>A FinNEXTHO nasceu para revolucionar a gestão financeira no Brasil. Nossa missão é democratizar o acesso à inteligência financeira de ponta, promovendo autonomia, segurança e crescimento para pessoas e empresas.</p>
+              <p className={`mb-6 ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>A Finnextho nasceu para revolucionar a gestão financeira no Brasil. Nossa missão é democratizar o acesso à inteligência financeira de ponta, promovendo autonomia, segurança e crescimento para pessoas e empresas.</p>
               <ul className={`space-y-2 ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                 <li>• <strong>Missão:</strong> Empoderar pessoas e empresas com tecnologia financeira inovadora.</li>
                 <li>• <strong>Visão:</strong> Ser referência em soluções financeiras inteligentes na América Latina.</li>

@@ -63,9 +63,9 @@ export default function Contato() {
     {
       icon: <FiMail className="w-6 h-6" />,
       title: 'Email',
-      value: 'suporte@finnextho.com',
+      value: 'suporte@Finnextho.com',
       description: 'Resposta em até 2 horas',
-      action: 'mailto:suporte@finnextho.com'
+      action: 'mailto:suporte@Finnextho.com'
     },
     {
       icon: <FiPhone className="w-6 h-6" />,
@@ -136,9 +136,9 @@ export default function Contato() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Contato e Suporte | FinNEXTHO</title>
+        <title>Contato e Suporte | Finnextho</title>
         <meta name="description" content="Entre em contato conosco. Suporte 24/7, demonstrações gratuitas e consultoria personalizada." />
-        <meta property="og:title" content="Contato e Suporte | FinNEXTHO" />
+        <meta property="og:title" content="Contato e Suporte | Finnextho" />
         <meta property="og:description" content="Fale conosco e transforme suas finanças hoje mesmo" />
       </Head>
 

@@ -10,8 +10,8 @@ export default function Termos() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Termos de Serviço | finnextho</title>
-        <meta name="description" content="Termos de serviço e condições de uso da plataforma finnextho" />
+        <title>Termos de Serviço | Finnextho</title>
+        <meta name="description" content="Termos de serviço e condições de uso da plataforma Finnextho" />
       </Head>
 
       <InstitutionalHeader 
@@ -38,7 +38,7 @@ export default function Termos() {
               <section className="mb-8">
                 <h2 className="text-2xl font-semibold mb-4">1. Aceitação dos Termos</h2>
                 <p className={`${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                  Ao acessar e usar a plataforma FinNEXTHO, você concorda em cumprir e estar vinculado a estes Termos de Serviço. 
+                  Ao acessar e usar a plataforma Finnextho, você concorda em cumprir e estar vinculado a estes Termos de Serviço. 
                   Se você não concordar com qualquer parte destes termos, não deve usar nossos serviços.
                 </p>
               </section>
@@ -138,7 +138,7 @@ export default function Termos() {
               <section className="mb-8">
                 <h2 className="text-2xl font-semibold mb-4">7. Propriedade Intelectual</h2>
                 <p className={`mb-4 ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                  Todo o conteúdo, software, design e funcionalidades da plataforma FinNEXTHO são protegidos por direitos autorais, 
+                  Todo o conteúdo, software, design e funcionalidades da plataforma Finnextho são protegidos por direitos autorais, 
                   marcas registradas e outras leis de propriedade intelectual. Você não pode copiar, modificar, distribuir ou 
                   criar trabalhos derivados sem nossa autorização expressa.
                 </p>
@@ -181,7 +181,7 @@ export default function Termos() {
                 </p>
                 <div className={`${resolvedTheme === 'dark' ? 'bg-gray-700' : 'bg-gray-50'} rounded-lg p-6`}>
                   <p className={`mb-2 ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                    <strong>Email:</strong> juridico@finnextho.com
+                    <strong>Email:</strong> juridico@Finnextho.com
                   </p>
                   <p className={`mb-2 ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                     <strong>Telefone:</strong> (11) 9999-9999

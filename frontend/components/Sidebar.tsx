@@ -149,8 +149,8 @@ export default function Sidebar({
           >
             <div className="w-8 h-8 flex items-center justify-center relative">
               <Image
-                src="/finnextho.png"
-                alt="Logo FinNEXTHO"
+                src="/Finnextho.png"
+                alt="Logo Finnextho"
                 width={32}
                 height={32}
                 priority
@@ -168,7 +168,7 @@ export default function Sidebar({
           >
             <div className="w-8 h-8 flex items-center justify-center relative">
               <Image
-                src="/finnextho.png"
+                src="/Finnextho.png"
                 alt="Logo Finnextho"
                 width={32}
                 height={32}

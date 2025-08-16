@@ -94,7 +94,7 @@ export default function TwoFactorAuthSetup({ onComplete, currentStatus }: TwoFac
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   // const [qrCodeUri, setQrCodeUri] = useState(''); // Commented out as it's used but not displayed
-  const [userEmail] = useState('usuario@finnextho.com');
+  const [userEmail] = useState('usuario@Finnextho.com');
   const [selectedApp, setSelectedApp] = useState<AuthApp | null>(null);
   const [showSecret, setShowSecret] = useState(false);
   const [backupCodesDownloaded, setBackupCodesDownloaded] = useState(false);
@@ -208,7 +208,7 @@ export default function TwoFactorAuthSetup({ onComplete, currentStatus }: TwoFac
     }
 
     // Criar URI padrão otpauth para apps autenticadores (não usado no momento)
-    // const issuer = 'FinNEXTHO';
+    // const issuer = 'Finnextho';
     // const accountName = userEmail;
     // const uri = `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(accountName)}?secret=${newSecret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
 
@@ -234,7 +234,7 @@ export default function TwoFactorAuthSetup({ onComplete, currentStatus }: TwoFac
 
   const handleCopyBackupCodes = useCallback(() => {
     try {
-      const codesText = `FinNEXTHO - Códigos de Backup 2FA\nGerados em: ${new Date().toLocaleString()}\n\n${backupCodes.join('\n')}\n\nGuarde estes códigos em local seguro. Cada código pode ser usado apenas uma vez.`;
+      const codesText = `Finnextho - Códigos de Backup 2FA\nGerados em: ${new Date().toLocaleString()}\n\n${backupCodes.join('\n')}\n\nGuarde estes códigos em local seguro. Cada código pode ser usado apenas uma vez.`;
       navigator.clipboard.writeText(codesText);
       safeToast('success', 'Códigos de backup copiados para a área de transferência!');
     } catch (error) {
@@ -245,13 +245,13 @@ export default function TwoFactorAuthSetup({ onComplete, currentStatus }: TwoFac
 
   const handleDownloadBackupCodes = useCallback(() => {
     try {
-      const codesText = `FinNEXTHO - Códigos de Backup 2FA\nGerados em: ${new Date().toLocaleString()}\n\n${backupCodes.join('\n')}\n\nGuarde estes códigos em local seguro. Cada código pode ser usado apenas uma vez.`;
+      const codesText = `Finnextho - Códigos de Backup 2FA\nGerados em: ${new Date().toLocaleString()}\n\n${backupCodes.join('\n')}\n\nGuarde estes códigos em local seguro. Cada código pode ser usado apenas uma vez.`;
       
       const blob = new Blob([codesText], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `finnextho-backup-codes-${new Date().toISOString().split('T')[0]}.txt`;
+      link.download = `Finnextho-backup-codes-${new Date().toISOString().split('T')[0]}.txt`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -776,7 +776,7 @@ export default function TwoFactorAuthSetup({ onComplete, currentStatus }: TwoFac
           
           <div className="mt-3 text-xs text-gray-500 dark:text-gray-400 space-y-1">
             <p><strong>Nome da conta:</strong> {userEmail}</p>
-            <p><strong>Emissor:</strong> FinNEXTHO</p>
+            <p><strong>Emissor:</strong> Finnextho</p>
           </div>
         </div>
 
@@ -791,7 +791,7 @@ export default function TwoFactorAuthSetup({ onComplete, currentStatus }: TwoFac
                 <li>Abra seu aplicativo autenticador</li>
                 <li>Toque em &ldquo;Adicionar conta&rdquo; ou &ldquo;+&rdquo;</li>
                 <li>Escaneie este QR code ou digite o código manual</li>
-                <li>Sua conta FinNEXTHO aparecerá no app</li>
+                <li>Sua conta Finnextho aparecerá no app</li>
               </ol>
             </div>
           </div>

@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "Backend da aplicação TheClosen",
+  "description": "Backend da aplicação finnextho",
   "main": "dist/index.js",
   "engines": {
     "node": ">=20.0.0",
@@ -140,3 +140,4 @@
     "@modules": "src/modules"
   }
 }
+

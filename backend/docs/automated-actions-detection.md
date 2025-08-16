@@ -120,3 +120,4 @@ The system is implemented in `src/controllers/automatedActionsController.ts` wit
 - `analyzeConversationContext()` - Context-aware analysis
 - `detectFullIntent()` - AI-powered complete analysis
 - `executeActionInternal()` - Execute detected actions
+

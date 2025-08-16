@@ -134,9 +134,9 @@ export default function Recursos() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Recursos e Funcionalidades | FinNEXTHO</title>
-        <meta name="description" content="Descubra todos os recursos avançados da plataforma FinNEXTHO. IA preditiva, automação financeira e muito mais." />
-        <meta property="og:title" content="Recursos e Funcionalidades | FinNEXTHO" />
+        <title>Recursos e Funcionalidades | Finnextho</title>
+        <meta name="description" content="Descubra todos os recursos avançados da plataforma Finnextho. IA preditiva, automação financeira e muito mais." />
+        <meta property="og:title" content="Recursos e Funcionalidades | Finnextho" />
         <meta property="og:description" content="Recursos avançados para transformar suas finanças" />
       </Head>
 

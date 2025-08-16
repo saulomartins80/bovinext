@@ -165,8 +165,8 @@ export default function Carreiras() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Carreiras | finnextho - Trabalhe Conosco</title>
-        <meta name="description" content="Faça parte do time finnextho. Vagas em tecnologia, produto, financeiro e marketing. Ambiente inovador e benefícios excepcionais." />
+        <title>Carreiras | Finnextho - Trabalhe Conosco</title>
+        <meta name="description" content="Faça parte do time Finnextho. Vagas em tecnologia, produto, financeiro e marketing. Ambiente inovador e benefícios excepcionais." />
       </Head>
       
       <InstitutionalHeader 
@@ -188,7 +188,7 @@ export default function Carreiras() {
               <div className="flex items-center justify-center mb-6">
                 <FiUsers className="w-12 h-12 text-blue-600 mr-4" />
                 <h1 className="text-5xl font-bold">
-                  Carreiras na <span className="text-blue-600">FinNEXTHO</span>
+                  Carreiras na <span className="text-blue-600">Finnextho</span>
                 </h1>
               </div>
               <p className={`text-xl max-w-3xl mx-auto mb-8 ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
@@ -220,7 +220,7 @@ export default function Carreiras() {
               transition={{ duration: 0.8 }}
               className="text-center mb-12"
             >
-              <h2 className="text-3xl font-bold mb-4">Por que Trabalhar na FinNEXTHO?</h2>
+              <h2 className="text-3xl font-bold mb-4">Por que Trabalhar na Finnextho?</h2>
               <p className={`text-lg ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                 Oferecemos um ambiente de trabalho excepcional com benefícios únicos
               </p>
@@ -364,7 +364,7 @@ export default function Carreiras() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a 
-                  href="mailto:carreiras@finnextho.com" 
+                  href="mailto:carreiras@Finnextho.com" 
                   className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                 >
                   Enviar Currículo

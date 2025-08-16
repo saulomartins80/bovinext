@@ -173,3 +173,4 @@ const suggestions = await aiService.getImprovementSuggestions();
 - Secure API communications
 - Input validation and sanitization
 - Rate limiting and abuse prevention
+

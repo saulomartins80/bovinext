@@ -177,9 +177,9 @@ export default function Precos() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Planos e Preços | FinNEXTHO</title>
+        <title>Planos e Preços | Finnextho</title>
         <meta name="description" content="Escolha o plano ideal para suas necessidades financeiras. Teste grátis por 14 dias, sem compromisso." />
-        <meta property="og:title" content="Planos e Preços | FinNEXTHO" />
+        <meta property="og:title" content="Planos e Preços | Finnextho" />
         <meta property="og:description" content="Planos flexíveis para todas as necessidades financeiras" />
       </Head>
 

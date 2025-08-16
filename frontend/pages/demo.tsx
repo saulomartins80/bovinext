@@ -142,10 +142,10 @@ export default function Demo() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Demonstração Interativa | FinNEXTHO</title>
-        <meta name="description" content="Veja o FinNEXTHO em ação! Demonstração completa com vídeos interativos e recursos em tempo real." />
-        <meta property="og:title" content="Demonstração Interativa | FinNEXTHO" />
-        <meta property="og:description" content="Descubra como o FinNEXTHO pode transformar suas finanças" />
+        <title>Demonstração Interativa | Finnextho</title>
+        <meta name="description" content="Veja o Finnextho em ação! Demonstração completa com vídeos interativos e recursos em tempo real." />
+        <meta property="og:title" content="Demonstração Interativa | Finnextho" />
+        <meta property="og:description" content="Descubra como o Finnextho pode transformar suas finanças" />
         <meta property="og:video" content="/demos/hero-demo.mp4" />
       </Head>
 
@@ -163,7 +163,7 @@ export default function Demo() {
             <h1 className={`text-5xl md:text-6xl font-bold mb-6 ${
               resolvedTheme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
-              Veja o FinNEXTHO <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">em Ação</span>
+              Veja o Finnextho <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">em Ação</span>
             </h1>
             <p className={`text-xl md:text-2xl mb-8 max-w-3xl mx-auto ${
               resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'
@@ -530,3 +530,4 @@ export default function Demo() {
     </div>
   );
 }
+

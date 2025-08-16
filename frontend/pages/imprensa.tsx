@@ -26,7 +26,7 @@ export default function Imprensa() {
 
   const pressReleases = [
     {
-      title: 'FinNEXTHO Anuncia Expansão para Novos Mercados',
+      title: 'Finnextho Anuncia Expansão para Novos Mercados',
       date: '15 Jan 2025',
       summary: 'Plataforma de gestão financeira com IA expande operações para atender pequenas e médias empresas.',
       category: 'Expansão'
@@ -38,7 +38,7 @@ export default function Imprensa() {
       category: 'Produto'
     },
     {
-      title: 'FinNEXTHO Alcança Marco de 10.000 Usuários Ativos',
+      title: 'Finnextho Alcança Marco de 10.000 Usuários Ativos',
       date: '20 Dez 2024',
       summary: 'Crescimento de 300% em 2024 consolida posição no mercado de fintechs brasileiras.',
       category: 'Milestone'
@@ -97,8 +97,8 @@ export default function Imprensa() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Imprensa | FinNEXTHO - Kit de Imprensa e Releases</title>
-        <meta name="description" content="Kit de imprensa, releases, materiais para jornalistas e contatos da FinNEXTHO. Informações oficiais para mídia." />
+        <title>Imprensa | Finnextho - Kit de Imprensa e Releases</title>
+        <meta name="description" content="Kit de imprensa, releases, materiais para jornalistas e contatos da Finnextho. Informações oficiais para mídia." />
       </Head>
       <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
         {/* Header */}
@@ -126,7 +126,7 @@ export default function Imprensa() {
               </h1>
             </div>
             <p className={`text-xl max-w-3xl mx-auto ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-              Recursos, materiais e informações oficiais da FinNEXTHO para jornalistas e veículos de comunicação.
+              Recursos, materiais e informações oficiais da Finnextho para jornalistas e veículos de comunicação.
             </p>
           </motion.div>
 
@@ -267,7 +267,7 @@ export default function Imprensa() {
                 <div className="text-center mb-8">
                   <h2 className="text-3xl font-bold mb-4">Fatos & Números</h2>
                   <p className={`text-lg ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                    Dados oficiais da FinNEXTHO
+                    Dados oficiais da Finnextho
                   </p>
                 </div>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -299,12 +299,12 @@ export default function Imprensa() {
                     <div className="md:col-span-2">
                       <h4 className="text-xl font-semibold mb-3">Saulo Chagas da Silva Martins</h4>
                       <p className={`mb-4 ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                        CEO e Fundador da FinNEXTHO, Saulo é um empreendedor visionário com mais de 10 anos de experiência 
+                        CEO e Fundador da Finnextho, Saulo é um empreendedor visionário com mais de 10 anos de experiência 
                         no mercado financeiro e tecnológico. Formado em Engenharia de Software, possui especialização em 
                         Inteligência Artificial e Finanças.
                       </p>
                       <p className={`${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                        Antes de fundar a FinNEXTHO, trabalhou em grandes instituições financeiras e startups de tecnologia, 
+                        Antes de fundar a Finnextho, trabalhou em grandes instituições financeiras e startups de tecnologia, 
                         desenvolvendo soluções inovadoras para democratizar o acesso a serviços financeiros inteligentes.
                       </p>
                     </div>

@@ -101,3 +101,4 @@ Mentor mode is activated when:
 - Crisis protocol has automatic activation thresholds
 - Mentor mode requires Top plan or higher
 - All modes maintain conversation context and user history
+

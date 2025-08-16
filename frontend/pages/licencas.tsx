@@ -104,10 +104,10 @@ export default function Licencas() {
 
   const proprietaryLicenses = [
     {
-      component: 'FinNEXTHO Platform',
+      component: 'Finnextho Platform',
       license: 'Proprietária',
-      description: 'Código-fonte principal da plataforma FinNEXTHO',
-      rights: 'Todos os direitos reservados à FinNEXTHO Ltda.'
+      description: 'Código-fonte principal da plataforma Finnextho',
+      rights: 'Todos os direitos reservados à Finnextho Ltda.'
     },
     {
       component: 'Algoritmos de IA',
@@ -119,7 +119,7 @@ export default function Licencas() {
       component: 'Design System',
       license: 'Proprietária',
       description: 'Identidade visual, logotipos e elementos de marca',
-      rights: 'Marca registrada FinNEXTHO®'
+      rights: 'Marca registrada Finnextho®'
     },
     {
       component: 'Conteúdo Editorial',
@@ -142,8 +142,8 @@ export default function Licencas() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Licenças e Atribuições | FinNEXTHO - Open Source e Propriedade Intelectual</title>
-        <meta name="description" content="Informações sobre licenças de software, atribuições, direitos autorais e propriedade intelectual da FinNEXTHO. Transparência total sobre nossas dependências." />
+        <title>Licenças e Atribuições | Finnextho - Open Source e Propriedade Intelectual</title>
+        <meta name="description" content="Informações sobre licenças de software, atribuições, direitos autorais e propriedade intelectual da Finnextho. Transparência total sobre nossas dependências." />
       </Head>
       <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
         {/* Header */}
@@ -171,7 +171,7 @@ export default function Licencas() {
               </h1>
             </div>
             <p className={`text-xl max-w-3xl mx-auto ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-              Transparência total sobre as tecnologias, licenças e atribuições que tornam a FinNEXTHO possível.
+              Transparência total sobre as tecnologias, licenças e atribuições que tornam a Finnextho possível.
             </p>
           </motion.div>
 
@@ -327,7 +327,7 @@ export default function Licencas() {
                 <div className="text-center mb-8">
                   <h2 className="text-3xl font-bold mb-4">Propriedade Intelectual</h2>
                   <p className={`text-lg ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                    Componentes proprietários e direitos autorais da FinNEXTHO
+                    Componentes proprietários e direitos autorais da Finnextho
                   </p>
                 </div>
                 <div className="grid gap-6">
@@ -374,7 +374,7 @@ export default function Licencas() {
               <FiHeart className="w-12 h-12 mx-auto mb-4" />
               <h2 className="text-2xl font-bold mb-4">Agradecimentos à Comunidade Open Source</h2>
               <p className="text-lg mb-6 opacity-90">
-                A FinNEXTHO existe graças ao trabalho incansável da comunidade open source mundial. 
+                A Finnextho existe graças ao trabalho incansável da comunidade open source mundial. 
                 Nosso profundo agradecimento a todos os desenvolvedores que contribuem para um mundo mais aberto e colaborativo.
               </p>
               <div className="flex flex-wrap justify-center gap-6">
@@ -414,9 +414,9 @@ export default function Licencas() {
                 <div>
                   <h3 className="font-semibold mb-3">Direitos Autorais</h3>
                   <p className={`mb-4 ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                    2024 FinNEXTHO Ltda. Todos os direitos reservados. O conteúdo desta plataforma, 
+                    2024 Finnextho Ltda. Todos os direitos reservados. O conteúdo desta plataforma, 
                     incluindo textos, gráficos, logotipos, ícones, imagens, clipes de áudio e software, 
-                    é propriedade da FinNEXTHO ou de seus fornecedores de conteúdo.
+                    é propriedade da Finnextho ou de seus fornecedores de conteúdo.
                   </p>
                 </div>
                 <div>

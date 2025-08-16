@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: theclosen-backend
+    name: finnextho-backend
     env: node
     plan: starter
     buildCommand: npm run build:no-lint
@@ -22,6 +22,6 @@ services:
     autoDeploy: true
 
 databases:
-  - name: theclosen-mongodb
+  - name: finnextho-mongodb
     databaseName: finnextho
     plan: starter 

@@ -123,8 +123,8 @@ export default function Blog() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Blog | finnextho - Educação Financeira e Tecnologia</title>
-        <meta name="description" content="Artigos sobre educação financeira, investimentos, tecnologia e tendências do mercado. Conteúdo exclusivo da finnextho para sua evolução financeira." />
+        <title>Blog | Finnextho - Educação Financeira e Tecnologia</title>
+        <meta name="description" content="Artigos sobre educação financeira, investimentos, tecnologia e tendências do mercado. Conteúdo exclusivo da Finnextho para sua evolução financeira." />
       </Head>
       
       <InstitutionalHeader 
@@ -146,7 +146,7 @@ export default function Blog() {
               <div className="flex items-center justify-center mb-6">
                 <FiBookOpen className="w-12 h-12 text-blue-600 mr-4" />
                 <h1 className="text-5xl font-bold">
-                  Blog <span className="text-blue-600">FinNEXTHO</span>
+                  Blog <span className="text-blue-600">Finnextho</span>
                 </h1>
               </div>
               <p className={`text-xl max-w-3xl mx-auto mb-8 ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>

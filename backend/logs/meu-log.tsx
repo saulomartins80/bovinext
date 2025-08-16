@@ -15,3 +15,4 @@ export interface LogEntry {
 export const logs: LogEntry[] = [];
 
 export default logs;
+

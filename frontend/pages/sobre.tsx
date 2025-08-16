@@ -110,8 +110,8 @@ export default function Sobre() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Sobre | finnextho</title>
-        <meta name="description" content="Conheça a história, missão e equipe da finnextho. Transformando a relação das pessoas com o dinheiro através da tecnologia e IA." />
+        <title>Sobre | Finnextho</title>
+        <meta name="description" content="Conheça a história, missão e equipe da Finnextho. Transformando a relação das pessoas com o dinheiro através da tecnologia e IA." />
       </Head>
       
       <InstitutionalHeader 
@@ -131,7 +131,7 @@ export default function Sobre() {
               transition={{ duration: 0.8 }}
             >
               <h1 className="text-5xl font-bold mb-6">
-                Sobre a <span className="text-blue-600">FinNEXTHO</span>
+                Sobre a <span className="text-blue-600">Finnextho</span>
               </h1>
               <p className={`text-xl max-w-3xl mx-auto mb-12 ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                 Transformamos a relação das pessoas com o dinheiro através da tecnologia, 
@@ -198,7 +198,7 @@ export default function Sobre() {
                   <div className="grid md:grid-cols-2 gap-8">
                     <div>
                       <p className={`text-lg mb-6 ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-                        A FinNEXTHO nasceu da frustração de nossos fundadores com as ferramentas financeiras 
+                        A Finnextho nasceu da frustração de nossos fundadores com as ferramentas financeiras 
                         tradicionais. Em 2023, decidimos criar uma plataforma que combinasse inteligência 
                         artificial com design intuitivo para democratizar o acesso a gestão financeira profissional.
                       </p>

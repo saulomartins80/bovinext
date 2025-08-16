@@ -108,4 +108,4 @@ Para suporte, envie um email para suporte@finnextho.com ou abra uma issue no Git
 
 ---
 
-**Finnetho** - Transformando a gestão financeira pessoal com tecnologia avançada. 
+**Finnextho** - Transformando a gestão financeira pessoal com tecnologia avançada. 

@@ -84,8 +84,8 @@ export default function Seguranca() {
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>Segurança | finnextho - Proteção de Dados e Privacidade</title>
-        <meta name="description" content="Conheça as medidas de segurança da finnextho. Criptografia AES-256, monitoramento 24/7, conformidade LGPD e certificações internacionais." />
+        <title>Segurança | Finnextho - Proteção de Dados e Privacidade</title>
+        <meta name="description" content="Conheça as medidas de segurança da Finnextho. Criptografia AES-256, monitoramento 24/7, conformidade LGPD e certificações internacionais." />
       </Head>
       
       <InstitutionalHeader 
@@ -107,7 +107,7 @@ export default function Seguranca() {
               <div className="flex items-center justify-center mb-6">
                 <FiShield className="w-12 h-12 text-blue-600 mr-4" />
                 <h1 className="text-5xl font-bold">
-                  Segurança <span className="text-blue-600">FinNEXTHO</span>
+                  Segurança <span className="text-blue-600">Finnextho</span>
                 </h1>
               </div>
               <p className={`text-xl max-w-3xl mx-auto mb-8 ${resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
@@ -287,7 +287,7 @@ export default function Seguranca() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a 
-                  href="mailto:security@finnextho.com" 
+                  href="mailto:security@Finnextho.com" 
                   className="bg-red-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
                 >
                   Reportar Vulnerabilidade

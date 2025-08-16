@@ -97,7 +97,7 @@ app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:3000',
     'http://localhost:3000',
-    'https://theclosen-frontend.vercel.app',
+    'https://finnextho-frontend.vercel.app',
     'https://finnextho-frontend.onrender.com',
     'https://accounts.google.com',
     'https://finnextho.com',
@@ -337,3 +337,4 @@ const startServer = async () => {
 startServer();
 
 export default app;
+
