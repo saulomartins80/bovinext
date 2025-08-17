@@ -78,8 +78,11 @@ class AutomationEngine {
   }
 
   private setupActionHandlers(): void {
+    this.actionHandlers.set('create_transaction', this.handleCreateTransaction.bind(this));
     this.actionHandlers.set('CREATE_TRANSACTION', this.handleCreateTransaction.bind(this));
+    this.actionHandlers.set('create_goal', this.handleCreateGoal.bind(this));
     this.actionHandlers.set('CREATE_GOAL', this.handleCreateGoal.bind(this));
+    this.actionHandlers.set('create_investment', this.handleCreateInvestment.bind(this));
     this.actionHandlers.set('CREATE_INVESTMENT', this.handleCreateInvestment.bind(this));
     this.actionHandlers.set('CREATE_CARD', this.handleCreateCard.bind(this));
     this.actionHandlers.set('ANALYZE_DATA', this.handleAnalyzeData.bind(this));
@@ -91,9 +94,16 @@ class AutomationEngine {
     message: string;
     data?: any;
   }> {
+    console.log(`[AutomationEngine] 🚀 Executando ação: ${intent}`);
+    console.log(`[AutomationEngine] 📊 Entidades recebidas:`, JSON.stringify(entities, null, 2));
+    console.log(`[AutomationEngine] 👤 UserId:`, userId);
+    
     const handler = this.actionHandlers.get(intent);
+    console.log(`[AutomationEngine] 🔍 Handler encontrado:`, !!handler);
+    console.log(`[AutomationEngine] 📋 Handlers disponíveis:`, Array.from(this.actionHandlers.keys()));
     
     if (!handler) {
+      console.log(`[AutomationEngine] ❌ Handler não encontrado para intent: ${intent}`);
       return {
         success: false,
         message: 'Ação não reconhecida. Como posso te ajudar?'
@@ -101,9 +111,12 @@ class AutomationEngine {
     }
 
     try {
-      return await handler(entities, userId);
+      console.log(`[AutomationEngine] ⚡ Chamando handler para: ${intent}`);
+      const result = await handler(entities, userId);
+      console.log(`[AutomationEngine] ✅ Resultado do handler:`, JSON.stringify(result, null, 2));
+      return result;
     } catch (error) {
-      console.error(`[AutomationEngine] Error executing ${intent}:`, error);
+      console.error(`[AutomationEngine] ❌ Error executing ${intent}:`, error);
       return {
         success: false,
         message: 'Ops! Tive um problema ao executar essa ação. Pode tentar novamente?'
@@ -126,17 +139,25 @@ class AutomationEngine {
     }
 
     try {
-      // 🆕 CRIAR TRANSACTION REAL NO MONGODB
-      const Transacao = require('../models/Transacoes'); // Importar modelo correto
+      // Buscar usuário pelo firebaseUid para obter ObjectId
+      const User = require('../models/User');
+      const user = await User.findOne({ firebaseUid: userId });
+      if (!user) {
+        throw new Error('Usuário não encontrado');
+      }
+
+      // CRIAR TRANSACTION REAL NO MONGODB
+      const Transacao = require('../models/Transacoes');
       
       const transactionData = {
-        userId: userId, // String, não ObjectId
+        userId: user._id, // Usar ObjectId correto
         valor: parseFloat(entities.valor),
         descricao: entities.descricao || 'Transação via chat',
         tipo: entities.tipo || 'despesa',
-        categoria: entities.categoria || 'outros',
+        categoria: entities.categoria || 'Geral',
         data: entities.data ? new Date(entities.data) : new Date(),
-        conta: entities.conta || 'Conta Principal' // Campo obrigatório do schema
+        conta: entities.conta || 'Principal',
+        createdAt: new Date()
       };
 
       console.log('[AutomationEngine] Saving transaction to MongoDB:', transactionData);
@@ -159,43 +180,54 @@ class AutomationEngine {
   }
 
   private async handleCreateGoal(entities: any, userId: string): Promise<any> {
-    const requiredFields = ['valor_total', 'meta'];
-    const missingFields = requiredFields.filter(field => !entities[field]);
-
-    if (missingFields.length > 0) {
+    console.log('[AutomationEngine] 🎯 Processando criação de META');
+    console.log('[AutomationEngine] 📊 Entidades para meta:', JSON.stringify(entities, null, 2));
+    
+    // Verificar se temos dados suficientes - usar valor ou valor_total
+    const valor = entities.valor_total || entities.valor;
+    if (!valor || valor <= 0) {
+      console.log('[AutomationEngine] ❌ Valor da meta não encontrado ou inválido');
       return {
         success: false,
-        message: 'Para criar a meta, preciso saber o valor total e o objetivo. Pode me contar mais?',
         requiresInput: true,
-        missingFields
+        message: `Para criar uma meta, preciso saber o valor objetivo. Exemplo: "Quero juntar R$ 1000". Pode me informar?`,
+        missingFields: ['valor_total']
       };
     }
 
     try {
-      // SALVAR NO MONGODB DE VERDADE
+      // Buscar usuário no MongoDB
+      const User = require('../models/User');
+      const user = await User.findOne({ firebaseUid: userId });
+      if (!user) {
+        throw new Error('Usuário não encontrado');
+      }
+
+      console.log('[AutomationEngine] 👤 Usuário encontrado:', user._id);
+
       const goalData = {
-        userId: new ObjectId(userId),
-        meta: entities.meta,
-        valor_total: entities.valor_total,
-        valor_atual: 0,
-        data_conclusao: entities.data_conclusao ? new Date(entities.data_conclusao) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 ano se não especificado
-        categoria: entities.categoria || 'Geral',
-        prioridade: entities.prioridade || 'media',
-        descricao: entities.descricao || '',
+        userId: user._id,
+        nome: entities.nome || entities.descricao || 'Meta financeira',
+        valorTotal: parseFloat(valor),
+        valorAtual: 0,
+        categoria: entities.categoria || 'Economia',
+        prazo: entities.prazo || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 ano padrão
+        status: 'ativa',
         createdAt: new Date()
       };
 
-      console.log('[AutomationEngine] Saving goal to MongoDB:', goalData);
+      console.log('[AutomationEngine] 💾 Salvando meta no MongoDB:', goalData);
+      const Goal = require('../models/Goal');
       const savedGoal = await Goal.create(goalData);
-      console.log('[AutomationEngine] Goal saved successfully:', savedGoal._id);
+      console.log('[AutomationEngine] ✅ Meta salva com sucesso:', savedGoal._id);
 
       return {
         success: true,
-        message: `🎯 Meta "${entities.meta}" de R$ ${entities.valor_total} criada com sucesso! Vamos alcançá-la juntos!`,
+        message: `🎯 Meta de R$ ${valor.toFixed(2)} criada com sucesso! Já está no seu painel.`,
         data: savedGoal
       };
     } catch (error) {
-      console.error('[AutomationEngine] Error saving goal:', error);
+      console.error('[AutomationEngine] ❌ Erro ao salvar meta:', error);
       return {
         success: false,
         message: 'Erro ao criar a meta. Tente novamente.',
@@ -205,51 +237,56 @@ class AutomationEngine {
   }
 
   private async handleCreateInvestment(entities: any, userId: string): Promise<any> {
-    const requiredFields = ['valor', 'nome'];
-    const missingFields = requiredFields.filter(field => !entities[field]);
-
-    if (missingFields.length > 0) {
+    console.log('[AutomationEngine] 📈 Processando criação de INVESTIMENTO');
+    console.log('[AutomationEngine] 📊 Entidades para investimento:', JSON.stringify(entities, null, 2));
+    
+    if (!entities.valor || entities.valor <= 0) {
+      console.log('[AutomationEngine] ❌ Valor do investimento não encontrado ou inválido');
       return {
         success: false,
-        message: 'Para registrar o investimento, preciso do valor e onde você aplicou. Pode me contar?',
         requiresInput: true,
-        missingFields
+        message: `Para criar um investimento, preciso saber o valor. Exemplo: "Quero investir R$ 500". Pode me informar?`,
+        missingFields: ['valor']
       };
     }
 
     try {
-      // SALVAR NO MONGODB DE VERDADE
+      // Buscar usuário no MongoDB
+      const User = require('../models/User');
+      const user = await User.findOne({ firebaseUid: userId });
+      if (!user) {
+        throw new Error('Usuário não encontrado');
+      }
+
+      console.log('[AutomationEngine] 👤 Usuário encontrado:', user._id);
+
       const investmentData = {
-        userId: new ObjectId(userId),
-        valor: entities.valor,
-        nome: entities.nome,
-        instituicao: entities.instituicao || 'Não informado',
-        tipo: entities.tipo || 'outros',
-        data: new Date(),
+        userId: user._id,
+        tipo: entities.tipo || 'Renda Fixa',
+        valor: parseFloat(entities.valor),
+        descricao: entities.descricao || 'Investimento via chat',
         categoria: entities.categoria || 'Investimentos',
-        descricao: entities.descricao || ''
+        dataInvestimento: entities.data ? new Date(entities.data) : new Date(),
+        status: 'ativo',
+        rentabilidade: entities.rentabilidade || 0,
+        createdAt: new Date()
       };
 
-      console.log('[AutomationEngine] Saving investment to MongoDB:', investmentData);
-      
-      // Aqui você precisará importar o modelo de Investimento
-      // const Investment = require('../models/Investment');
-      // const savedInvestment = await Investment.create(investmentData);
-      
-      // Por enquanto, vamos simular o save
-      const savedInvestment = { ...investmentData, _id: new ObjectId() };
-      console.log('[AutomationEngine] Investment saved successfully:', savedInvestment._id);
+      console.log('[AutomationEngine] 💾 Salvando investimento no MongoDB:', investmentData);
+      const Investment = require('../models/Investment');
+      const savedInvestment = await Investment.create(investmentData);
+      console.log('[AutomationEngine] ✅ Investimento salvo com sucesso:', savedInvestment._id);
 
       return {
         success: true,
-        message: `📈 Investimento de R$ ${entities.valor} em ${entities.nome} registrado com sucesso! Que seus lucros sejam grandes!`,
+        message: `📈 Investimento de R$ ${entities.valor.toFixed(2)} em ${entities.tipo} criado com sucesso! Já está no seu portfólio.`,
         data: savedInvestment
       };
     } catch (error) {
-      console.error('[AutomationEngine] Error saving investment:', error);
+      console.error('[AutomationEngine] ❌ Erro ao salvar investimento:', error);
       return {
         success: false,
-        message: 'Erro ao registrar o investimento. Tente novamente.',
+        message: 'Erro ao criar o investimento. Tente novamente.',
         error: error.message
       };
     }
@@ -414,40 +451,53 @@ export class OptimizedChatbotController {
         userContext
       );
 
-      // Executar automação se necessário
+      // Verificar se precisa de confirmação ANTES de executar
       let automationResult = null;
-      if (aiResult.intent && aiResult.confidence && aiResult.confidence > 0.5) { // 🆕 REDUZIDO DE 0.7 PARA 0.5
-        console.log(`[OptimizedChatbot] 🚀 EXECUTANDO AÇÃO: ${aiResult.intent} com confiança: ${aiResult.confidence}`);
-        console.log(`[OptimizedChatbot] 📊 Entidades detectadas:`, aiResult.entities);
+      let needsConfirmation = false;
+      
+      // Verificar se há intent e confiança suficiente
+      if (aiResult.intent && aiResult.confidence > 0.5) {
+        console.log(`[OptimizedChatbot] 🎯 Intent detectado: ${aiResult.intent} (confiança: ${aiResult.confidence})`);
+        console.log(`[OptimizedChatbot] 📊 Entidades extraídas:`, JSON.stringify(aiResult.entities, null, 2));
+        console.log(`[OptimizedChatbot] 🔐 Requer confirmação: ${aiResult.requiresConfirmation}`);
         
-        // 🆕 ATUALIZAR CONTEXTO se nova ação detectada
-        if (chatId && contextState?.currentAction !== aiResult.intent) {
-          contextManager.updateConversationState(
-            chatId,
-            userId,
+        if (aiResult.requiresConfirmation) {
+          needsConfirmation = true;
+          console.log(`[OptimizedChatbot] ⚠️ AÇÃO REQUER CONFIRMAÇÃO: ${aiResult.intent}`);
+          
+          // Atualizar contexto para aguardar confirmação
+          if (chatId) {
+            contextManager.updateConversationState(
+              chatId,
+              userId,
+              aiResult.intent,
+              aiResult.entities || {},
+              true
+            );
+          }
+        } else {
+          // Executar automaticamente apenas se NÃO requer confirmação
+          console.log(`[OptimizedChatbot] 🚀 EXECUTANDO AÇÃO AUTOMATICAMENTE: ${aiResult.intent}`);
+          console.log(`[OptimizedChatbot] 🔧 Chamando automationEngine.executeAction com:`, {
+            intent: aiResult.intent,
+            entities: aiResult.entities,
+            userId: userId
+          });
+          
+          automationResult = await this.automationEngine.executeAction(
             aiResult.intent,
             aiResult.entities || {},
-            aiResult.requiresConfirmation || false
+            userId
           );
-          console.log(`[OptimizedChatbot] Updated context: ${aiResult.intent}`);
-        }
-        
-        console.log(`[OptimizedChatbot] 🔧 Chamando AutomationEngine.executeAction...`);
-        automationResult = await this.automationEngine.executeAction(
-          aiResult.intent,
-          aiResult.entities || {},
-          userId
-        );
-        
-        console.log(`[OptimizedChatbot] ✅ Resultado da automação:`, automationResult);
-        
-        // 🆕 LIMPAR CONTEXTO se ação foi executada com sucesso
-        if (automationResult?.success && chatId) {
-          contextManager.clearConversationState(chatId);
-          console.log(`[OptimizedChatbot] Cleared context after successful action`);
+          
+          console.log(`[OptimizedChatbot] ✅ Resultado da automação:`, JSON.stringify(automationResult, null, 2));
+          
+          if (automationResult?.success && chatId) {
+            contextManager.clearConversationState(chatId);
+          }
         }
       } else {
-        console.log(`[OptimizedChatbot] ❌ Ação não executada - Intent: ${aiResult.intent}, Confiança: ${aiResult.confidence}, Threshold: 0.5`);
+        console.log(`[OptimizedChatbot] ❌ Intent não detectado ou confiança baixa - Intent: ${aiResult.intent}, Confiança: ${aiResult.confidence}`);
       }
 
       // Preparar resposta final
@@ -477,11 +527,16 @@ export class OptimizedChatbotController {
           cached: aiResult.cached,
           actionExecuted,
           automationData: automationResult?.data,
-          requiresConfirmation: aiResult.requiresConfirmation,
+          requiresConfirmation: needsConfirmation,
           entities: aiResult.entities,
-          // 🆕 ADICIONAR INFO DO CONTEXTO
           contextActive: contextState?.currentAction || null,
-          contextMissingFields: contextState?.missingFields || []
+          contextMissingFields: contextState?.missingFields || [],
+          // 🆕 DADOS PARA BOTÕES DE CONFIRMAÇÃO
+          actionData: needsConfirmation ? {
+            type: aiResult.intent,
+            entities: aiResult.entities,
+            userId: userId
+          } : null
         }
       };
 
@@ -811,7 +866,14 @@ export class OptimizedChatbotController {
             actionExecuted: automationResult?.success || false,
             automationData: automationResult?.data || null,
             requiresInput: automationResult?.requiresInput || false,
-            missingFields: automationResult?.missingFields || []
+            missingFields: automationResult?.missingFields || [],
+            // 🆕 DADOS PARA BOTÕES DE CONFIRMAÇÃO NO STREAMING
+            requiresConfirmation: response.requiresConfirmation || false,
+            actionData: response.requiresConfirmation ? {
+              type: response.intent,
+              entities: response.entities,
+              userId: userId
+            } : null
           });
         }
 

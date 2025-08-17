@@ -1,8 +1,9 @@
 import { Request, Response } from 'express';
 import { User } from '../models/User';
 import { Transacoes } from '../models/Transacoes';
-import Investimento from '../models/Investimento';
+import { Investimento } from '../models/Investimento';
 import { Goal } from '../models/Goal';
+import { Card } from '../models/Card';
 import { EnterpriseAIEngine } from '../services/EnterpriseAIEngine';
 import { v4 as uuidv4 } from 'uuid';
 import { contextManager, ConversationState } from '../services/ContextManager';
@@ -36,17 +37,21 @@ interface GoalPayload {
 
 interface CardPayload {
   nome: string;
-  limite: number;
-  bandeira: string;
-  tipo: string;
-  status: string;
   banco?: string;
   programa?: string;
-  ultimosDigitos?: string;
+  numero?: string;
+  limite: number;
   vencimento?: number;
   fechamento?: number;
+  pontosPorReal?: number;
   anuidade?: number;
+  beneficios?: string[];
+  bandeira?: string;
+  tipo?: string;
+  status?: string;
+  cor?: string;
   categoria?: string;
+  cashback?: number;
 }
 
 interface AnalysisPayload {
@@ -539,11 +544,11 @@ function hasCompleteData(action: DetectedAction): boolean {
   const payload = action.payload as any;
   switch (action.type) {
     case 'CREATE_TRANSACTION':
-      return payload.valor && payload.valor > 0 && payload.descricao;
+      return payload.valor && payload.valor > 0; // Removido requisito de descrição
     case 'CREATE_INVESTMENT':
-      return payload.valor && payload.valor > 0 && payload.nome && payload.tipo;
+      return payload.valor && payload.valor > 0; // Removido requisito de nome e tipo
     case 'CREATE_GOAL':
-      return payload.valor_total && payload.valor_total > 0 && payload.meta;
+      return payload.valor_total && payload.valor_total > 0; // Removido requisito de meta
     case 'CREATE_CARD':
       return payload.nome && payload.limite;
     case 'GENERATE_REPORT':
@@ -615,46 +620,207 @@ function tryCompleteFromContext(message: string, activeState: ConversationState)
   return null;
 }
 
-// ===== FUNÇÕES AUXILIARES PARA CONTEXTO =====
 function extractEntitiesFromMessage(message: string, actionType: string): any {
-  const lowerMessage = message.toLowerCase();
   const entities: any = {};
-  
+  const lowerMessage = message.toLowerCase();
+
+  // Padrões de data mais robustos
+  const datePatterns = [
+    /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/g, // DD/MM/YYYY ou DD-MM-YYYY
+    /(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/g, // YYYY/MM/DD ou YYYY-MM-DD
+    /(hoje|amanhã|ontem)/gi,
+    /(próxim[ao]|próxim[ao]s?)\s+(semana|mês|ano)/gi,
+    /(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/gi
+  ];
+
+  // Padrões de valor mais robustos
+  const valorPatterns = [
+    /r?\$?\s*(\d{1,3}(?:\.\d{3})*(?:,\d{2})?)/gi, // R$ 1.000,00
+    /(\d+(?:[.,]\d+)?)\s*(?:reais?|mil|k)/gi, // 1000 reais, 10k
+    /(\d+(?:[.,]\d+)?)\s*(?:milhões?|mi)/gi // 1.5 milhões
+  ];
+
   switch (actionType) {
     case 'CREATE_GOAL':
-      // Extrair valor se mencionado
-      const valorMatch = lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i);
-      if (valorMatch) entities.valor_total = parseFloat(valorMatch[1].replace(',', '.'));
+      // Extrair valor com padrões mais robustos
+      for (const pattern of valorPatterns) {
+        const match = pattern.exec(lowerMessage);
+        if (match) {
+          let valor = match[1].replace(/\./g, '').replace(',', '.');
+          if (lowerMessage.includes('mil') || lowerMessage.includes('k')) {
+            valor = (parseFloat(valor) * 1000).toString();
+          } else if (lowerMessage.includes('milhões') || lowerMessage.includes('mi')) {
+            valor = (parseFloat(valor) * 1000000).toString();
+          }
+          entities.valor_total = parseFloat(valor);
+          break;
+        }
+      }
       
-      // Extrair meta se mencionado
-      if (lowerMessage.includes('viagem')) entities.meta = 'Viagem';
-      if (lowerMessage.includes('carro')) entities.meta = 'Carro';
-      if (lowerMessage.includes('casa')) entities.meta = 'Casa';
-      if (lowerMessage.includes('gramado')) entities.meta = 'Viagem para Gramado';
+      // Extrair metas com mais categorias
+      const goalKeywords = {
+        'viagem': ['viagem', 'viajar', 'trip', 'férias', 'gramado', 'europa', 'disney'],
+        'carro': ['carro', 'veículo', 'automóvel', 'moto', 'motocicleta'],
+        'casa': ['casa', 'apartamento', 'imóvel', 'moradia', 'residência'],
+        'educação': ['faculdade', 'curso', 'educação', 'estudo', 'universidade'],
+        'emergência': ['emergência', 'reserva', 'contingência', 'segurança'],
+        'aposentadoria': ['aposentadoria', 'previdência', 'futuro', 'velhice']
+      };
+
+      for (const [category, keywords] of Object.entries(goalKeywords)) {
+        if (keywords.some(keyword => lowerMessage.includes(keyword))) {
+          entities.meta = category.charAt(0).toUpperCase() + category.slice(1);
+          entities.categoria = category;
+          break;
+        }
+      }
+
+      // Extrair data de conclusão
+      for (const pattern of datePatterns) {
+        const match = pattern.exec(lowerMessage);
+        if (match) {
+          entities.data_conclusao = match[0];
+          break;
+        }
+      }
       break;
       
     case 'CREATE_CARD':
-      // Extrair limite se mencionado
-      const limiteMatch = lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i);
-      if (limiteMatch) entities.limite = parseFloat(limiteMatch[1].replace(',', '.'));
+      // Extrair limite com padrões mais robustos
+      for (const pattern of valorPatterns) {
+        const match = pattern.exec(lowerMessage);
+        if (match) {
+          let valor = match[1].replace(/\./g, '').replace(',', '.');
+          entities.limite = parseFloat(valor);
+          break;
+        }
+      }
       
-      // Extrair banco se mencionado
-      if (lowerMessage.includes('nubank')) entities.banco = 'Nubank';
-      if (lowerMessage.includes('itau')) entities.banco = 'Itaú';
-      if (lowerMessage.includes('bradesco')) entities.banco = 'Bradesco';
+      // Bancos expandidos
+      const bankKeywords = {
+        'Nubank': ['nubank', 'nu bank', 'roxinho'],
+        'Itaú': ['itau', 'itaú', 'banco itau'],
+        'Bradesco': ['bradesco', 'banco bradesco'],
+        'Santander': ['santander', 'banco santander'],
+        'Banco do Brasil': ['bb', 'banco do brasil', 'banco brasil'],
+        'Caixa': ['caixa', 'cef', 'caixa econômica'],
+        'Inter': ['inter', 'banco inter'],
+        'C6 Bank': ['c6', 'c6 bank', 'banco c6'],
+        'XP': ['xp', 'xp investimentos'],
+        'BTG': ['btg', 'btg pactual']
+      };
+
+      for (const [bank, keywords] of Object.entries(bankKeywords)) {
+        if (keywords.some(keyword => lowerMessage.includes(keyword))) {
+          entities.banco = bank;
+          entities.nome = `Cartão ${bank}`;
+          break;
+        }
+      }
+
+      // Tipo de cartão
+      if (lowerMessage.includes('débito')) entities.tipo = 'Débito';
+      else if (lowerMessage.includes('crédito')) entities.tipo = 'Crédito';
+      
+      // Bandeira
+      const bandeiras = ['visa', 'mastercard', 'elo', 'american express', 'amex'];
+      for (const bandeira of bandeiras) {
+        if (lowerMessage.includes(bandeira)) {
+          entities.bandeira = bandeira.charAt(0).toUpperCase() + bandeira.slice(1);
+          break;
+        }
+      }
       break;
       
     case 'CREATE_INVESTMENT':
-      // Extrair valor se mencionado
-      const invValorMatch = lowerMessage.match(/r?\$?\s*(\d+(?:[.,]\d+)?)/i);
-      if (invValorMatch) entities.valor = parseFloat(invValorMatch[1].replace(',', '.'));
+      // Extrair valor com padrões mais robustos
+      for (const pattern of valorPatterns) {
+        const match = pattern.exec(lowerMessage);
+        if (match) {
+          let valor = match[1].replace(/\./g, '').replace(',', '.');
+          entities.valor = parseFloat(valor);
+          break;
+        }
+      }
       
-      // Extrair tipo se mencionado
-      if (lowerMessage.includes('ações')) entities.tipo = 'Ações';
-      if (lowerMessage.includes('tesouro')) entities.tipo = 'Tesouro Direto';
+      // Tipos de investimento expandidos
+      const investmentTypes = {
+        'Ações': ['ações', 'ação', 'bolsa', 'b3', 'bovespa', 'stock'],
+        'Tesouro Direto': ['tesouro', 'tesouro direto', 'td', 'governo'],
+        'CDB': ['cdb', 'certificado de depósito'],
+        'LCI': ['lci', 'letra de crédito imobiliário'],
+        'LCA': ['lca', 'letra de crédito do agronegócio'],
+        'Fundos': ['fundo', 'fundos', 'fii', 'fundos imobiliários'],
+        'Poupança': ['poupança', 'caderneta'],
+        'Crypto': ['bitcoin', 'crypto', 'criptomoeda', 'btc', 'ethereum']
+      };
+
+      for (const [type, keywords] of Object.entries(investmentTypes)) {
+        if (keywords.some(keyword => lowerMessage.includes(keyword))) {
+          entities.tipo = type;
+          break;
+        }
+      }
+
+      // Instituição financeira
+      for (const [bank, keywords] of Object.entries(bankKeywords)) {
+        if (keywords.some(keyword => lowerMessage.includes(keyword))) {
+          entities.instituicao = bank;
+          break;
+        }
+      }
+      break;
+
+    case 'CREATE_TRANSACTION':
+      // Extrair valor
+      for (const pattern of valorPatterns) {
+        const match = pattern.exec(lowerMessage);
+        if (match) {
+          let valor = match[1].replace(/\./g, '').replace(',', '.');
+          entities.valor = parseFloat(valor);
+          break;
+        }
+      }
+
+      // Categorias de transação
+      const categories = {
+        'Alimentação': ['comida', 'restaurante', 'supermercado', 'lanche', 'ifood', 'uber eats'],
+        'Transporte': ['uber', 'taxi', 'ônibus', 'metrô', 'gasolina', 'combustível'],
+        'Saúde': ['médico', 'farmácia', 'hospital', 'consulta', 'remédio'],
+        'Educação': ['curso', 'livro', 'escola', 'faculdade', 'material escolar'],
+        'Lazer': ['cinema', 'teatro', 'show', 'viagem', 'entretenimento'],
+        'Casa': ['aluguel', 'condomínio', 'luz', 'água', 'internet', 'telefone'],
+        'Roupas': ['roupa', 'sapato', 'vestuário', 'shopping']
+      };
+
+      for (const [category, keywords] of Object.entries(categories)) {
+        if (keywords.some(keyword => lowerMessage.includes(keyword))) {
+          entities.categoria = category;
+          break;
+        }
+      }
+
+      // Tipo de transação
+      const expenseKeywords = ['gastei', 'paguei', 'comprei', 'despesa', 'saiu'];
+      const incomeKeywords = ['recebi', 'ganhei', 'salário', 'renda', 'entrou'];
+      
+      if (expenseKeywords.some(keyword => lowerMessage.includes(keyword))) {
+        entities.tipo = 'despesa';
+      } else if (incomeKeywords.some(keyword => lowerMessage.includes(keyword))) {
+        entities.tipo = 'receita';
+      }
+
+      // Extrair data
+      for (const pattern of datePatterns) {
+        const match = pattern.exec(lowerMessage);
+        if (match) {
+          entities.data = match[0];
+          break;
+        }
+      }
       break;
   }
-  
+
   return entities;
 }
 
@@ -875,74 +1041,124 @@ export const processAutomatedAction = async (req: Request, res: Response): Promi
 
 // Funções auxiliares para executar ações
 export async function createTransaction(userId: string, payload: TransactionPayload): Promise<any> {
-  const transactionData = {
-    userId,
-    valor: payload.valor || 0,
-    descricao: payload.descricao || 'Transação',
-    tipo: payload.tipo || 'despesa',
-    categoria: payload.categoria || 'Geral',
-    conta: payload.conta || 'Principal',
-    data: payload.data || new Date().toISOString().split('T')[0],
-    createdAt: new Date()
-  };
+  try {
+    // Buscar usuário pelo firebaseUid
+    const user = await User.findOne({ firebaseUid: userId });
+    if (!user) {
+      throw new Error('Usuário não encontrado');
+    }
 
-  const transacao = new Transacoes(transactionData);
-  return await transacao.save();
+    const transactionData = {
+      userId: user._id, // Usar o ObjectId do MongoDB
+      valor: payload.valor || 0,
+      descricao: payload.descricao || 'Transação',
+      tipo: payload.tipo || 'despesa',
+      categoria: payload.categoria || 'Geral',
+      conta: payload.conta || 'Principal',
+      data: payload.data || new Date().toISOString().split('T')[0],
+      createdAt: new Date()
+    };
+
+    console.log('[CreateTransaction] Criando transação:', transactionData);
+    const transacao = new Transacoes(transactionData);
+    const result = await transacao.save();
+    console.log('[CreateTransaction] Transação criada com sucesso:', result._id);
+    return result;
+  } catch (error) {
+    console.error('[CreateTransaction] Erro ao criar transação:', error);
+    throw error;
+  }
 }
 
 export async function createInvestment(userId: string, payload: InvestmentPayload): Promise<any> {
-  const investmentData = {
-    userId,
-    nome: payload.nome || 'Investimento',
-    valor: payload.valor || 0,
-    tipo: payload.tipo || 'Renda Fixa',
-    data: payload.data ? new Date(payload.data) : new Date(),
-    instituicao: payload.instituicao || 'Instituição',
-    createdAt: new Date()
-  };
+  try {
+    // Buscar usuário pelo firebaseUid
+    const user = await User.findOne({ firebaseUid: userId });
+    if (!user) {
+      throw new Error('Usuário não encontrado');
+    }
 
-  const investimento = new Investimento(investmentData);
-  return await investimento.save();
+    const investmentData = {
+      userId: user._id, // Usar o ObjectId do MongoDB
+      nome: payload.nome || 'Investimento',
+      valor: payload.valor || 0,
+      tipo: payload.tipo || 'Renda Fixa',
+      data: payload.data ? new Date(payload.data) : new Date(),
+      instituicao: payload.instituicao || 'Instituição',
+      createdAt: new Date()
+    };
+
+    console.log('[CreateInvestment] Criando investimento:', investmentData);
+    const investimento = new Investimento(investmentData);
+    const result = await investimento.save();
+    console.log('[CreateInvestment] Investimento criado com sucesso:', result._id);
+    return result;
+  } catch (error) {
+    console.error('[CreateInvestment] Erro ao criar investimento:', error);
+    throw error;
+  }
 }
 
 export async function createGoal(userId: string, payload: GoalPayload): Promise<any> {
-  const goalData = {
-    userId,
-    meta: payload.meta || 'Meta',
-    valor_total: payload.valor_total || 0,
-    data_conclusao: payload.data_conclusao || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    categoria: payload.categoria || 'Geral',
-    valor_atual: 0,
-    prioridade: 'media',
-    createdAt: new Date()
-  };
+  try {
+    // Buscar usuário pelo firebaseUid
+    const user = await User.findOne({ firebaseUid: userId });
+    if (!user) {
+      throw new Error('Usuário não encontrado');
+    }
 
-  const goal = new Goal(goalData);
-  return await goal.save();
+    const goalData = {
+      userId: user._id, // Usar o ObjectId do MongoDB
+      meta: payload.meta || 'Meta',
+      valor_total: payload.valor_total || 0,
+      data_conclusao: payload.data_conclusao || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      categoria: payload.categoria || 'Geral',
+      valor_atual: 0,
+      prioridade: 'media',
+      createdAt: new Date()
+    };
+
+    console.log('[CreateGoal] Criando meta:', goalData);
+    const goal = new Goal(goalData);
+    const result = await goal.save();
+    console.log('[CreateGoal] Meta criada com sucesso:', result._id);
+    return result;
+  } catch (error) {
+    console.error('[CreateGoal] Erro ao criar meta:', error);
+    throw error;
+  }
 }
 
 export async function createCard(userId: string, payload: CardPayload): Promise<any> {
   const cardData = {
     userId,
-    nome: payload.nome || 'Cartão',
-    limite: payload.limite || 0,
-    bandeira: payload.bandeira || 'Não informado',
-    tipo: payload.tipo || 'Crédito',
-    status: payload.status || 'Ativo',
-    createdAt: new Date()
+    name: payload.nome || 'Cartão',
+    bank: payload.banco || 'Banco',
+    program: payload.programa || 'Programa de Pontos',
+    number: payload.numero || '0000',
+    limit: payload.limite || 0,
+    used: 0,
+    dueDate: payload.vencimento || 10,
+    closingDate: payload.fechamento || 5,
+    pointsPerReal: payload.pontosPorReal || 1,
+    annualFee: payload.anuidade || 0,
+    benefits: payload.beneficios || [],
+    status: payload.status === 'Inativo' ? 'inactive' : 'active',
+    color: payload.cor || '#3B82F6',
+    category: payload.categoria || 'standard',
+    cashback: payload.cashback || 0
   };
 
-  // Assuming Transacoes model has a 'cartoes' sub-collection or similar
-  // For now, we'll just return the data, as the model structure isn't fully defined
-  // In a real app, you'd save this to a 'Cartoes' collection or similar
-  return cardData;
+  const card = new Card(cardData);
+  return await card.save();
 }
 
 export async function analyzeData(userId: string, payload: AnalysisPayload): Promise<any> {
-  const [transacoes, investimentos, metas] = await Promise.all([
+  const [transacoes, investimentos, metas, cartoes] = await Promise.all([
     Transacoes.find({ userId }),
     Investimento.find({ userId }),
-    Goal.find({ userId })
+    Goal.find({ userId }),
+    Card.find({ userId })
   ]);
 
   return {
@@ -950,8 +1166,12 @@ export async function analyzeData(userId: string, payload: AnalysisPayload): Pro
     summary: {
       totalTransacoes: transacoes.length,
       totalInvestimentos: investimentos.length,
+      totalMetas: metas.length,
+      totalCartoes: cartoes.length,
       valorTotalInvestido: investimentos.reduce((sum: number, inv: any) => sum + inv.valor, 0),
-      valorTotalMetas: metas.reduce((sum: number, meta: any) => sum + meta.valor_total, 0)
+      valorTotalMetas: metas.reduce((sum: number, meta: any) => sum + meta.valor_total, 0),
+      limiteTotal: cartoes.reduce((sum: number, card: any) => sum + card.limit, 0),
+      limiteUtilizado: cartoes.reduce((sum: number, card: any) => sum + card.used, 0)
     }
   };
 }

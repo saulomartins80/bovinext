@@ -45,6 +45,10 @@ interface EnterpriseMessage {
     isComplete?: boolean;
     actionExecuted?: boolean;
     requiresConfirmation?: boolean;
+    actionData?: {
+      type: string;
+      data: Record<string, unknown>;
+    };
     recommendations?: Array<{
       title: string;
       action?: string;
@@ -298,9 +302,12 @@ const EnterpriseMessageBubble: React.FC<{
     border: string;
     name: string;
     gradient: string;
+    button: string;
   };
   onFeedback: (messageId: string) => void;
-}> = ({ message, theme, onFeedback }) => {
+  onConfirmAction?: (actionData: Record<string, unknown>) => void;
+  onCancelAction?: () => void;
+}> = ({ message, theme, onFeedback, onConfirmAction, onCancelAction }) => {
   const isUser = message.sender === 'user';
   const isStreaming = message.metadata?.isStreaming;
   const confidence = message.metadata?.confidence || 0;
@@ -382,6 +389,30 @@ const EnterpriseMessageBubble: React.FC<{
           <ExecutedActions actions={message.metadata.actions} theme={theme} />
         )}
         
+        {/* Botões de Confirmação */}
+        {!isUser && message.metadata?.requiresConfirmation && message.metadata?.actionData && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-3 flex gap-2"
+          >
+            <button
+              onClick={() => message.metadata?.actionData && onConfirmAction?.(message.metadata.actionData)}
+              className={`px-4 py-2 text-sm rounded-lg ${theme.button} text-white hover:opacity-90 transition-opacity flex items-center gap-2`}
+            >
+              <CheckCircle className="w-4 h-4" />
+              Confirmar
+            </button>
+            <button
+              onClick={() => onCancelAction?.()}
+              className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              Cancelar
+            </button>
+          </motion.div>
+        )}
+        
         {/* Recomendações */}
         {!isUser && message.metadata?.recommendations && message.metadata.recommendations.length > 0 && (
           <motion.div
@@ -395,7 +426,7 @@ const EnterpriseMessageBubble: React.FC<{
             </div>
             {message.metadata.recommendations.map((rec, index) => (
               <div key={index} className={`p-2 rounded border ${theme.border} bg-yellow-50 dark:bg-yellow-900/20`}>
-                <div className="font-medium text-sm">{rec.title}</div>
+                <div className="text-sm font-medium">{rec.title}</div>
                 {rec.description && (
                   <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">{rec.description}</div>
                 )}
@@ -503,10 +534,22 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
   // Tema enterprise
   const theme = getEnterpriseTheme(subscription?.plan?.toString());
 
-  // Auto-scroll para última mensagem
+  // Auto-scroll para última mensagem e limpeza automática do input
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    
+    // Verificar se a última mensagem é do bot e se o streaming terminou
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage && 
+        lastMessage.sender === 'assistant' && 
+        lastMessage.metadata?.isComplete === true && 
+        !isStreaming && 
+        !isLoading) {
+      // Garantir que o input esteja limpo após resposta completa
+      setInputValue('');
+      console.log('[OptimizedChatbot] Input cleared after bot response completion');
+    }
+  }, [messages, isStreaming, isLoading]);
 
   // Criar sessão inicial
   useEffect(() => {
@@ -539,20 +582,64 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
     if (!content.trim()) return;
     
     try {
+      // Limpar input IMEDIATAMENTE ao enviar
+      setInputValue('');
+      
       // Sempre usar streaming para usuários premium/enterprise (você tem Plano Top Anual)
       const useStreaming = true; // Forçar streaming
       console.log('[OptimizedChatbot] Enviando mensagem com streaming:', { content, useStreaming, isPremiumUser });
       await sendMessage(content, { useStreaming });
-      setInputValue('');
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Erro ao enviar mensagem');
+      // Em caso de erro, restaurar o conteúdo no input
+      setInputValue(content);
     }
   }, [sendMessage, isPremiumUser]);
 
   // Handler para feedback
   const handleFeedback = useCallback((messageId: string) => {
     setFeedbackModal({ messageId, isOpen: true });
+  }, []);
+
+  // Handler para confirmar ação
+  const handleConfirmAction = useCallback(async (actionData: Record<string, unknown>) => {
+    try {
+      console.log('[OptimizedChatbot] Confirmando ação:', actionData);
+      
+      // Enviar confirmação para o backend
+      const actionType = typeof actionData.type === 'string' ? actionData.type : 'ação';
+      const confirmationMessage = `Confirmar ${actionType.toLowerCase().replace('create_', 'criação de ')}`;
+      await sendMessage(confirmationMessage, { useStreaming: true });
+      
+      // Simular execução da ação
+      setTimeout(async () => {
+        try {
+          // Aqui você pode chamar a API para executar a ação
+          const response = await fetch('/api/chatbot/execute-action', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ actionData })
+          });
+          
+          if (response.ok) {
+            console.log('[OptimizedChatbot] Ação executada com sucesso');
+          }
+        } catch (error) {
+          console.error('[OptimizedChatbot] Erro ao executar ação:', error);
+        }
+      }, 1000);
+      
+    } catch (error) {
+      console.error('[OptimizedChatbot] Erro ao confirmar ação:', error);
+      toast.error('Erro ao confirmar ação');
+    }
+  }, [sendMessage]);
+
+  // Handler para cancelar ação
+  const handleCancelAction = useCallback(() => {
+    console.log('[OptimizedChatbot] Ação cancelada pelo usuário');
+    toast.info('Ação cancelada');
   }, []);
 
   // Converter mensagens para formato Enterprise
@@ -667,6 +754,8 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
                   message={message}
                   theme={theme}
                   onFeedback={handleFeedback}
+                  onConfirmAction={handleConfirmAction}
+                  onCancelAction={handleCancelAction}
                 />
               );
             })

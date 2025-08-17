@@ -107,4 +107,6 @@ InvestimentoSchema.index({ userId: 1, tipo: 1 });
 InvestimentoSchema.index({ instituicao: 1 });
 InvestimentoSchema.index({ vencimento: 1 });
 
-export default model<IInvestimento>('Investimento', InvestimentoSchema);
+const Investimento = model<IInvestimento>('Investimento', InvestimentoSchema);
+export { Investimento };
+export default Investimento;

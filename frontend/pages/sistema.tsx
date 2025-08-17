@@ -1,604 +1,609 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React from 'react';
-import { 
-  Brain, 
-  MessageCircle, 
-  TrendingUp, 
-  Zap, 
-  Users,
-  Target,
-  CheckCircle,
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Activity,
+  DollarSign,
+  Clock,
   AlertTriangle,
-  Crown,
-  Star,
-  Sparkles,
-  Lightbulb,
-  RefreshCw
+  CheckCircle,
+  RefreshCw,
+  Cpu,
+  Brain,
+  Pause,
+  Play,
+  MessageCircle
 } from 'lucide-react';
-// ✅ CORREÇÃO: Usar o ThemeContext customizado ao invés do next-themes
 import { useTheme } from '../context/ThemeContext';
-import { useIAAnalytics } from '../src/hooks/useIAAnalytics';
-import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 
-export default function IAAndAnalyticsPage() {
-  // ✅ CORREÇÃO: Usar o ThemeContext correto
-  const { theme, resolvedTheme } = useTheme();
-  useAuth();
-  const { 
-    metrics, 
-    isLoading, 
-    error, 
-    lastUpdated, 
-    refreshMetrics,
-    getPlanLimits,
-    getUsagePercentage,
-    isNearLimit
-  } = useIAAnalytics();
+// Interfaces
+interface AIUsageData {
+  summary: {
+    totalRequests: number;
+    totalTokens: number;
+    totalCost: number;
+    averageLatency: number;
+    successRate: number;
+    activeModels: number;
+    peakHour: string;
+    topModel: string;
+  };
+  breakdown: {
+    byPeriod: {
+      today: { requests: number; tokens: number; cost: number };
+      week: { requests: number; tokens: number; cost: number };
+      month: { requests: number; tokens: number; cost: number };
+    };
+    byModel: Record<string, {
+      requests: number;
+      tokens: number;
+      cost: number;
+      latency: number;
+    }>;
+    byFeature: Record<string, {
+      requests: number;
+      tokens: number;
+      cost: number;
+    }>;
+  };
+  timeSeries: Array<{
+    timestamp: string;
+    requests: number;
+    tokens: number;
+    cost: number;
+  }>;
+  realtimeStats: {
+    requests: number;
+    tokens: number;
+    cost: number;
+    latency: number[];
+    lastUpdate: Date;
+  };
+}
+
+interface PlanLimits {
+  essencial: {
+    requests: number;
+    tokens: number;
+    cost: number;
+  };
+  profissional: {
+    requests: number;
+    tokens: number;
+    cost: number;
+  };
+  empresarial: {
+    requests: number;
+    tokens: number;
+    cost: number;
+  };
+}
+
+// Hook personalizado para dados de IA
+function useAIUsageData() {
+  const [data, setData] = useState<AIUsageData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isRealtime, setIsRealtime] = useState(false);
+  const eventSourceRef = useRef<EventSource | null>(null);
+
+  const fetchData = async (timeframe: string = '7d') => {
+    console.log('Fetching data for timeframe:', timeframe);
+    try {
+      setIsLoading(true);
+      
+      // Mock data para desenvolvimento
+      const mockData: AIUsageData = {
+        summary: {
+          totalRequests: 2847,
+          totalTokens: 1250000,
+          totalCost: 47.83,
+          averageLatency: 1.2,
+          successRate: 98.5,
+          activeModels: 3,
+          peakHour: '14:00',
+          topModel: 'deepseek-chat'
+        },
+        breakdown: {
+          byPeriod: {
+            today: { requests: 342, tokens: 150000, cost: 5.75 },
+            week: { requests: 2100, tokens: 950000, cost: 32.15 },
+            month: { requests: 8500, tokens: 3800000, cost: 142.30 }
+          },
+          byModel: {
+            'deepseek-chat': { requests: 2100, tokens: 950000, cost: 32.15, latency: 1.1 },
+            'gpt-4-turbo': { requests: 500, tokens: 200000, cost: 12.50, latency: 1.8 },
+            'claude-3': { requests: 247, tokens: 100000, cost: 3.18, latency: 0.9 }
+          },
+          byFeature: {
+            'chatbot': { requests: 1800, tokens: 800000, cost: 28.50 },
+            'analysis': { requests: 650, tokens: 300000, cost: 12.75 },
+            'automation': { requests: 397, tokens: 150000, cost: 6.58 }
+          }
+        },
+        timeSeries: generateMockTimeSeries(),
+        realtimeStats: {
+          requests: 15,
+          tokens: 8500,
+          cost: 2.35,
+          latency: [1.1, 1.3, 0.9, 1.5, 1.2],
+          lastUpdate: new Date()
+        }
+      };
+      
+      setData(mockData);
+      setError(null);
+    } catch (error) {
+      console.error('Erro ao buscar dados:', error);
+      setError('Falha ao carregar dados de uso da IA');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const startRealtime = () => {
+    if (eventSourceRef.current) return;
+    
+    const eventSource = new EventSource('/api/ai-usage/stats/realtime');
+    eventSourceRef.current = eventSource;
+    
+    eventSource.onmessage = (event) => {
+      const newData = JSON.parse(event.data);
+      setData((prevData: AIUsageData | null) => ({ ...prevData!, realtimeStats: newData }));
+    };
+    
+    eventSource.addEventListener('alert', (event) => {
+      const alert = JSON.parse(event.data);
+      console.log('Alerta de IA:', alert);
+    });
+    
+    setIsRealtime(true);
+  };
+
+  const stopRealtime = () => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+      setIsRealtime(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    return () => stopRealtime();
+  }, []);
+
+  return { data, isLoading, error, fetchData, startRealtime, stopRealtime, isRealtime };
+}
+
+function generateMockTimeSeries() {
+  const data = [];
+  const now = new Date();
+  for (let i = 29; i >= 0; i--) {
+    const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    data.push({
+      timestamp: date.toISOString().split('T')[0],
+      requests: Math.floor(Math.random() * 200) + 50,
+      tokens: Math.floor(Math.random() * 50000) + 10000,
+      cost: Math.random() * 5 + 1
+    });
+  }
+  return data;
+}
+
+// Função para obter limites do plano
+function getPlanLimits(): PlanLimits {
+  return {
+    essencial: {
+      requests: 1000,
+      tokens: 100000,
+      cost: 50
+    },
+    profissional: {
+      requests: 5000,
+      tokens: 500000,
+      cost: 200
+    },
+    empresarial: {
+      requests: 20000,
+      tokens: 2000000,
+      cost: 1000
+    }
+  };
+}
+
+// Função para calcular porcentagem de uso
+function getUsagePercentage(current: number, limit: number): number {
+  return Math.min((current / limit) * 100, 100);
+}
+
+// Função para verificar se está próximo do limite
+function isNearLimit(current: number, limit: number): boolean {
+  return (current / limit) >= 0.8;
+}
+
+export default function AISystemDashboard() {
+  const { resolvedTheme } = useTheme();
+  const { data, isLoading, error, fetchData, startRealtime, stopRealtime, isRealtime } = useAIUsageData();
   
-  const userPlan = 'essencial';
-  const [selectedTimeframe, setSelectedTimeframe] = React.useState('7d');
-  const [isRefreshing, setIsRefreshing] = React.useState(false);
+  const [selectedTimeframe, setSelectedTimeframe] = useState('7d');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Planos e limites
   const planLimits = getPlanLimits();
+  const userPlan = 'essencial'; // Pode vir do contexto do usuário
   const currentPlan = planLimits[userPlan as keyof typeof planLimits];
+  const lastUpdated = data?.realtimeStats?.lastUpdate || new Date();
 
-  // ✅ CORREÇÃO: Classes condicionais para tema com debug melhorado
+  // Classes condicionais para tema
   const isDark = resolvedTheme === 'dark';
-  
-  // Debug do tema
-  React.useEffect(() => {
-    console.log('🎨 [SISTEMA] Tema detectado:', { 
-      theme, 
-      resolvedTheme, 
-      isDark,
-      htmlClasses: document.documentElement.classList.toString()
-    });
-  }, [theme, resolvedTheme, isDark]);
-  
   const bgClass = isDark ? 'bg-gray-900' : 'bg-gray-50';
   const cardBgClass = isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
-  const textClass = isDark ? 'text-gray-100' : 'text-gray-900';
-  const textSecondaryClass = isDark ? 'text-gray-400' : 'text-gray-600';
-  const borderClass = isDark ? 'border-gray-700' : 'border-gray-200';
+  const textPrimaryClass = isDark ? 'text-white' : 'text-gray-900';
+  const textSecondaryClass = isDark ? 'text-gray-300' : 'text-gray-600';
 
-  // Função para atualizar métricas
-  const handleRefresh = async () => {
+  // Função para atualizar dados
+  const refreshMetrics = async () => {
     setIsRefreshing(true);
-    await refreshMetrics();
+    await fetchData(selectedTimeframe);
     setIsRefreshing(false);
   };
 
   if (isLoading) {
     return (
-      <div className={`${bgClass} min-h-screen transition-colors duration-300`}>
-        <div className="flex flex-col items-center justify-center h-screen">
-          <LoadingSpinner size="lg" />
-          <span className={`mt-4 text-lg ${textClass} transition-colors duration-300`}>
-            Carregando métricas de IA...
-          </span>
+      <div className={`min-h-screen ${bgClass} transition-colors duration-300`}>
+        <div className="flex items-center justify-center min-h-screen">
+          <LoadingSpinner />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`min-h-screen ${bgClass} transition-colors duration-300`}>
+        <div className="flex items-center justify-center min-h-screen">
+          <div className={`${cardBgClass} p-8 rounded-lg border`}>
+            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <h2 className={`text-xl font-bold ${textPrimaryClass} text-center mb-2`}>
+              Erro ao Carregar Dados
+            </h2>
+            <p className={`${textSecondaryClass} text-center mb-4`}>{error}</p>
+            <button
+              onClick={refreshMetrics}
+              className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Tentar Novamente
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`p-6 space-y-6 ${bgClass} min-h-screen transition-colors duration-300`}>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-3">
-          <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
-            <Brain className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className={`text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent`}>
-              IA & Analytics
-            </h1>
-            <p className={`text-sm ${textSecondaryClass} transition-colors duration-300`}>
-              Métricas e uso da Inteligência Artificial Finnextho
-              {lastUpdated && (
-                <span className="ml-2">
-                  • Atualizado {lastUpdated.toLocaleTimeString()}
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className={`p-2 rounded-lg border ${borderClass} ${textClass} hover:bg-gray-100 ${isDark ? 'hover:bg-gray-700' : ''} disabled:opacity-50 transition-colors duration-300`}
-          >
-            {isRefreshing ? (
-              <LoadingSpinner size="sm" />
-            ) : (
-              <RefreshCw className="w-4 h-4" />
-            )}
-          </button>
-          <select 
-            value={selectedTimeframe}
-            onChange={(e) => setSelectedTimeframe(e.target.value)}
-            className={`px-3 py-2 border ${borderClass} rounded-lg text-sm ${textClass} ${isDark ? 'bg-gray-700' : 'bg-white'} transition-colors duration-300`}
-          >
-            <option value="1d">Último dia</option>
-            <option value="7d">Últimos 7 dias</option>
-            <option value="30d">Últimos 30 dias</option>
-            <option value="90d">Últimos 90 dias</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Error Alert */}
-      {error && (
-        <div className={`p-4 bg-red-50 border border-red-200 rounded-lg ${isDark ? 'bg-red-900/20 border-red-800' : ''} transition-colors duration-300`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <AlertTriangle className="w-5 h-5 text-red-600" />
-              <span className={`text-sm ${isDark ? 'text-red-400' : 'text-red-700'} transition-colors duration-300`}>{error}</span>
+    <div className={`min-h-screen ${bgClass} transition-colors duration-300`}>
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center space-x-4">
+            <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
+              <Brain className="w-6 h-6 text-white" />
             </div>
+            <div>
+              <h1 className={`text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent`}>
+                IA & Analytics
+              </h1>
+              <p className={`text-sm ${textSecondaryClass} transition-colors duration-300`}>
+                Métricas e uso da Inteligência Artificial Finnextho
+                {lastUpdated && (
+                  <span className="ml-2">
+                    • Atualizado {lastUpdated.toLocaleTimeString()}
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            {/* Controles de tempo real */}
             <button
-              onClick={handleRefresh}
-              className="text-sm text-red-600 hover:text-red-800 underline"
+              onClick={isRealtime ? stopRealtime : startRealtime}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg border transition-colors ${
+                isRealtime 
+                  ? 'bg-green-100 border-green-300 text-green-700 dark:bg-green-900 dark:border-green-600 dark:text-green-300'
+                  : 'bg-gray-100 border-gray-300 text-gray-700 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300'
+              }`}
             >
-              Tentar novamente
+              {isRealtime ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+              <span className="text-sm">{isRealtime ? 'Pausar' : 'Tempo Real'}</span>
             </button>
-          </div>
-        </div>
-      )}
 
-      {/* Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* IA Status */}
-        <div className={`${cardBgClass} rounded-lg shadow p-4 border ${borderClass} transition-colors duration-300`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className={`text-sm font-medium ${textSecondaryClass} transition-colors duration-300`}>IA Finnextho</h3>
-              <p className="text-2xl font-bold text-purple-600 capitalize">
-                {metrics?.ai?.status || 'offline'}
-              </p>
-              <p className={`text-xs ${textSecondaryClass} transition-colors duration-300`}>
-                {metrics?.ai?.requests?.today || 0}/{metrics?.ai?.requests?.limit || 0} requisições
-              </p>
-            </div>
-            <div className={`p-2 ${isDark ? 'bg-purple-900/50' : 'bg-purple-100'} rounded-lg transition-colors duration-300`}>
-              <Brain className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="flex justify-between text-xs mb-1">
-              <span className={`${textSecondaryClass} transition-colors duration-300`}>Precisão</span>
-              <span className={`${textClass} transition-colors duration-300`}>{metrics?.ai?.performance?.accuracy || 0}%</span>
-            </div>
-            <div className={`w-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-1 transition-colors duration-300`}>
-              <div 
-                className="bg-purple-500 h-1 rounded-full" 
-                style={{ width: `${metrics?.ai?.performance?.accuracy || 0}%` }}
-              ></div>
-            </div>
+            {/* Botão de refresh */}
+            <button
+              onClick={refreshMetrics}
+              disabled={isRefreshing}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg border transition-colors ${
+                isRefreshing 
+                  ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
+                  : 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:border-blue-600 dark:text-blue-300'
+              }`}
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span className="text-sm">Atualizar</span>
+            </button>
+
+            {/* Seletor de período */}
+            <select
+              value={selectedTimeframe}
+              onChange={(e) => {
+                setSelectedTimeframe(e.target.value);
+                fetchData(e.target.value);
+              }}
+              className={`px-3 py-2 rounded-lg border ${cardBgClass} ${textPrimaryClass} text-sm`}
+            >
+              <option value="1d">Último dia</option>
+              <option value="7d">Últimos 7 dias</option>
+              <option value="30d">Últimos 30 dias</option>
+              <option value="90d">Últimos 90 dias</option>
+            </select>
           </div>
         </div>
 
-        {/* Chatbot Status */}
-        <div className={`${cardBgClass} rounded-lg shadow p-4 border ${isDark ? 'border-blue-800' : 'border-blue-100'} transition-colors duration-300`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className={`text-sm font-medium ${textSecondaryClass} transition-colors duration-300`}>Chatbot IA</h3>
-              <p className="text-2xl font-bold text-blue-600 capitalize">
-                {metrics?.chatbot?.status || 'offline'}
-              </p>
-              <p className={`text-xs ${textSecondaryClass} transition-colors duration-300`}>
-                {metrics?.chatbot?.sessions?.active || 0} sessões ativas
-              </p>
-            </div>
-            <div className={`p-2 ${isDark ? 'bg-blue-900/50' : 'bg-blue-100'} rounded-lg transition-colors duration-300`}>
-              <MessageCircle className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="flex justify-between text-xs mb-1">
-              <span className={`${textSecondaryClass} transition-colors duration-300`}>Satisfação</span>
-              <span className={`${textClass} transition-colors duration-300`}>{metrics?.chatbot?.performance?.satisfaction || 0}/5</span>
-            </div>
-            <div className="flex space-x-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star 
-                  key={star}
-                  className={`w-3 h-3 ${
-                    star <= (metrics?.chatbot?.performance?.satisfaction || 0) 
-                      ? 'text-yellow-400 fill-current' 
-                      : isDark ? 'text-gray-600' : 'text-gray-300'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Orientação IA */}
-        <div className={`${cardBgClass} rounded-lg shadow p-4 border ${isDark ? 'border-green-800' : 'border-green-100'} transition-colors duration-300`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className={`text-sm font-medium ${textSecondaryClass} transition-colors duration-300`}>Orientação IA</h3>
-              <p className="text-2xl font-bold text-green-600 capitalize">
-                {metrics?.guidance?.status || 'offline'}
-              </p>
-              <p className={`text-xs ${textSecondaryClass} transition-colors duration-300`}>
-                {metrics?.guidance?.activeJourneys || 0} jornadas ativas
-              </p>
-            </div>
-            <div className={`p-2 ${isDark ? 'bg-green-900/50' : 'bg-green-100'} rounded-lg transition-colors duration-300`}>
-              <Target className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="flex justify-between text-xs mb-1">
-              <span className={`${textSecondaryClass} transition-colors duration-300`}>Progresso médio</span>
-              <span className={`${textClass} transition-colors duration-300`}>{metrics?.guidance?.averageProgress || 0}%</span>
-            </div>
-            <div className={`w-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-1 transition-colors duration-300`}>
-              <div 
-                className="bg-green-500 h-1 rounded-full" 
-                style={{ width: `${metrics?.guidance?.averageProgress || 0}%` }}
-              ></div>
-            </div>
-          </div>
-        </div>
-
-        {/* Sistema */}
-        <div className={`${cardBgClass} rounded-lg shadow p-4 border ${borderClass} transition-colors duration-300`}>
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className={`text-sm font-medium ${textSecondaryClass} transition-colors duration-300`}>Saúde Financeira</h3>
-              <p className={`text-2xl font-bold ${isDark ? 'text-gray-300' : 'text-gray-600'} capitalize transition-colors duration-300`}>
-                {metrics?.system?.status || 'unknown'}
-              </p>
-              <p className={`text-xs ${textSecondaryClass} transition-colors duration-300`}>
-                Score: {metrics?.system?.financialHealth?.score || 0}/100
-              </p>
-            </div>
-            <div className={`p-2 ${isDark ? 'bg-gray-700' : 'bg-gray-100'} rounded-lg transition-colors duration-300`}>
-              <TrendingUp className={`w-6 h-6 ${isDark ? 'text-gray-300' : 'text-gray-600'} transition-colors duration-300`} />
-            </div>
-          </div>
-          <div className="mt-2">
-            <div className="flex justify-between text-xs mb-1">
-              <span className={`${textSecondaryClass} transition-colors duration-300`}>Progresso</span>
-              <span className={`${textClass} transition-colors duration-300`}>{metrics?.system?.goals?.completed || 0}/{metrics?.system?.goals?.total || 0}</span>
-            </div>
-            <div className={`w-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-1 transition-colors duration-300`}>
-              <div 
-                className={`${isDark ? 'bg-gray-400' : 'bg-gray-500'} h-1 rounded-full transition-colors duration-300`}
-                style={{ 
-                  width: `${metrics?.system?.goals?.total ? (metrics.system.goals.completed / metrics.system.goals.total) * 100 : 0}%` 
-                }}
-              ></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Debug do Tema */}
-      <div className={`${cardBgClass} rounded-lg shadow p-4 border ${borderClass} transition-colors duration-300`}>
-        <h3 className={`text-lg font-semibold mb-2 ${textClass} transition-colors duration-300`}>Debug do Tema</h3>
-        <div className={`text-sm ${textSecondaryClass} transition-colors duration-300`}>
-          <p>Tema selecionado: <span className="font-semibold">{theme}</span></p>
-          <p>Tema aplicado: <span className="font-semibold">{resolvedTheme}</span></p>
-          <p>Modo escuro: <span className="font-semibold">{isDark ? 'Sim' : 'Não'}</span></p>
-          <p>Classes HTML: <span className="font-mono text-xs">{document.documentElement.classList.toString()}</span></p>
-        </div>
-      </div>
-
-      {/* Gráficos e Métricas */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Uso de IA */}
-        <div className={`${cardBgClass} rounded-lg shadow p-6 border ${borderClass} transition-colors duration-300`}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className={`text-lg font-semibold flex items-center ${textClass} transition-colors duration-300`}>
-              <Sparkles className="w-5 h-5 mr-2 text-purple-500" />
-              Uso da IA
-            </h3>
-            <div className="flex items-center space-x-2">
-              <span className={`text-sm ${textSecondaryClass} transition-colors duration-300`}>Plano atual:</span>
-              <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
-                {currentPlan.name}
-              </span>
-            </div>
-          </div>
-          
-          {/* Limites do plano */}
-          <div className="space-y-3 mb-4">
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className={`${textSecondaryClass} transition-colors duration-300`}>Requisições IA</span>
-                <span className={`${textClass} transition-colors duration-300`}>
-                  {metrics?.ai?.requests?.today || 0}/{currentPlan.aiRequests}
+        {/* Métricas principais */}
+        {data && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {/* Total de Requisições */}
+            <div className={`${cardBgClass} p-6 rounded-lg border`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                  <MessageCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <span className={`text-xs ${textSecondaryClass} uppercase tracking-wide`}>
+                  Requisições
                 </span>
               </div>
-              <div className={`w-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2 transition-colors duration-300`}>
-                <div 
-                  className={`h-2 rounded-full ${
-                    isNearLimit(metrics?.ai?.requests?.today || 0, currentPlan.aiRequests) 
-                      ? 'bg-red-500' 
-                      : 'bg-purple-500'
-                  }`}
-                  style={{ 
-                    width: `${getUsagePercentage(metrics?.ai?.requests?.today || 0, currentPlan.aiRequests)}%` 
-                  }}
-                ></div>
+              <div className="space-y-2">
+                <div className={`text-2xl font-bold ${textPrimaryClass}`}>
+                  {data.summary.totalRequests.toLocaleString()}
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-500 ${
+                      isNearLimit(data.summary.totalRequests, currentPlan.requests) 
+                        ? 'bg-red-500' 
+                        : 'bg-blue-500'
+                    }`}
+                    style={{ 
+                      width: `${getUsagePercentage(data.summary.totalRequests, currentPlan.requests)}%` 
+                    }}
+                  />
+                </div>
+                <div className={`text-xs ${textSecondaryClass}`}>
+                  {getUsagePercentage(data.summary.totalRequests, currentPlan.requests).toFixed(1)}% do limite ({currentPlan.requests.toLocaleString()})
+                </div>
               </div>
             </div>
-            
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className={`${textSecondaryClass} transition-colors duration-300`}>Sessões Chatbot</span>
-                <span className={`${textClass} transition-colors duration-300`}>
-                  {metrics?.chatbot?.sessions?.active || 0}/{currentPlan.chatbotSessions}
+
+            {/* Total de Tokens */}
+            <div className={`${cardBgClass} p-6 rounded-lg border`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                  <Cpu className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <span className={`text-xs ${textSecondaryClass} uppercase tracking-wide`}>
+                  Tokens
                 </span>
               </div>
-              <div className={`w-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2 transition-colors duration-300`}>
-                <div 
-                  className={`h-2 rounded-full ${
-                    isNearLimit(metrics?.chatbot?.sessions?.active || 0, currentPlan.chatbotSessions) 
-                      ? 'bg-red-500' 
-                      : 'bg-blue-500'
-                  }`}
-                  style={{ 
-                    width: `${getUsagePercentage(metrics?.chatbot?.sessions?.active || 0, currentPlan.chatbotSessions)}%` 
-                  }}
-                ></div>
+              <div className="space-y-2">
+                <div className={`text-2xl font-bold ${textPrimaryClass}`}>
+                  {(data.summary.totalTokens / 1000).toFixed(0)}K
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-500 ${
+                      isNearLimit(data.summary.totalTokens, currentPlan.tokens) 
+                        ? 'bg-red-500' 
+                        : 'bg-green-500'
+                    }`}
+                    style={{ 
+                      width: `${getUsagePercentage(data.summary.totalTokens, currentPlan.tokens)}%` 
+                    }}
+                  />
+                </div>
+                <div className={`text-xs ${textSecondaryClass}`}>
+                  {getUsagePercentage(data.summary.totalTokens, currentPlan.tokens).toFixed(1)}% do limite ({(currentPlan.tokens / 1000).toFixed(0)}K)
+                </div>
               </div>
             </div>
-            
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className={`${textSecondaryClass} transition-colors duration-300`}>Orientações IA</span>
-                <span className={`${textClass} transition-colors duration-300`}>
-                  {metrics?.guidance?.activeJourneys || 0}/{currentPlan.guidanceSessions}
+
+            {/* Custo Total */}
+            <div className={`${cardBgClass} p-6 rounded-lg border`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
+                  <DollarSign className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <span className={`text-xs ${textSecondaryClass} uppercase tracking-wide`}>
+                  Custo
                 </span>
               </div>
-              <div className={`w-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2 transition-colors duration-300`}>
-                <div 
-                  className={`h-2 rounded-full ${
-                    isNearLimit(metrics?.guidance?.activeJourneys || 0, currentPlan.guidanceSessions) 
-                      ? 'bg-red-500' 
-                      : 'bg-green-500'
-                  }`}
-                  style={{ 
-                    width: `${getUsagePercentage(metrics?.guidance?.activeJourneys || 0, currentPlan.guidanceSessions)}%` 
-                  }}
-                ></div>
-              </div>
-            </div>
-          </div>
-
-          {/* Recursos do plano */}
-          <div>
-            <h4 className={`text-sm font-medium ${textClass} mb-2 transition-colors duration-300`}>Recursos incluídos:</h4>
-            <div className="space-y-1">
-              {currentPlan.features.map((feature, index) => (
-                <div key={index} className="flex items-center text-xs text-gray-600">
-                  <CheckCircle className="w-3 h-3 mr-2 text-green-500" />
-                  <span className={`${textSecondaryClass} transition-colors duration-300`}>{feature}</span>
+              <div className="space-y-2">
+                <div className={`text-2xl font-bold ${textPrimaryClass}`}>
+                  R$ {data.summary.totalCost.toFixed(2)}
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Tópicos do Chatbot */}
-        <div className={`${cardBgClass} rounded-lg shadow p-6 border ${borderClass} transition-colors duration-300`}>
-          <h3 className={`text-lg font-semibold mb-4 flex items-center ${textClass} transition-colors duration-300`}>
-            <MessageCircle className="w-5 h-5 mr-2 text-blue-500" />
-            Tópicos Mais Consultados
-          </h3>
-          <div className="space-y-3">
-            {metrics?.chatbot?.topics?.map((topic: any, index: number) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 rounded-full" style={{
-                    backgroundColor: ['#3B82F6', '#10B981', '#F59E0B', '#EF4444'][index % 4]
-                  }}></div>
-                  <span className={`text-sm ${textClass} transition-colors duration-300`}>{topic.name}</span>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div 
+                    className={`h-2 rounded-full transition-all duration-500 ${
+                      isNearLimit(data.summary.totalCost, currentPlan.cost) 
+                        ? 'bg-red-500' 
+                        : 'bg-yellow-500'
+                    }`}
+                    style={{ 
+                      width: `${getUsagePercentage(data.summary.totalCost, currentPlan.cost)}%` 
+                    }}
+                  />
                 </div>
-                <div className="flex items-center space-x-2">
-                  <span className={`text-sm ${textSecondaryClass} transition-colors duration-300`}>{topic.count}</span>
-                  <span className={`text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'} transition-colors duration-300`}>({topic.percentage}%)</span>
+                <div className={`text-xs ${textSecondaryClass}`}>
+                  {getUsagePercentage(data.summary.totalCost, currentPlan.cost).toFixed(1)}% do limite (R$ {currentPlan.cost})
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
+            </div>
 
-      {/* Performance e Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Performance da IA */}
-        <div className={`${cardBgClass} rounded-lg shadow p-6 border ${borderClass} transition-colors duration-300`}>
-          <h3 className={`text-lg font-semibold mb-4 flex items-center ${textClass} transition-colors duration-300`}>
-            <Zap className="w-5 h-5 mr-2 text-yellow-500" />
-            Performance da IA
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className={`${textSecondaryClass} transition-colors duration-300`}>Latência</span>
-                <span className={`${textClass} transition-colors duration-300`}>{metrics?.ai?.performance?.latency || 0}ms</span>
+            {/* Taxa de Sucesso */}
+            <div className={`${cardBgClass} p-6 rounded-lg border`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                  <CheckCircle className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <span className={`text-xs ${textSecondaryClass} uppercase tracking-wide`}>
+                  Sucesso
+                </span>
               </div>
-              <div className={`w-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2 transition-colors duration-300`}>
-                <div 
-                  className="bg-yellow-500 h-2 rounded-full" 
-                  style={{ width: `${Math.min(100, (metrics?.ai?.performance?.latency || 0) / 2)}%` }}
-                ></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className={`${textSecondaryClass} transition-colors duration-300`}>Throughput</span>
-                <span className={`${textClass} transition-colors duration-300`}>{metrics?.ai?.performance?.throughput || 0} req/s</span>
-              </div>
-              <div className={`w-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2 transition-colors duration-300`}>
-                <div 
-                  className="bg-green-500 h-2 rounded-full" 
-                  style={{ width: `${metrics?.ai?.performance?.throughput || 0}%` }}
-                ></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className={`${textSecondaryClass} transition-colors duration-300`}>Precisão</span>
-                <span className={`${textClass} transition-colors duration-300`}>{metrics?.ai?.performance?.accuracy || 0}%</span>
-              </div>
-              <div className={`w-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2 transition-colors duration-300`}>
-                <div 
-                  className="bg-purple-500 h-2 rounded-full" 
-                  style={{ width: `${metrics?.ai?.performance?.accuracy || 0}%` }}
-                ></div>
+              <div className="space-y-2">
+                <div className={`text-2xl font-bold ${textPrimaryClass}`}>
+                  {data.summary.successRate.toFixed(1)}%
+                </div>
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                  <div 
+                    className="h-2 bg-purple-500 rounded-full transition-all duration-500"
+                    style={{ width: `${data.summary.successRate}%` }}
+                  />
+                </div>
+                <div className={`text-xs ${textSecondaryClass}`}>
+                  Latência média: {data.summary.averageLatency.toFixed(2)}s
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Satisfação do Usuário */}
-        <div className={`${cardBgClass} rounded-lg shadow p-6 border ${borderClass} transition-colors duration-300`}>
-          <h3 className={`text-lg font-semibold mb-4 flex items-center ${textClass} transition-colors duration-300`}>
-            <Users className="w-5 h-5 mr-2 text-indigo-500" />
-            Satisfação do Usuário
-          </h3>
-          <div className="text-center">
-            <div className="text-3xl font-bold text-indigo-600 mb-2">
-              {metrics?.guidance?.userSatisfaction || 0}/5
+        {/* Uso por funcionalidade */}
+        {data && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Gráfico de uso por funcionalidade */}
+            <div className={`${cardBgClass} p-6 rounded-lg border`}>
+              <h3 className={`text-lg font-semibold ${textPrimaryClass} mb-4`}>
+                Uso por Funcionalidade
+              </h3>
+              <div className="space-y-4">
+                {Object.entries(data.breakdown.byFeature).map(([feature, stats]: [string, any], index) => (
+                  <div key={feature} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className={`text-sm font-medium ${textPrimaryClass} capitalize`}>
+                        {feature}
+                      </span>
+                      <span className={`text-sm ${textSecondaryClass}`}>
+                        {stats.requests} req • R$ {stats.cost.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full transition-all duration-500 ${
+                          index === 0 ? 'bg-blue-500' : 
+                          index === 1 ? 'bg-green-500' : 'bg-purple-500'
+                        }`}
+                        style={{ 
+                          width: `${(stats.requests / data.summary.totalRequests) * 100}%` 
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="flex justify-center space-x-1 mb-3">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star 
-                  key={star}
-                  className={`w-5 h-5 ${
-                    star <= (metrics?.guidance?.userSatisfaction || 0) 
-                      ? 'text-yellow-400 fill-current' 
-                      : isDark ? 'text-gray-600' : 'text-gray-300'
-                  }`}
-                />
-              ))}
-            </div>
-            <p className={`text-sm ${textSecondaryClass} transition-colors duration-300`}>
-              {metrics?.guidance?.completedJourneys || 0} jornadas completadas
-            </p>
-          </div>
-        </div>
 
-        {/* Recursos do Sistema */}
-        <div className={`${cardBgClass} rounded-lg shadow p-6 border ${borderClass} transition-colors duration-300`}>
-          <h3 className={`text-lg font-semibold mb-4 flex items-center ${textClass} transition-colors duration-300`}>
-            <TrendingUp className="w-5 h-5 mr-2 text-green-500" />
-            Performance Financeira
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className={`${textSecondaryClass} transition-colors duration-300`}>Saúde Financeira</span>
-                <span className={`${textClass} transition-colors duration-300`}>{metrics?.system?.financialHealth?.score || 0}/100</span>
-              </div>
-              <div className={`w-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2 transition-colors duration-300`}>
-                <div 
-                  className="bg-green-500 h-2 rounded-full" 
-                  style={{ width: `${metrics?.system?.financialHealth?.score || 0}%` }}
-                ></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className={`${textSecondaryClass} transition-colors duration-300`}>Dias Ativos</span>
-                <span className={`${textClass} transition-colors duration-300`}>{metrics?.system?.userActivity?.activeDays || 0} dias</span>
-              </div>
-              <div className={`w-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2 transition-colors duration-300`}>
-                <div 
-                  className="bg-blue-500 h-2 rounded-full" 
-                  style={{ width: `${Math.min(100, (metrics?.system?.userActivity?.activeDays || 0) / 30 * 100)}%` }}
-                ></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className={`${textSecondaryClass} transition-colors duration-300`}>Metas Concluídas</span>
-                <span className={`${textClass} transition-colors duration-300`}>{metrics?.system?.goals?.completed || 0}/{metrics?.system?.goals?.total || 0}</span>
-              </div>
-              <div className={`w-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2 transition-colors duration-300`}>
-                <div 
-                  className="bg-yellow-500 h-2 rounded-full" 
-                  style={{ 
-                    width: `${metrics?.system?.goals?.total ? (metrics.system.goals.completed / metrics.system.goals.total) * 100 : 0}%` 
-                  }}
-                ></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className={`${textSecondaryClass} transition-colors duration-300`}>Investimentos Ativos</span>
-                <span className={`${textClass} transition-colors duration-300`}>{metrics?.system?.investments?.active || 0} ativos</span>
-              </div>
-              <div className={`w-full ${isDark ? 'bg-gray-700' : 'bg-gray-200'} rounded-full h-2 transition-colors duration-300`}>
-                <div 
-                  className="bg-purple-500 h-2 rounded-full" 
-                  style={{ width: `${Math.min(100, (metrics?.system?.investments?.active || 0) / 10 * 100)}%` }}
-                ></div>
+            {/* Uso por modelo */}
+            <div className={`${cardBgClass} p-6 rounded-lg border`}>
+              <h3 className={`text-lg font-semibold ${textPrimaryClass} mb-4`}>
+                Uso por Modelo de IA
+              </h3>
+              <div className="space-y-4">
+                {Object.entries(data.breakdown.byModel).map(([model, stats]: [string, any], index) => (
+                  <div key={model} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className={`text-sm font-medium ${textPrimaryClass}`}>
+                        {model}
+                      </span>
+                      <span className={`text-sm ${textSecondaryClass}`}>
+                        {stats.latency.toFixed(2)}s • R$ {stats.cost.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full transition-all duration-500 ${
+                          index === 0 ? 'bg-indigo-500' : 
+                          index === 1 ? 'bg-pink-500' : 'bg-orange-500'
+                        }`}
+                        style={{ 
+                          width: `${(stats.requests / data.summary.totalRequests) * 100}%` 
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Alertas e Recomendações */}
-      <div className={`${cardBgClass} rounded-lg shadow p-6 border ${borderClass} transition-colors duration-300`}>
-        <h3 className={`text-lg font-semibold mb-4 flex items-center ${textClass} transition-colors duration-300`}>
-          <Lightbulb className="w-5 h-5 mr-2 text-yellow-500" />
-          Alertas e Recomendações
-        </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {isNearLimit(metrics?.ai?.requests?.today || 0, currentPlan.aiRequests) && (
-            <div className={`flex items-start space-x-3 p-3 ${isDark ? 'bg-yellow-900/20 border-yellow-800' : 'bg-yellow-50 border-yellow-200'} rounded-lg border transition-colors duration-300`}>
-              <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />
-              <div>
-                <h4 className={`font-medium ${isDark ? 'text-yellow-300' : 'text-yellow-800'} transition-colors duration-300`}>Uso da IA próximo ao limite</h4>
-                <p className={`text-sm ${isDark ? 'text-yellow-400' : 'text-yellow-700'} transition-colors duration-300`}>
-                  Você já utilizou {getUsagePercentage(metrics?.ai?.requests?.today || 0, currentPlan.aiRequests).toFixed(0)}% das suas requisições de IA este mês. Considere fazer upgrade do plano.
+        {/* Alertas e Status */}
+        {data && (
+          <div className={`${cardBgClass} p-6 rounded-lg border mb-8`}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className={`text-lg font-semibold ${textPrimaryClass}`}>
+                Status do Sistema
+              </h3>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                <span className={`text-sm ${textSecondaryClass}`}>Sistema Operacional</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Alerta de custo */}
+              {isNearLimit(data.summary.totalCost, currentPlan.cost) && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <AlertTriangle className="w-4 h-4 text-red-500" />
+                    <span className="text-sm font-medium text-red-700 dark:text-red-300">
+                      Limite de Custo
+                    </span>
+                  </div>
+                  <p className="text-xs text-red-600 dark:text-red-400">
+                    Você está próximo do limite de custo do seu plano ({getUsagePercentage(data.summary.totalCost, currentPlan.cost).toFixed(1)}%)
+                  </p>
+                </div>
+              )}
+
+              {/* Status de performance */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Activity className="w-4 h-4 text-blue-500" />
+                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                    Performance
+                  </span>
+                </div>
+                <p className="text-xs text-blue-600 dark:text-blue-400">
+                  Latência média: {data.summary.averageLatency.toFixed(2)}s
+                </p>
+              </div>
+
+              {/* Próxima atualização */}
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Clock className="w-4 h-4 text-green-500" />
+                  <span className="text-sm font-medium text-green-700 dark:text-green-300">
+                    Atualização
+                  </span>
+                </div>
+                <p className="text-xs text-green-600 dark:text-green-400">
+                  Última: {lastUpdated.toLocaleTimeString()}
                 </p>
               </div>
             </div>
-          )}
-          
-          <div className={`flex items-start space-x-3 p-3 ${isDark ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200'} rounded-lg border transition-colors duration-300`}>
-            <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
-            <div>
-              <h4 className={`font-medium ${isDark ? 'text-green-300' : 'text-green-800'} transition-colors duration-300`}>Performance excelente</h4>
-              <p className={`text-sm ${isDark ? 'text-green-400' : 'text-green-700'} transition-colors duration-300`}>
-                Sua IA está funcionando com {metrics?.ai?.performance?.accuracy || 0}% de precisão. Continue assim!
-              </p>
-            </div>
           </div>
-          
-          <div className={`flex items-start space-x-3 p-3 ${isDark ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-200'} rounded-lg border transition-colors duration-300`}>
-            <Crown className="w-5 h-5 text-blue-600 mt-0.5" />
-            <div>
-              <h4 className={`font-medium ${isDark ? 'text-blue-300' : 'text-blue-800'} transition-colors duration-300`}>Upgrade recomendado</h4>
-              <p className={`text-sm ${isDark ? 'text-blue-400' : 'text-blue-700'} transition-colors duration-300`}>
-                Com o plano Top, você teria acesso a análises mais avançadas e suporte prioritário.
-              </p>
-            </div>
-          </div>
-          
-          <div className={`flex items-start space-x-3 p-3 ${isDark ? 'bg-purple-900/20 border-purple-800' : 'bg-purple-50 border-purple-200'} rounded-lg border transition-colors duration-300`}>
-            <Sparkles className="w-5 h-5 text-purple-600 mt-0.5" />
-            <div>
-              <h4 className={`font-medium ${isDark ? 'text-purple-300' : 'text-purple-800'} transition-colors duration-300`}>Novos recursos disponíveis</h4>
-              <p className={`text-sm ${isDark ? 'text-purple-400' : 'text-purple-700'} transition-colors duration-300`}>
-                Experimente a orientação automática de IA para maximizar seus resultados.
-              </p>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
-} 
+}

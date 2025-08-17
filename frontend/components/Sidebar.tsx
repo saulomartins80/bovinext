@@ -149,7 +149,7 @@ export default function Sidebar({
           >
             <div className="w-8 h-8 flex items-center justify-center relative">
               <Image
-                src="/Finnextho.png"
+                src="/finnextho.png"
                 alt="Logo Finnextho"
                 width={32}
                 height={32}
@@ -168,7 +168,7 @@ export default function Sidebar({
           >
             <div className="w-8 h-8 flex items-center justify-center relative">
               <Image
-                src="/Finnextho.png"
+                src="/finnextho.png"
                 alt="Logo Finnextho"
                 width={32}
                 height={32}
