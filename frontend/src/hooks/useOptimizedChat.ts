@@ -19,6 +19,11 @@ interface ChatMessage {
       data: Record<string, unknown>;
     };
     requiresConfirmation?: boolean;
+    actionData?: {
+      type: string;
+      entities: Record<string, unknown>;
+      userId: string;
+    };
     entities?: Record<string, unknown>;
     isStreaming?: boolean;
     isComplete?: boolean;
@@ -43,11 +48,9 @@ interface ChatMessage {
     businessImpact?: number;
     automationSuccess?: boolean;
     roiProjection?: {
-      timeSaved: string;
-      moneySaved: string;
-      decisionsImproved: string;
+      value: number;
+      timeframe: string;
     };
-    competitiveAdvantage?: string[];
   };
 }
 
@@ -96,48 +99,6 @@ class MessageCache {
   }
 }
 
-// ===== SISTEMA DE RETRY INTELIGENTE =====
-class RetryManager {
-  private retryCount = new Map<string, number>();
-  private maxRetries = 3;
-  private backoffMultiplier = 1.5;
-
-  async executeWithRetry<T>(
-    key: string,
-    operation: () => Promise<T>,
-    onRetry?: (attempt: number) => void
-  ): Promise<T> {
-    const attempts = this.retryCount.get(key) || 0;
-    
-    try {
-      const result = await operation();
-      this.retryCount.delete(key); // Reset on success
-      return result;
-    } catch (error) {
-      if (attempts >= this.maxRetries) {
-        this.retryCount.delete(key);
-        throw error;
-      }
-
-      const nextAttempt = attempts + 1;
-      this.retryCount.set(key, nextAttempt);
-      
-      const delay = Math.pow(this.backoffMultiplier, attempts) * 1000;
-      
-      if (onRetry) {
-        onRetry(nextAttempt);
-      }
-      
-      await new Promise(resolve => setTimeout(resolve, delay));
-      return this.executeWithRetry(key, operation, onRetry);
-    }
-  }
-
-  reset(key: string): void {
-    this.retryCount.delete(key);
-  }
-}
-
 // ===== HOOK PRINCIPAL OTIMIZADO =====
 export const useOptimizedChat = () => {
   const [state, setState] = useState<ChatState>({
@@ -152,7 +113,6 @@ export const useOptimizedChat = () => {
 
   // Refs para performance
   const messageCache = useRef(new MessageCache());
-  const retryManager = useRef(new RetryManager());
   const eventSourceRef = useRef<EventSource | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -372,65 +332,7 @@ export const useOptimizedChat = () => {
     
     if (!content.trim()) return;
 
-    // ===== MENSAGEM REGULAR OTIMIZADA =====
-    const sendRegularMessage = async (
-      content: string, 
-      chatId: string
-    ): Promise<void> => {
-      const retryKey = `regular_${chatId}_${Date.now()}`;
-      const handleRetry = (attempt: number): void => {
-        console.warn(`[useOptimizedChat] Retry attempt ${attempt} for regular message`);
-        updateState({ error: `Tentativa ${attempt} falhou. Tentando novamente...` });
-      };
-      
-      const operation = async (): Promise<void> => {
-        try {
-          const data = await chatbotAPI.sendQuery({ message: content, chatId });
-          
-          if (!data.success) {
-            const fallbackMessage = typeof data.message === 'string' && data.message
-              ? data.message
-              : 'Não consegui processar sua solicitação agora. Tente novamente em instantes.';
-          
-            const botMessage: ChatMessage = {
-              id: data.messageId || generateMessageId(),
-              sender: 'assistant',
-              content: fallbackMessage,
-              timestamp: new Date(),
-              metadata: { ...data.metadata, fallback: true }
-            } as ChatMessage;
-            addMessage(botMessage);
-            updateState({ isLoading: false });
-            return;
-          }
-
-          const botMessage: ChatMessage = {
-            id: data.messageId || generateMessageId(),
-            sender: 'assistant',
-            content: data.message,
-            timestamp: new Date(),
-            metadata: data.metadata
-          };
-
-          addMessage(botMessage);
-          updateState({ isLoading: false });
-        } catch (fetchError) {
-          console.error('[useOptimizedChat] Fetch failed completely:', fetchError);
-          console.warn('[useOptimizedChat] Usando resposta simulada por falha na requisição');
-          const botMessage: ChatMessage = {
-            id: generateMessageId(),
-            sender: 'assistant',
-            content: `Desculpe, estou com problemas de conectividade no momento. Sua mensagem "${content}" foi recebida, mas não posso processar adequadamente agora. Tente novamente em alguns instantes.`,
-            timestamp: new Date(),
-            metadata: { fallback: true }
-          } as ChatMessage;
-          addMessage(botMessage);
-          updateState({ isLoading: false });
-        }
-      };
-
-      await retryManager.current.executeWithRetry(retryKey, operation, handleRetry);
-    };
+    // ===== ESCOLHA DO MÉTODO DE ENVIO =====
 
     // ===== STREAMING OTIMIZADO =====
     const sendStreamingMessage = async (
@@ -581,12 +483,74 @@ export const useOptimizedChat = () => {
           eventSource.addEventListener('chunk', handleIncoming);
           // Captura fallback caso o backend envie como evento padrão "message"
           eventSource.addEventListener('message', handleIncoming);
+          
+          // Log all events for debugging
+          eventSource.addEventListener('open', () => {
+            console.log('[useOptimizedChat] EventSource opened');
+          });
+          
+          eventSource.addEventListener('error', (error) => {
+            console.log('[useOptimizedChat] EventSource error:', error);
+          });
+          
+          // Listen for ALL events
+          eventSource.onmessage = (event) => {
+            console.log('[useOptimizedChat] Raw onmessage event:', event);
+            console.log('[useOptimizedChat] Event type:', event.type);
+            console.log('[useOptimizedChat] Event data:', event.data);
+          };
+          
           // Capturar metadados de intenção/ações
           eventSource.addEventListener('metadata', (event) => {
             try {
               const meta = JSON.parse((event as MessageEvent).data as string);
-              console.log('[useOptimizedChat] Received metadata:', meta);
-              if (meta?.intent && typeof streamingMessage?.content === 'string') {
+              console.log('[useOptimizedChat] ===== METADATA EVENT RECEIVED =====');
+              console.log('[useOptimizedChat] Raw event:', event);
+              console.log('[useOptimizedChat] Event data:', (event as MessageEvent).data);
+              console.log('[useOptimizedChat] Parsed metadata:', meta);
+              console.log('[useOptimizedChat] requiresConfirmation:', meta?.requiresConfirmation);
+              console.log('[useOptimizedChat] actionData:', meta?.actionData);
+              
+              // Processar actionData do backend (novo formato)
+              if (meta?.requiresConfirmation && meta?.actionData) {
+                console.log('[useOptimizedChat] Processing actionData:', meta.actionData);
+                console.log('[useOptimizedChat] SETTING PENDING ACTION NOW!');
+                
+                // ATUALIZAR A MENSAGEM COM OS METADADOS CORRETOS
+                if (streamingMessage) {
+                  streamingMessage.metadata = {
+                    ...streamingMessage.metadata,
+                    requiresConfirmation: true,
+                    actionData: meta.actionData,
+                    intent: meta.intent,
+                    entities: meta.entities,
+                    confidence: meta.confidence
+                  };
+                  console.log('[useOptimizedChat] Updated streamingMessage.metadata:', streamingMessage.metadata);
+                }
+                
+                setState(prev => {
+                  const newState = {
+                    ...prev,
+                    pendingAction: { 
+                      action: meta.actionData.type, 
+                      payload: meta.actionData.entities || {}, 
+                      autoExecute: false, 
+                      executed: false 
+                    },
+                    // ATUALIZAR MENSAGENS COM METADADOS
+                    messages: prev.messages.map(msg => 
+                      msg.id === streamingMessage?.id 
+                        ? { ...streamingMessage }
+                        : msg
+                    )
+                  };
+                  console.log('[useOptimizedChat] New state with pendingAction:', newState.pendingAction);
+                  return newState;
+                });
+              }
+              // Fallback para formato antigo
+              else if (meta?.intent && typeof streamingMessage?.content === 'string') {
                 const intent = String(meta.intent);
                 if (['CREATE_TRANSACTION', 'CREATE_GOAL', 'CREATE_INVESTMENT'].includes(intent)) {
                   let payload: Record<string, unknown> | null = null;
@@ -609,57 +573,39 @@ export const useOptimizedChat = () => {
             }
           });
 
-          eventSource.addEventListener('complete', async (event) => {
-            console.log('[useOptimizedChat] Stream completed:', event.data);
+          eventSource.addEventListener('complete', async () => {
+            console.log('[useOptimizedChat] Stream completed');
             
-            // Limpar timeout
-            if (timeoutId) clearTimeout(timeoutId);
-            
-            // Finalizar a mensagem de streaming
-            if (hasStarted) {
-              streamingMessage.metadata = { 
-                ...streamingMessage.metadata, 
-                isStreaming: false, 
-                isComplete: true 
-              };
-              
-              // Atualizar mensagem final
-              setState(prev => ({
-                ...prev,
-                messages: prev.messages.map(msg => 
-                  msg.id === streamingMessage.id 
-                    ? { ...streamingMessage }
-                    : msg
-                )
-              }));
-            }
-            
-            updateState({ 
-              isStreaming: false, 
-              isLoading: false,
-              connectionStatus: 'connected' // Manter conectado após streaming
-            });
-            
-            // Garantir que a mensagem final esteja no estado
             setState(prev => ({
               ...prev,
               messages: prev.messages.map(msg => 
                 msg.id === streamingMessage.id 
-                  ? { ...streamingMessage }
+                  ? { 
+                      ...streamingMessage, 
+                      metadata: {
+                        ...streamingMessage.metadata,
+                        isComplete: true
+                      }
+                    }
                   : msg
               )
             }));
             
+            updateState({ 
+              isStreaming: false, 
+              isLoading: false,
+              connectionStatus: 'connected'
+            });
+            
             try {
-              // Auto-executar se pendente e com alta confiança
               const currentState = { ...state };
               const shouldAuto = currentState.pendingAction?.autoExecute && !currentState.pendingAction?.executed;
               if (shouldAuto && currentState.chatId) {
                 await executePendingAction();
               }
             } finally {
-            eventSource.close();
-            resolve();
+              eventSource.close();
+              resolve();
             }
           });
 
@@ -667,8 +613,7 @@ export const useOptimizedChat = () => {
           eventSource.addEventListener('error', (event) => {
             console.warn('[useOptimizedChat] EventSource error (não crítico, aguardando reconexão/timeout):', {
               event,
-              readyState: eventSource.readyState,
-              hasStarted
+              readyState: eventSource.readyState
             });
             // Não rejeitar aqui; deixar o timeout cuidar do fallback
           });
@@ -695,49 +640,48 @@ export const useOptimizedChat = () => {
           addMessage(botMessage);
           updateState({ isLoading: false, pendingAction: null });
           return;
-        } catch (execError) {
-          console.error('[useOptimizedChat] Erro ao executar ação pendente:', execError);
-          updateState({ isLoading: false });
-          // prosseguir com fluxo normal caso falhe
+        } catch (error) {
+          console.error('[useOptimizedChat] Error executing action:', error);
+          updateState({ isLoading: false, error: 'Erro ao executar ação' });
+          return;
         }
       }
 
-      const currentChatId = state.chatId || await createSession();
-      
-      // Adicionar mensagem do usuário imediatamente
+      // Criar nova sessão se necessário
+      if (!state.chatId) {
+        await createSession();
+      }
+
+      // Adicionar mensagem do usuário
       const userMessage: ChatMessage = {
         id: generateMessageId(),
         sender: 'user',
         content,
         timestamp: new Date()
       };
-      
       addMessage(userMessage);
-      updateState({ 
-        isLoading: true, 
-        error: null,
-        isStreaming: useStreaming 
-      });
+      updateState({ isLoading: true, error: null });
 
-      // Usar streaming se solicitado
+      // Usar streaming se disponível
       if (useStreaming) {
-        try {
-          await sendStreamingMessage(content, currentChatId);
-        } catch (streamError) {
-          console.warn('[useOptimizedChat] Streaming falhou, usando mensagem regular como fallback:', streamError);
-          await sendRegularMessage(content, currentChatId);
-        }
+        await sendStreamingMessage(content, state.chatId || '');
       } else {
-        await sendRegularMessage(content, currentChatId);
+        // Fallback to regular message - implement basic message sending
+        const response = await chatbotAPI.sendQuery({
+          message: content,
+          chatId: state.chatId || ''
+        });
+        const botMessage: ChatMessage = {
+          id: generateMessageId(),
+          sender: 'assistant',
+          content: response.text || 'Resposta recebida',
+          timestamp: new Date(),
+          metadata: response.metadata
+        };
+        addMessage(botMessage);
       }
-
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.log('[useOptimizedChat] Request aborted');
-        return;
-      }
-
-      console.error('[useOptimizedChat] Error sending message:', error);
+      console.error('[useOptimizedChat] Error in sendMessage:', error);
       updateState({ 
         error: error instanceof Error ? error.message : 'Erro ao enviar mensagem',
         isLoading: false,
@@ -757,17 +701,20 @@ export const useOptimizedChat = () => {
 
   // ===== LIMPEZA E UTILITÁRIOS =====
   const clearMessages = useCallback(() => {
-    setState(prev => ({ ...prev, messages: [], error: null }));
-    if (state.chatId) {
-      messageCache.current.remove(state.chatId);
-    }
-  }, [state.chatId]);
+    setState(prev => ({
+      ...prev,
+      messages: [],
+      error: null
+    }));
+    messageCache.current.clear();
+  }, []);
+
+  const clearPendingAction = useCallback(() => {
+    setState(prev => ({ ...prev, pendingAction: null }));
+  }, []);
 
   const retryLastMessage = useCallback(() => {
-    const lastUserMessage = state.messages
-      .filter(msg => msg.sender === 'user')
-      .pop();
-    
+    const lastUserMessage = state.messages.filter(msg => msg.sender === 'user').pop();
     if (lastUserMessage) {
       sendMessage(lastUserMessage.content);
     }
@@ -777,63 +724,38 @@ export const useOptimizedChat = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
-    
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
     }
     
     updateState({ 
       isLoading: false, 
-      isStreaming: false,
-      connectionStatus: 'disconnected'
+      isStreaming: false 
     });
   }, [updateState]);
 
-  // Limpar ação pendente manualmente
-  const clearPendingAction = useCallback(() => {
-    setState(prev => ({ ...prev, pendingAction: null }));
+  const deleteSession = useCallback(async (sessionId: string) => {
+    setState(prev => ({
+      ...prev,
+      messages: prev.messages.filter(msg => msg.id !== sessionId)
+    }));
+    messageCache.current.remove(sessionId);
   }, []);
 
-  // ===== DELEÇÃO DE SESSÕES =====
-  const deleteSession = useCallback(async (targetChatId: string): Promise<void> => {
-    try {
-      await chatbotAPI.deleteSession(targetChatId);
-      // Limpar cache da sessão deletada
-      messageCache.current.remove(targetChatId);
-      // Se for a sessão atual, limpar mensagens e chatId
-      if (state.chatId === targetChatId) {
-        setState(prev => ({ ...prev, messages: [], chatId: null }));
-      }
-    } catch (error) {
-      console.error('[useOptimizedChat] Error deleting session:', error);
-      throw error;
-    }
-  }, [state.chatId]);
-
-  const deleteAllSessions = useCallback(async (): Promise<void> => {
-    try {
-      await chatbotAPI.deleteAllSessions();
-      // Limpar todo cache e estado de mensagens
-      messageCache.current.clear();
-      setState(prev => ({ ...prev, messages: [], chatId: null }));
-    } catch (error) {
-      console.error('[useOptimizedChat] Error deleting all sessions:', error);
-      throw error;
-    }
+  const deleteAllSessions = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      messages: [],
+      chatId: null
+    }));
+    messageCache.current.clear();
   }, []);
 
-  // ===== LISTAR SESSÕES (opcional, para futura UI) =====
-  const getSessions = useCallback(async (): Promise<unknown> => {
-    try {
-      const sessions = await chatbotAPI.getSessions();
-      return sessions;
-    } catch (error) {
-      console.error('[useOptimizedChat] Error fetching sessions:', error);
-      throw error;
-    }
-  }, []);
+  const getSessions = useCallback(() => {
+    return Array.from(new Set(state.messages.map(msg => msg.id).filter(Boolean)));
+  }, [state.messages]);
 
-  // ===== CLEANUP =====
+  // Cleanup on unmount
   useEffect(() => {
     const eventSource = eventSourceRef.current;
     const abortController = abortControllerRef.current;
@@ -848,7 +770,6 @@ export const useOptimizedChat = () => {
     };
   }, []);
 
-  // ===== RETURN INTERFACE =====
   return {
     // Estado
     messages: state.messages,
@@ -862,9 +783,9 @@ export const useOptimizedChat = () => {
     // Ações
     sendMessage,
     createSession,
-    clearMessages,
     retryLastMessage,
     cancelCurrentRequest,
+    clearMessages,
     clearPendingAction,
     deleteSession,
     deleteAllSessions,

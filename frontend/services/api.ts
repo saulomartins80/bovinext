@@ -124,9 +124,12 @@ const api = axios.create({
   },
 });
 
-// Interceptor para autenticação com logs detalhados
+// Interceptor para autenticação com logs detalhados e suporte mobile
 api.interceptors.request.use(async (config) => {
   console.log(`[api.ts] 🚀 Iniciando requisição para: ${config.method?.toUpperCase()} ${config.url}`);
+  
+  // Detectar mobile
+  const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   
   const auth = getAuth();
   const user = auth.currentUser;
@@ -135,25 +138,47 @@ api.interceptors.request.use(async (config) => {
     userExists: !!user,
     uid: user?.uid,
     email: user?.email,
-    emailVerified: user?.emailVerified
+    emailVerified: user?.emailVerified,
+    isMobile
   });
 
   if (user) {
     console.log(`[api.ts] 🔑 Usuário encontrado (UID: ${user.uid}). Obtendo ID token para: ${config.url}`);
     try {
-      const token = await getIdToken(user, true);
-      console.log(`[api.ts] ✅ Token obtido com sucesso para: ${config.url}`);
+      // Configurações específicas para mobile
+      const tokenOptions = {
+        forceRefresh: isMobile ? false : true // Mobile: evitar refresh forçado
+      };
+      
+      const token = await getIdToken(user, tokenOptions.forceRefresh);
+      console.log(`[api.ts] ✅ Token obtido com sucesso para: ${config.url} (mobile: ${isMobile})`);
       console.log(`[api.ts] 🔑 Token (primeiros 20 chars): ${token.substring(0, 20)}...`);
       console.log(`[api.ts] 📏 Tamanho do token: ${token.length}`);
       
       config.headers.Authorization = `Bearer ${token}`;
+      
+      // Headers específicos para mobile
+      if (isMobile) {
+        config.headers['X-Mobile-Request'] = 'true';
+        config.headers['X-User-Agent'] = navigator.userAgent;
+      }
+      
       console.log(`[api.ts] ✅ Header Authorization configurado para: ${config.url}`);
     } catch (error) {
-      console.error(`[api.ts] ❌ Erro ao obter ID token para: ${config.url}`, error);
+      console.error(`[api.ts] ❌ Erro ao obter ID token para: ${config.url} (mobile: ${isMobile})`, error);
+      
+      // Tratamento específico para mobile
+      if (isMobile && error instanceof Error) {
+        if (error.message.includes('network-request-failed')) {
+          console.error(`[api.ts] 📱 Erro de rede específico do mobile detectado`);
+          throw new Error(`Mobile network error: ${error.message}`);
+        }
+      }
+      
       throw new Error(`Failed to get authentication token: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   } else {
-    console.warn(`[api.ts] ⚠️ Nenhum usuário autenticado encontrado. Requisição para ${config.url} será não autenticada.`);
+    console.warn(`[api.ts] ⚠️ Nenhum usuário autenticado encontrado. Requisição para ${config.url} será não autenticada (mobile: ${isMobile}).`);
     console.warn(`[api.ts] 📋 Headers da requisição:`, config.headers);
   }
 
@@ -281,13 +306,32 @@ export const chatbotAPI = {
     try {
       const auth = getAuth();
       const user = auth.currentUser;
-      const token = user ? await getIdToken(user, true) : '';
+      
+      // Detectar mobile
+      const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      // Configurações de token específicas para mobile
+      const token = user ? await getIdToken(user, !isMobile) : ''; // Mobile: não forçar refresh
 
       const base = (api.defaults.baseURL || '').replace(/\/$/, '');
-      const url = `${base}/api/chatbot/stream?message=${encodeURIComponent(message)}&chatId=${encodeURIComponent(chatId)}&token=${encodeURIComponent(token)}`;
+      const url = `${base}/api/chatbot/stream?message=${encodeURIComponent(message)}&chatId=${encodeURIComponent(chatId)}&token=${encodeURIComponent(token)}&mobile=${isMobile}`;
 
-      console.log('[chatbotAPI] 🔌 Abrindo stream via EventSource:', { url: `${base}/api/chatbot/stream?...`, hasToken: !!token, withCredentials: false });
-      return new EventSource(url, { withCredentials: false });
+      console.log('[chatbotAPI] 🔌 Abrindo stream via EventSource:', { 
+        url: `${base}/api/chatbot/stream?...`, 
+        hasToken: !!token, 
+        withCredentials: false,
+        isMobile 
+      });
+      
+      // Configurações específicas para EventSource em mobile
+      const eventSourceConfig = {
+        withCredentials: false,
+        ...(isMobile && {
+          // Configurações específicas para mobile se necessário
+        })
+      };
+      
+      return new EventSource(url, eventSourceConfig);
     } catch (error) {
       console.error('[chatbotAPI] ❌ Erro ao abrir stream:', error);
       throw error;

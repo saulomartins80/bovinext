@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useOptimizedChat } from '../src/hooks/useOptimizedChat';
+import { chatbotAPI } from '../services/api';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -47,7 +48,8 @@ interface EnterpriseMessage {
     requiresConfirmation?: boolean;
     actionData?: {
       type: string;
-      data: Record<string, unknown>;
+      entities: Record<string, unknown>;
+      userId: string;
     };
     recommendations?: Array<{
       title: string;
@@ -389,7 +391,14 @@ const EnterpriseMessageBubble: React.FC<{
           <ExecutedActions actions={message.metadata.actions} theme={theme} />
         )}
         
-        {/* Botões de Confirmação */}
+        {/* Botões de Confirmação - DEBUG */}
+        {(() => {
+          console.log('[OptimizedChatbot] DEBUG - Message metadata:', message.metadata);
+          console.log('[OptimizedChatbot] DEBUG - requiresConfirmation:', message.metadata?.requiresConfirmation);
+          console.log('[OptimizedChatbot] DEBUG - actionData:', message.metadata?.actionData);
+          console.log('[OptimizedChatbot] DEBUG - Should show buttons:', !isUser && message.metadata?.requiresConfirmation && message.metadata?.actionData);
+          return null;
+        })()}
         {!isUser && message.metadata?.requiresConfirmation && message.metadata?.actionData && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
@@ -497,6 +506,7 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
   });
   
   // Hook otimizado
+  const chatHook = useOptimizedChat();
   const {
     messages,
     isLoading,
@@ -512,7 +522,7 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
     hasMessages,
     pendingAction,
     clearPendingAction
-  } = useOptimizedChat();
+  } = chatHook;
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = useState('');
@@ -607,34 +617,35 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
     try {
       console.log('[OptimizedChatbot] Confirmando ação:', actionData);
       
-      // Enviar confirmação para o backend
-      const actionType = typeof actionData.type === 'string' ? actionData.type : 'ação';
-      const confirmationMessage = `Confirmar ${actionType.toLowerCase().replace('create_', 'criação de ')}`;
-      await sendMessage(confirmationMessage, { useStreaming: true });
-      
-      // Simular execução da ação
-      setTimeout(async () => {
-        try {
-          // Aqui você pode chamar a API para executar a ação
-          const response = await fetch('/api/chatbot/execute-action', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ actionData })
-          });
+      // Executar ação diretamente usando a API correta
+      try {
+        const response = await chatbotAPI.executeAction({
+          action: actionData.type as string,
+          payload: actionData.entities as Record<string, unknown>,
+          chatId: chatId || undefined
+        });
+        
+        if (response.success) {
+          console.log('[OptimizedChatbot] Ação executada com sucesso:', response);
+          toast.success('Ação executada com sucesso!');
           
-          if (response.ok) {
-            console.log('[OptimizedChatbot] Ação executada com sucesso');
-          }
-        } catch (error) {
-          console.error('[OptimizedChatbot] Erro ao executar ação:', error);
+          // Enviar mensagem de confirmação
+          const actionType = typeof actionData.type === 'string' ? actionData.type : 'ação';
+          const confirmationMessage = `✅ ${actionType.toLowerCase().replace('create_', 'Criação de ')} confirmada e executada!`;
+          await sendMessage(confirmationMessage, { useStreaming: false });
+        } else {
+          console.error('[OptimizedChatbot] Erro na execução:', response.message);
+          toast.error(response.message || 'Erro ao executar ação');
         }
-      }, 1000);
-      
+      } catch (error) {
+        console.error('[OptimizedChatbot] Erro ao executar ação:', error);
+        toast.error('Erro ao executar ação');
+      }
     } catch (error) {
       console.error('[OptimizedChatbot] Erro ao confirmar ação:', error);
       toast.error('Erro ao confirmar ação');
     }
-  }, [sendMessage]);
+  }, [sendMessage, chatId]);
 
   // Handler para cancelar ação
   const handleCancelAction = useCallback(() => {
@@ -657,8 +668,11 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
       userSophistication: msg.metadata?.userSophistication,
       businessImpact: msg.metadata?.businessImpact,
       automationSuccess: msg.metadata?.automationSuccess,
-      roiProjection: msg.metadata?.roiProjection,
-      competitiveAdvantage: msg.metadata?.competitiveAdvantage
+      roiProjection: msg.metadata?.roiProjection ? {
+        timeSaved: `${msg.metadata.roiProjection.value} ${msg.metadata.roiProjection.timeframe}`,
+        moneySaved: `R$ ${msg.metadata.roiProjection.value}`,
+        decisionsImproved: `${Math.round(msg.metadata.roiProjection.value * 0.1)}`
+      } : undefined
     }
   }));
 
@@ -786,14 +800,18 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
         {/* Input Area */}
         <div className="border-t border-gray-200 dark:border-gray-700 p-4">
           {/* Banner de confirmação de ação pendente */}
-          {pendingAction && !pendingAction.executed && !pendingAction.autoExecute && (
+          {(() => {
+            console.log('[OptimizedChatbot] Checking pendingAction:', pendingAction);
+            console.log('[OptimizedChatbot] Should show banner:', pendingAction && !pendingAction.executed && !pendingAction.autoExecute);
+            return pendingAction && !pendingAction.executed && !pendingAction.autoExecute;
+          })() && (
             <div className="mb-3 p-3 rounded-lg border border-yellow-300 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20">
               <div className="text-sm font-medium flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-yellow-600" />
                 Confirma executar a ação detectada?
               </div>
               <div className="text-xs text-gray-700 dark:text-gray-300 mt-1 break-words">
-                {pendingAction.action.replace('CREATE_', '').toLowerCase()} — dados: {JSON.stringify(pendingAction.payload)}
+                {pendingAction?.action?.replace('CREATE_', '').toLowerCase()} — dados: {JSON.stringify(pendingAction?.payload)}
               </div>
               <div className="mt-2 flex gap-2">
                 <button

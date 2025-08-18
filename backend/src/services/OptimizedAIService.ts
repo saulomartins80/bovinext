@@ -4,6 +4,10 @@ import { ChatMessage } from '../types/chat';
 import { EventEmitter } from 'events';
 import ExternalAPIService from './ExternalAPIService';
 import { createTransaction, createGoal, createInvestment } from '../controllers/automatedActionsController';
+import { User } from '../models/User';
+import { ITransacao } from '../models/Transacoes';
+import { Goal } from '../models/Goal';
+import { Investimento } from '../models/Investimento';
 
 // ===== CONFIGURAÇÃO OTIMIZADA =====
 const openai = new OpenAI({
@@ -219,11 +223,19 @@ class FastIntentDetector {
         
         // Extrair descrição mais específica baseada na mensagem
         const palavrasChave = lowerMessage.split(' ');
+        const excludeWords = ['gastei', 'paguei', 'comprei', 'reais', 'valor', 'quero', 'registrar', 'despesa', 'uma', 'de'];
+        
+        // Procurar por palavras relevantes (empresas, estabelecimentos, etc.)
         for (const palavra of palavrasChave) {
-          if (palavra.length > 3 && !['gastei', 'paguei', 'comprei', 'reais', 'valor'].includes(palavra)) {
+          if (palavra.length > 2 && !excludeWords.includes(palavra) && !palavra.includes('100') && !palavra.includes('r$')) {
             entities.descricao = palavra.charAt(0).toUpperCase() + palavra.slice(1);
             break;
           }
+        }
+        
+        // Se não encontrou uma boa descrição, usar uma padrão baseada na categoria
+        if (!entities.descricao || entities.descricao === 'Quero') {
+          entities.descricao = entities.categoria || 'Despesa';
         }
       }
 
@@ -304,14 +316,33 @@ class FastIntentDetector {
         entities.categoria = 'Investimentos';
       }
 
-      // Aumentar confiança se encontrou valor
-      let confidence = matches / patterns.length;
-      if (intent === 'create_transaction' && entities.valor && entities.valor > 0) {
-        confidence = Math.min(confidence + 0.3, 1.0);
-      } else if (intent === 'create_goal' && entities.valor_total && entities.valor_total > 0) {
-        confidence = Math.min(confidence + 0.3, 1.0);
-      } else if (intent === 'create_investment' && entities.valor && entities.valor > 0) {
-        confidence = Math.min(confidence + 0.3, 1.0);
+      // Calcular confiança de forma mais inteligente
+      let confidence = 0;
+      
+      if (intent === 'create_transaction') {
+        // Para transações, se tem pelo menos 2 matches, já é alta confiança
+        if (matches >= 2) {
+          confidence = 0.8;
+        } else if (matches >= 1) {
+          confidence = 0.6;
+        }
+        // Boost se encontrou valor
+        if (entities.valor && entities.valor > 0) {
+          confidence = Math.min(confidence + 0.1, 1.0);
+        }
+      } else if (intent === 'create_goal') {
+        confidence = matches >= 1 ? 0.7 : 0;
+        if (entities.valor_total && entities.valor_total > 0) {
+          confidence = Math.min(confidence + 0.2, 1.0);
+        }
+      } else if (intent === 'create_investment') {
+        confidence = matches >= 1 ? 0.7 : 0;
+        if (entities.valor && entities.valor > 0) {
+          confidence = Math.min(confidence + 0.2, 1.0);
+        }
+      } else {
+        // Para outros intents, usar cálculo original
+        confidence = matches / patterns.length;
       }
       
       if (confidence > bestMatch.confidence) {
@@ -609,58 +640,80 @@ Sempre seja:
         .substring(0, 120);
       const cacheKey = this.getCacheKey(userId, message, historyKey);
       const cached = this.cache.get(cacheKey);
-      if (cached) {
-        console.log(`[OptimizedAI] Cache hit for user ${userId}`);
-        return {
-          ...cached,
-          responseTime: Date.now() - startTime,
-          cached: true
-        };
+      // Temporariamente desabilitar cache para debug de intent detection
+      if (false && cached) {
+        console.log(`[AI] Cache hit for key: ${cacheKey.substring(0, 50)}...`);
+        return { ...cached, cached: true };
       }
 
-      // 2. Detecção rápida de intenção
-      const intentResult = this.intentDetector.detect(message);
+      // 2. Deixar a IA processar tudo diretamente - SEM detecção de intenção
+      console.log(`🤖 Processando mensagem com IA: "${message}"`);
       
       // 3. Atualizar contexto
       this.contextManager.updateContext(userId, message, '');
 
-      // 4. Gerar resposta baseada na intenção
-      let response: string;
-      let requiresConfirmation = false;
+      // 4. Gerar resposta diretamente com IA - SEM automação complexa
+      const context = await this.buildContextPrompt(conversationHistory, userContext);
+      const prompt = `${this.SYSTEM_PROMPTS.FINN_CORE}
 
+IMPORTANTE: Se o usuário está pedindo para criar/registrar algo (transação, meta, investimento), você deve:
+1. Responder de forma amigável
+2. Se tiver todos os dados necessários, perguntar "Posso confirmar e registrar isso para você?"
+3. Se faltar dados, perguntar pelos dados faltantes de forma natural
+
+Contexto: ${context}
+Usuário: ${message}
+Finn:`;
+
+      const completion = await openai.chat.completions.create({
+        model: 'deepseek-chat',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 600,
+      });
+
+      const response = completion.choices[0]?.message?.content || 'Como posso te ajudar?';
+
+      // Detectar se a resposta indica necessidade de confirmação
+      const requiresConfirmation = /posso confirmar|confirmar e registrar|pode confirmar|confirmo isso/i.test(response);
+      
       let actionData = null;
-
-      if (intentResult.confidence > 0.7) {
-        // Alta confiança - usar automação
-        const automatedResult = await this.generateAutomatedResponse(intentResult, message, userContext);
-        response = automatedResult.response;
-        requiresConfirmation = automatedResult.requiresConfirmation || false;
-        actionData = automatedResult.actionData || null;
-      } else {
-        // Baixa confiança - usar resposta conversacional
-        response = await this.generateConversationalResponse(message, conversationHistory, userContext);
+      if (requiresConfirmation) {
+        // Extrair dados da mensagem original para actionData
+        // Extrair entidades básicas da mensagem
+        const entities = {
+          valor: this.extractValue(message),
+          categoria: this.extractCategory(message),
+          tipo: this.extractType(message),
+          data: new Date().toISOString().split('T')[0],
+          descricao: this.extractCategory(message) || 'Transação',
+          conta: 'Principal'
+        };
+        if (entities.valor) {
+          actionData = {
+            type: 'create_transaction',
+            entities,
+            userId
+          };
+        }
       }
 
       // 5. Pós-processamento
-      response = this.postProcessResponse(response, userContext);
+      const finalResponse = this.postProcessResponse(response, userContext);
 
-      // 🎯 Log final da detecção de intenções
-      console.log(`[AI] Final intent detection:`, {
-        intent: intentResult.intent,
-        confidence: intentResult.confidence,
-        entities: intentResult.entities,
-        requiresConfirmation,
+      // Log final do processamento
+      console.log(`[AI] Processamento concluído:`, {
+        requiresConfirmation: requiresConfirmation,
+        actionData: actionData,
         message: message.substring(0, 100) + '...'
       });
 
       // 6. Salvar no cache
       const result = {
-        text: response,
-        intent: intentResult.intent,
-        confidence: intentResult.confidence,
+        text: finalResponse,
         requiresConfirmation,
         actionData,
-        entities: intentResult.entities,
+        confidence: requiresConfirmation ? 0.9 : 0.7,
         responseTime: Date.now() - startTime
       };
 
@@ -702,7 +755,7 @@ Sempre seja:
     console.log('🔍 Intent detectado:', intentResult.intent, 'Confiança:', intentResult.confidence, 'Requer confirmação:', requiresConfirmation);
 
     // Verificar se deve pedir confirmação
-    if (requiresConfirmation && intentResult.confidence > 0.5 && userContext?.userId) {
+    if (requiresConfirmation && intentResult.confidence > 0.3 && userContext?.userId) {
       const actionData = {
         type: intentResult.intent,
         entities: intentResult.entities,
@@ -713,13 +766,26 @@ Sempre seja:
       
       switch (intentResult.intent) {
         case 'create_transaction':
-          confirmationMessage = `💰 Detectei uma transação de R$ ${intentResult.entities.valor.toFixed(2)} em ${intentResult.entities.categoria || 'Geral'}. Confirmar?`;
+          if (intentResult.entities.valor && intentResult.entities.valor > 0) {
+            confirmationMessage = `💰 Detectei uma transação de R$ ${intentResult.entities.valor.toFixed(2)} em ${intentResult.entities.categoria || 'Geral'}. Confirmar?`;
+          } else {
+            // MESMO SEM VALOR, AINDA DEVE PEDIR CONFIRMAÇÃO PARA COLETA DE DADOS
+            confirmationMessage = `💰 Vou te ajudar a registrar uma transação. Qual foi o valor?`;
+          }
           break;
         case 'create_goal':
-          confirmationMessage = `🎯 Vou criar uma meta de R$ ${(intentResult.entities.valor_total || intentResult.entities.valor).toFixed(2)}. Confirmar?`;
+          if (intentResult.entities.valor_total || intentResult.entities.valor) {
+            confirmationMessage = `🎯 Vou criar uma meta de R$ ${(intentResult.entities.valor_total || intentResult.entities.valor).toFixed(2)}. Confirmar?`;
+          } else {
+            confirmationMessage = `🎯 Para criar a meta, preciso do valor total. Qual é o valor da meta?`;
+          }
           break;
         case 'create_investment':
-          confirmationMessage = `📈 Registrar investimento de R$ ${intentResult.entities.valor.toFixed(2)}. Confirmar?`;
+          if (intentResult.entities.valor && intentResult.entities.valor > 0) {
+            confirmationMessage = `📈 Registrar investimento de R$ ${intentResult.entities.valor.toFixed(2)}. Confirmar?`;
+          } else {
+            confirmationMessage = `📈 Para registrar o investimento, preciso do valor. Qual foi o valor investido?`;
+          }
           break;
         default:
           confirmationMessage = `Encontrei uma ${intentResult.intent.toLowerCase().replace('create_', '')}. Posso criar para você?`;
@@ -816,23 +882,16 @@ Sempre seja:
   // Consultar registros existentes para dar contexto à IA
   private async getExistingRecords(userId: string): Promise<{ transactions: any[], goals: any[], investments: any[] }> {
     try {
-      // Usar modelos diretamente em vez de controllers para evitar dependências circulares
-      const Transacao = require('../models/Transacao');
-      const Goal = require('../models/Goal');
-      const Investment = require('../models/Investment');
-      const User = require('../models/User');
-
-      // Buscar usuário primeiro
-      const user = await User.findOne({ firebaseUid: userId });
+      const user = await require('../models/User').default.findOne({ firebaseUid: userId });
       if (!user) {
         console.warn('[OptimizedAI] User not found for context:', userId);
         return { transactions: [], goals: [], investments: [] };
       }
 
       const [transactions, goals, investments] = await Promise.all([
-        Transacao.find({ userId: user._id }).limit(10).sort({ createdAt: -1 }),
+        require('../models/Transacoes').default.find({ userId: user._id }).limit(10).sort({ createdAt: -1 }),
         Goal.find({ userId: user._id }).limit(5).sort({ createdAt: -1 }),
-        Investment.find({ userId: user._id }).limit(5).sort({ createdAt: -1 })
+        Investimento.find({ userId: user._id }).limit(5).sort({ createdAt: -1 })
       ]);
 
       return {
@@ -867,11 +926,11 @@ Sempre seja:
 
   private shouldRequireConfirmation(intentResult: any): boolean {
     // Sempre pedir confirmação para criar registros - facilita UX
-    if (intentResult.intent === 'create_transaction' && intentResult.entities.valor > 0) {
+    if (intentResult.intent === 'create_transaction') {
       return true;
     }
     
-    if (intentResult.intent === 'create_goal' && intentResult.entities.valor_total > 0) {
+    if (intentResult.intent === 'create_goal') {
       return true;
     }
     
@@ -976,6 +1035,28 @@ Sempre seja:
   }
 
   // Métodos de utilidade
+  // Métodos auxiliares para extração de entidades
+  private extractValue(message: string): number | null {
+    const valorMatch = message.match(/r\$\s*(\d+(?:[,.]\d{2})?)|\$(\d+(?:[,.]\d{2})?)|reais?\s*(\d+)|\b(\d+)\s*reais?/i);
+    if (valorMatch) {
+      return parseFloat((valorMatch[1] || valorMatch[2] || valorMatch[3] || valorMatch[4]).replace(',', '.'));
+    }
+    return null;
+  }
+
+  private extractCategory(message: string): string | null {
+    if (/supermercado|mercado|alimentação|comida/i.test(message)) return 'Alimentação';
+    if (/transporte|uber|taxi|ônibus|metro/i.test(message)) return 'Transporte';
+    if (/farmácia|remédio|saúde/i.test(message)) return 'Saúde';
+    return null;
+  }
+
+  private extractType(message: string): string {
+    if (/gast[ei]|comprei|paguei|despesa/i.test(message)) return 'despesa';
+    if (/recebi|ganho|receita|salário/i.test(message)) return 'receita';
+    return 'despesa';
+  }
+
   getCacheStats() {
     return {
       ...this.cache.getStats(),
@@ -1010,4 +1091,3 @@ Sempre seja:
 }
 
 export default OptimizedAIService;
-

@@ -70,12 +70,42 @@ const initializeFirebase = () => {
   try {
     if (!getApps().length) {
       console.log('Initializing Firebase app...');
+      
+      // Test Firebase connectivity before initializing
+      const testConnectivity = async () => {
+        try {
+          // Simple connectivity test to Firebase
+          await fetch(`https://${firebaseConfig.authDomain}`, {
+            method: 'HEAD',
+            mode: 'no-cors',
+            cache: 'no-cache'
+          });
+          console.log('✅ Firebase connectivity test passed');
+        } catch (error) {
+          console.warn('⚠️ Firebase connectivity test failed:', error);
+        }
+      };
+      
+      // Run connectivity test in background
+      testConnectivity();
+      
       app = initializeApp(firebaseConfig);
       
       console.log('Initializing Firebase auth...');
-      auth = initializeAuth(app, {
-        persistence: browserSessionPersistence
-      });
+      
+      // Detectar mobile para configurações específicas
+      const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      
+      const authConfig = {
+        persistence: browserSessionPersistence,
+        ...(isMobile && {
+          // Configurações específicas para mobile
+          popupRedirectResolver: browserPopupRedirectResolver
+        })
+      };
+      
+      auth = initializeAuth(app, authConfig);
+      console.log('✅ Firebase Auth initialized with mobile support:', { isMobile });
       
       console.log('Initializing Firestore...');
       db = getFirestore(app);
@@ -97,14 +127,69 @@ const initializeFirebase = () => {
   }
 };
 
-// ✅ CORREÇÃO: Inicializar Firebase apenas no lado do cliente
+// ✅ CORREÇÃO: Inicializar Firebase apenas no lado do cliente com detecção de mobile e diagnóstico
 if (typeof window !== 'undefined') {
   try {
+    // Detectar se é mobile
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    console.log('🔍 Device detection:', { isMobile, userAgent: navigator.userAgent });
+    
+    // Import and run diagnostics
+    import('./connectionTest').then(async ({ diagnoseFirebaseIssues, testFirebaseConnectivity }) => {
+      const issues = await diagnoseFirebaseIssues();
+      if (issues.length > 0) {
+        console.error('🔥 Firebase configuration issues detected:', issues);
+      }
+      
+      const connectivity = await testFirebaseConnectivity();
+      console.log('🔍 Firebase connectivity test:', connectivity);
+      
+      if (!connectivity.success) {
+        console.error('🔥 Firebase connectivity failed. This may cause authentication issues.');
+      }
+    }).catch(err => {
+      console.warn('⚠️ Could not run Firebase diagnostics:', err);
+    });
+    
     initializeFirebase();
   } catch (error) {
     console.error('Failed to initialize Firebase:', error);
   }
 }
+
+// Retry mechanism for network requests
+const retryWithBackoff = async <T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      const firebaseError = error as { code?: string; message?: string };
+      
+      // Don't retry certain errors
+      if (
+        firebaseError.code === 'auth/popup-blocked' ||
+        firebaseError.code === 'auth/popup-closed-by-user' ||
+        firebaseError.code === 'auth/unauthorized-domain' ||
+        firebaseError.code === 'auth/operation-not-allowed'
+      ) {
+        throw error;
+      }
+      
+      if (attempt === maxRetries) {
+        throw error;
+      }
+      
+      const delay = baseDelay * Math.pow(2, attempt - 1);
+      console.log(`🔄 Retry attempt ${attempt}/${maxRetries} after ${delay}ms`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error('Max retries exceeded');
+};
 
 export const loginWithGoogle = async (): Promise<UserCredential> => {
   if (!auth) {
@@ -114,11 +199,20 @@ export const loginWithGoogle = async (): Promise<UserCredential> => {
 
   const provider = new GoogleAuthProvider();
   
-  // ✅ CORREÇÃO: Configurações para evitar problemas de popup
+  // Detectar mobile
+  const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  console.log('🔍 Login attempt - Device type:', { isMobile });
+  
+  // ✅ CORREÇÃO: Configurações otimizadas para mobile
   provider.setCustomParameters({
     prompt: 'select_account',
     access_type: 'offline',
-    include_granted_scopes: 'true'
+    include_granted_scopes: 'true',
+    ...(isMobile && {
+      // Configurações específicas para mobile
+      display: 'popup',
+      response_type: 'code'
+    })
   });
 
   // ✅ CORREÇÃO: Adicionar escopos necessários
@@ -132,7 +226,11 @@ export const loginWithGoogle = async (): Promise<UserCredential> => {
       hasApiKey: !!auth.config.apiKey
     });
     
-    const result = await signInWithPopup(auth, provider, browserPopupRedirectResolver);
+    // Use retry mechanism for network requests
+    const result = await retryWithBackoff(async () => {
+      return await signInWithPopup(auth, provider, browserPopupRedirectResolver);
+    }, 3, 1000);
+    
     console.log('Google sign-in successful');
     return result;
   } catch (error: unknown) {
@@ -142,6 +240,24 @@ export const loginWithGoogle = async (): Promise<UserCredential> => {
     const firebaseError = error as { code?: string; message?: string };
     console.error('Error code:', firebaseError.code);
     console.error('Error message:', firebaseError.message);
+    
+    // ✅ CORREÇÃO: Tratamento específico de erros de rede
+    if (firebaseError.code === 'auth/network-request-failed') {
+      console.error('Network request failed - checking connectivity');
+      
+      // Test basic connectivity
+      try {
+        await fetch('https://www.google.com/favicon.ico', { 
+          mode: 'no-cors',
+          cache: 'no-cache'
+        });
+        console.log('Internet connectivity confirmed');
+        throw new Error('Erro de conectividade com Firebase. Verifique sua conexão e tente novamente.');
+      } catch {
+        console.error('No internet connectivity detected');
+        throw new Error('Sem conexão com a internet. Verifique sua conexão e tente novamente.');
+      }
+    }
     
     // ✅ CORREÇÃO: Tratamento específico de erros
     if (firebaseError.code === 'auth/popup-blocked' || firebaseError.code === 'auth/popup-closed-by-user') {

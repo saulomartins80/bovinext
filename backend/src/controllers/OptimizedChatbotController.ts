@@ -115,7 +115,7 @@ class AutomationEngine {
       const result = await handler(entities, userId);
       console.log(`[AutomationEngine] ✅ Resultado do handler:`, JSON.stringify(result, null, 2));
       return result;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`[AutomationEngine] ❌ Error executing ${intent}:`, error);
       return {
         success: false,
@@ -169,7 +169,7 @@ class AutomationEngine {
         message: `✅ Transação de R$ ${entities.valor} criada com sucesso! Já está no seu histórico.`,
         data: savedTransaction
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('[AutomationEngine] Error saving transaction:', error);
       return {
         success: false,
@@ -226,7 +226,7 @@ class AutomationEngine {
         message: `🎯 Meta de R$ ${valor.toFixed(2)} criada com sucesso! Já está no seu painel.`,
         data: savedGoal
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('[AutomationEngine] ❌ Erro ao salvar meta:', error);
       return {
         success: false,
@@ -282,7 +282,7 @@ class AutomationEngine {
         message: `📈 Investimento de R$ ${entities.valor.toFixed(2)} em ${entities.tipo} criado com sucesso! Já está no seu portfólio.`,
         data: savedInvestment
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('[AutomationEngine] ❌ Erro ao salvar investimento:', error);
       return {
         success: false,
@@ -340,7 +340,7 @@ class AutomationEngine {
         message: `💳 Cartão ${entities.nome} com limite de R$ ${entities.limite} registrado com sucesso!`,
         data: savedCard
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('[AutomationEngine] Error saving card:', error);
       return {
         success: false,
@@ -513,7 +513,7 @@ export class OptimizedChatbotController {
 
       // Salvar no histórico (não bloquear resposta)
       this.saveMessageToHistory(chatId, userId, message, finalResponse)
-        .catch(error => console.error('[OptimizedChatbot] Error saving to history:', error));
+        .catch((error: any) => console.error('[OptimizedChatbot] Error saving to history:', error));
 
       // Resposta otimizada
       const response = {
@@ -542,7 +542,7 @@ export class OptimizedChatbotController {
 
       res.status(200).json(response);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('[OptimizedChatbot] Error processing message:', error);
       
       res.status(500).json({
@@ -587,7 +587,7 @@ export class OptimizedChatbotController {
       });
 
       return userContext;
-    } catch (error) {
+    } catch (error: any) {
       console.error('[OptimizedChatbot] Error getting user context:', error);
       return { userId };
     }
@@ -599,7 +599,7 @@ export class OptimizedChatbotController {
     try {
       const conversation = await this.chatHistoryService.getConversation(chatId);
       return conversation.messages.slice(-5); // Últimas 5 mensagens
-    } catch (error) {
+    } catch (error: any) {
       console.error('[OptimizedChatbot] Error getting conversation history:', error);
       return [];
     }
@@ -632,7 +632,7 @@ export class OptimizedChatbotController {
           metadata: { isBot: true }
         })
       ]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('[OptimizedChatbot] Error saving to history:', error);
     }
   }
@@ -648,7 +648,7 @@ export class OptimizedChatbotController {
         chatId: conversation.chatId,
         message: 'Nova sessão criada com sucesso!'
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('[OptimizedChatbot] Error creating session:', error);
       res.status(500).json({
         success: false,
@@ -666,12 +666,12 @@ export class OptimizedChatbotController {
         success: true,
         sessions: sessions.slice(0, 10) // Últimas 10 sessões
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('[OptimizedChatbot] Error getting sessions:', error);
       res.status(500).json({
         success: false,
         message: 'Erro ao buscar sessões',
-        sessions: []
+        error: error.message
       });
     }
   }
@@ -691,7 +691,7 @@ export class OptimizedChatbotController {
       }
 
       res.status(200).json({ success: true, message: 'Sessão deletada com sucesso', chatId });
-    } catch (error) {
+    } catch (error: any) {
       console.error('[OptimizedChatbot] Error deleting session:', error);
       res.status(500).json({ success: false, message: 'Erro ao deletar sessão' });
     }
@@ -706,7 +706,7 @@ export class OptimizedChatbotController {
         message: 'Todas as sessões do usuário foram deletadas',
         deletedCount: (result as any)?.deletedCount ?? (result as any) ?? 0
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('[OptimizedChatbot] Error deleting all sessions:', error);
       res.status(500).json({ success: false, message: 'Erro ao deletar todas as sessões' });
     }
@@ -719,7 +719,7 @@ export class OptimizedChatbotController {
         success: true,
         stats
       });
-    } catch (error) {
+    } catch (error: any) {
       res.status(500).json({
         success: false,
         message: 'Erro ao obter estatísticas'
@@ -736,7 +736,7 @@ export class OptimizedChatbotController {
         success: true,
         message: 'Cache limpo com sucesso!'
       });
-    } catch (error) {
+    } catch (error: any) {
       res.status(500).json({
         success: false,
         message: 'Erro ao limpar cache'
@@ -774,7 +774,7 @@ export class OptimizedChatbotController {
           console.log(`[SSE] Sending: ${event}`, data);
           res.write(eventData);
           res.flush?.(); // Força o flush dos dados
-        } catch (error) {
+        } catch (error: any) {
           console.error('[SSE] Error sending data:', error);
         }
       };
@@ -798,9 +798,9 @@ export class OptimizedChatbotController {
           userContext
         );
 
-        // 🆕 EXECUTAR AUTOMAÇÃO SE NECESSÁRIO
+        // 🆕 EXECUTAR AUTOMAÇÃO SE NECESSÁRIO (apenas se NÃO requer confirmação)
         let automationResult = null;
-        if (response.intent && response.confidence && response.confidence > 0.5) {
+        if (response.intent && response.confidence && response.confidence > 0.5 && !response.requiresConfirmation) {
           console.log(`[OptimizedChatbot] 🚀 EXECUTANDO AÇÃO NO STREAMING: ${response.intent} com confiança: ${response.confidence}`);
           console.log(`[OptimizedChatbot] 📊 Entidades detectadas:`, response.entities);
           
@@ -830,6 +830,8 @@ export class OptimizedChatbotController {
             contextManager.clearConversationState(realChatId);
             console.log(`[OptimizedChatbot] Cleared context after successful action`);
           }
+        } else if (response.requiresConfirmation) {
+          console.log(`[OptimizedChatbot] ⏳ Ação requer confirmação - não executando automaticamente: ${response.intent}`);
         } else {
           console.log(`[OptimizedChatbot] ❌ Ação não executada no streaming - Intent: ${response.intent}, Confiança: ${response.confidence}, Threshold: 0.5`);
         }
@@ -886,7 +888,7 @@ export class OptimizedChatbotController {
         // Salvar no histórico
         await this.saveMessageToHistory(realChatId, userId, message as string, finalText);
 
-      } catch (error) {
+      } catch (error: any) {
         console.error('[OptimizedChatbot] Streaming error:', error);
         sendSSE('error', {
           success: false,
@@ -896,7 +898,7 @@ export class OptimizedChatbotController {
 
       res.end();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('[OptimizedChatbot] Stream setup error:', error);
       res.status(500).json({
         success: false,
