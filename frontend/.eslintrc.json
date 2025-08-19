@@ -3,6 +3,18 @@
     "next/core-web-vitals",
     "eslint:recommended"
   ],
+  "rules": {
+    "@next/next/google-font-preconnect": "off",
+    "@typescript-eslint/no-unused-vars": "warn",
+    "@typescript-eslint/no-explicit-any": "warn",
+    "no-unused-vars": "off",
+    "no-undef": "off",
+    "prefer-const": "error",
+    "no-var": "error",
+    "no-constant-condition": ["error", { "checkLoops": false }],
+    "react/jsx-uses-react": "off",
+    "react/react-in-jsx-scope": "off"
+  },
   "parser": "@typescript-eslint/parser",
   "parserOptions": {
     "ecmaVersion": "latest",
@@ -17,17 +29,6 @@
     "node": true
   },
   "plugins": ["@typescript-eslint"],
-  "rules": {
-    "@typescript-eslint/no-unused-vars": "warn",
-    "@typescript-eslint/no-explicit-any": "warn",
-    "no-unused-vars": "off",
-    "no-undef": "off",
-    "prefer-const": "error",
-    "no-var": "error",
-    "no-constant-condition": ["error", { "checkLoops": false }],
-    "react/jsx-uses-react": "off",
-    "react/react-in-jsx-scope": "off"
-  },
   "overrides": [
     {
       "files": ["**/*.d.ts"],

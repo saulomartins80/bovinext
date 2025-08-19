@@ -293,7 +293,7 @@ export default function HomePage() {
         <title>finnextho - Revolução Financeira com Inteligência Artificial</title>
         <meta name="description" content="Transforme sua vida financeira com IA avançada. Investimentos inteligentes, automação total e segurança bancária. Junte-se a 2.5K+ usuários que já aumentaram seu ROI em 340%." />
         <meta name="keywords" content="finnextho, gestão financeira, inteligência artificial, investimentos, IA, finanças pessoais, automação financeira" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
         <meta name="theme-color" content={resolvedTheme === 'dark' ? '#1f2937' : '#ffffff'} />        
         
         {/* Open Graph / Facebook */}
@@ -358,7 +358,7 @@ export default function HomePage() {
       >  
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center space-x-3">
-            <Image src="/finnextho.png" alt="Finnextho" width={40} height={40} />
+            <Image src="/finnextho.png" alt="Logo Finnextho" width={40} height={40} />
             <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
               fin<span className="text-blue-300">nextho</span>
             </span>
@@ -1292,7 +1292,7 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
             <div className="lg:col-span-2">
               <Link href="/" className="flex items-center space-x-3 mb-6">
-                <Image src="/finnextho.png" alt="Finnextho" width={40} height={40} />
+                <Image src="/finnextho.png" alt="Logo Finnextho" width={40} height={40} />
                 <span className={`text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 ${
                   resolvedTheme === 'dark' ? '' : 'text-gray-900'
                 }`}>

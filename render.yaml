@@ -6,6 +6,7 @@ services:
     rootDir: backend
     buildCommand: npm install && npm run build:no-lint
     startCommand: npm start
+    httpsOnly: true
     envVars:
       - key: NODE_ENV
         value: production

@@ -97,6 +97,7 @@
     "@typescript-eslint/eslint-plugin": "^8.38.0",
     "@typescript-eslint/parser": "^8.38.0",
     "autoprefixer": "^10.4.16",
+    "critters": "^0.0.23",
     "cross-env": "^10.0.0",
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.4.4",

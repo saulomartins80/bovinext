@@ -9,6 +9,7 @@ import rateLimit from 'express-rate-limit';
 import { container } from './core/container';
 import { errorHandler } from './middlewares/errorHandler';
 import { AppError } from './core/errors/AppError';
+import { httpsRedirect, httpsSecurityHeaders } from './middlewares/httpsRedirect';
 
 import { adminAuth } from './config/firebaseAdmin';
 import { Server } from 'http';
@@ -86,7 +87,11 @@ const PORT = process.env.PORT || 5000;
 
 app.set('trust proxy', 1);
 
+// Aplicar redirecionamento HTTPS primeiro
+app.use(httpsRedirect);
+
 app.use(helmet());
+app.use(httpsSecurityHeaders);
 app.use(morgan('dev'));
 app.use(compression());
 app.use(express.json({ limit: '10kb' }));
@@ -119,14 +124,25 @@ const apiLimiter = rateLimit({
 });
 app.use('/api/', apiLimiter);
 
+// Middleware para forçar HTTPS em produção
 app.use((req, res, next) => {
-  // Headers de segurança mais permissivos para desenvolvimento
+  // Forçar HTTPS em produção
+  if (process.env.NODE_ENV === 'production' && req.header('x-forwarded-proto') !== 'https') {
+    return res.redirect(301, `https://${req.header('host')}${req.url}`);
+  }
+  
+  // Headers de segurança
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN'); // Mudança de DENY para SAMEORIGIN
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   
+  // Headers HTTPS obrigatórios em produção
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  }
+  
   // Remover Cross-Origin-Opener-Policy para permitir popups do Google Auth
-  // Necessário tanto em desenvolvimento quanto em produção para o Google Auth funcionar
   res.removeHeader('Cross-Origin-Opener-Policy');
   
   next();

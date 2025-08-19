@@ -356,6 +356,7 @@ const WhatsAppFloat = ({
         style={{
           boxShadow: '0 8px 32px rgba(34, 197, 94, 0.3)',
         }}
+        aria-label="Abrir chat do WhatsApp"
       >
         {/* Pulsing ring animation */}
         <motion.div
