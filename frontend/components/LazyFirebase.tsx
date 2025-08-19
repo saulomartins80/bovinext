@@ -34,8 +34,10 @@ export const useLazyFirebase = () => {
       const { getAuth } = await import('firebase/auth');
       const { getFirestore } = await import('firebase/firestore');
       
-      // Inicializa apenas se necessário
-      if (!window.firebase) {
+      // Verifica se Firebase já foi inicializado
+      const { getApps } = await import('firebase/app');
+      
+      if (!window.firebase && getApps().length === 0) {
         const firebaseConfig = {
           apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
           authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -46,6 +48,13 @@ export const useLazyFirebase = () => {
         };
         
         const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        window.firebase = { app, auth, db };
+      } else if (getApps().length > 0 && !window.firebase) {
+        // Usa app existente
+        const app = getApps()[0];
         const auth = getAuth(app);
         const db = getFirestore(app);
         

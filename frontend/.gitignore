@@ -75,6 +75,7 @@ frontend/.next/
 *.js
 !postcss.config.js
 !tailwind.config.js
+!next.config.js
 
 # Firebase service account
 backend/src/config/firebaseServiceAccount.json

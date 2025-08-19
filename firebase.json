@@ -1,0 +1,10 @@
+{
+  "hosting": {
+    "public": "frontend/.next/static",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ]
+  }
+}

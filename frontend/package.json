@@ -18,6 +18,7 @@
     "lint:all": "npm run lint && npx prettier --check . && npx stylelint \"**/*.css\"",
     "lint:fix:all": "npm run lint:fix && npx prettier --write . && npx stylelint \"**/*.css\" --fix",
     "format": "prettier --write .",
+    "export": "next export",
     "format:check": "prettier --check .",
     "stylelint": "stylelint \"**/*.css\"",
     "stylelint:fix": "stylelint \"**/*.css\" --fix",
