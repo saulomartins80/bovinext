@@ -56,19 +56,20 @@ export const createRateLimiters = (): RateLimiters => {
   return { generalLimiter, chatbotLimiter, streamingLimiter };
 };
 
-// Headers de segurança
+// Headers de segurança otimizados para PageSpeed
 export const securityHeaders = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-      scriptSrc: ["'self'"],
-      connectSrc: ["'self'", "https://api.openai.com", "https://api.deepseek.com"],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://js.stripe.com", "https://www.googletagmanager.com"],
+      connectSrc: ["'self'", "https://api.openai.com", "https://api.deepseek.com", "https://firebase.googleapis.com", "https://finup-saas-2025.firebaseapp.com"],
       frameSrc: ["'none'"],
       objectSrc: ["'none'"],
-      upgradeInsecureRequests: []
+      upgradeInsecureRequests: [],
+      requireTrustedTypesFor: ["'script'"]
     }
   },
   hsts: {
@@ -77,7 +78,7 @@ export const securityHeaders = helmet({
     preload: true
   },
   noSniff: true,
-  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  referrerPolicy: { policy: 'origin-when-cross-origin' },
   xssFilter: true
 });
 

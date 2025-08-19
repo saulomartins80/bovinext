@@ -17,13 +17,15 @@ export default function Document() {
         <meta name="author" content="finnextho" />
         <meta name="publisher" content="finnextho" />
         
-        {/* Preconnect para recursos críticos */}
+        {/* Preconnect para recursos críticos - otimizado para PageSpeed */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://firebase.googleapis.com" />
         <link rel="preconnect" href="https://finup-saas-2025.firebaseapp.com" />
-        <link rel="dns-prefetch" href="https://js.stripe.com" />
+        <link rel="preconnect" href="https://apis.google.com" />
+        <link rel="preconnect" href="https://js.stripe.com" />
         <link rel="dns-prefetch" href="https://m.stripe.network" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         
         {/* Google Font com preconnect correto */}
         <link

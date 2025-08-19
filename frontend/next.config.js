@@ -5,7 +5,7 @@ const nextConfig = {
   // ✅ CORREÇÃO: Removido output: 'export' para permitir API routes e middleware
   trailingSlash: true,
   images: {
-    unoptimized: true,
+    unoptimized: false,
     remotePatterns: [
       {
         protocol: 'https',
@@ -229,7 +229,7 @@ const nextConfig = {
   // ✅ CORREÇÃO: Configurações de powered by header
   poweredByHeader: false,
   
-  // ✅ ADICIONADO: Headers de performance
+  // ✅ ADICIONADO: Headers de performance e cache otimizado
   async headers() {
     return [
       {
@@ -243,10 +243,49 @@ const nextConfig = {
             key: 'X-Frame-Options',
             value: 'DENY'
           },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin'
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()'
+          },
         ],
       },
       {
         source: '/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/images/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/:path*\\.(ico|png|jpg|jpeg|webp|avif|svg|gif)',
         headers: [
           {
             key: 'Cache-Control',

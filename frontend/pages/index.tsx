@@ -358,7 +358,15 @@ export default function HomePage() {
       >  
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center space-x-3">
-            <Image src="/finnextho.png" alt="Logo Finnextho" width={40} height={40} />
+            <Image 
+              src="/finnextho.png" 
+              alt="Logo Finnextho" 
+              width={40} 
+              height={40}
+              priority
+              quality={85}
+              sizes="40px"
+            />
             <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
               fin<span className="text-blue-300">nextho</span>
             </span>
@@ -437,6 +445,9 @@ export default function HomePage() {
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
+            aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-menu"
           >
             <AnimatePresence mode="wait">
               {mobileMenuOpen ? (
@@ -466,6 +477,7 @@ export default function HomePage() {
 
         {mobileMenuOpen && (
           <motion.div 
+            id="mobile-menu"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -957,18 +969,31 @@ export default function HomePage() {
             >
               Tecnologia <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500">Revolucionária</span>
             </motion.h2>
-            <motion.p 
-              className={`text-xl md:text-2xl max-w-4xl mx-auto ${
-                resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-              }`}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3, duration: 0.8 }}
-            >
-              Recursos avançados com IA que você não encontra em nenhum outro lugar. 
-              <strong className="text-blue-400">Seja o primeiro a experimentar o futuro das finanças!</strong>
-            </motion.p>
+            {mobileMenuOpen && (
+              <motion.div
+                id="mobile-menu"
+                className={`md:hidden fixed inset-0 z-40 ${
+                  resolvedTheme === 'dark' ? 'bg-gray-900/95' : 'bg-white/95'
+                } backdrop-blur-lg`}
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <motion.p 
+                  className={`text-xl md:text-2xl max-w-4xl mx-auto ${
+                    resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                  }`}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.3, duration: 0.8 }}
+                >
+                  Recursos avançados com IA que você não encontra em nenhum outro lugar. 
+                  <strong className="text-blue-400">Seja o primeiro a experimentar o futuro das finanças!</strong>
+                </motion.p>
+              </motion.div>
+            )}
           </motion.div>
           
           {/* Grid de Features 3D */}
@@ -1150,7 +1175,7 @@ export default function HomePage() {
             <h2 className={`text-3xl md:text-5xl font-bold mb-6 ${
               resolvedTheme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
-              O que dizem nossos <span className="text-purple-400">clientes</span>
+              O que dizem nossos <span className="text-purple-600">clientes</span>
             </h2>
             <p className={`text-xl max-w-3xl mx-auto ${
               resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'
@@ -1160,9 +1185,16 @@ export default function HomePage() {
           </div>
 
           <div>
-            <Splide options={splideOptions} aria-label="Depoimentos">
+            <Splide 
+              options={{
+                ...splideOptions,
+                ariaLabel: 'Depoimentos de clientes',
+                role: 'region'
+              }} 
+              aria-label="Depoimentos de clientes"
+            >
               {_featuredTestimonials.map((testimonial, index) => (
-                <SplideSlide key={index}>
+                <SplideSlide key={index} role="tabpanel" aria-label={`Depoimento ${index + 1} de ${_featuredTestimonials.length}`}>
                   <motion.div
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1200,9 +1232,9 @@ export default function HomePage() {
                         loading="lazy"
                       />
                       <div>
-                        <h4 className={`font-bold ${
+                        <h3 className={`font-bold ${
                           resolvedTheme === 'dark' ? 'text-white' : 'text-gray-900'
-                        }`}>{testimonial.name}</h4>
+                        }`}>{testimonial.name}</h3>
                         <p className={`text-sm ${
                           resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'
                         }`}>{testimonial.role}</p>
@@ -1227,6 +1259,16 @@ export default function HomePage() {
             ? 'bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-transparent via-transparent to-black'
             : 'bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-transparent via-transparent to-gray-900'
         }`}></div>
+
+        <a 
+          href="#main-content" 
+          className="skip-link fixed left-4 bg-blue-600 text-white px-4 py-2 rounded-md z-[9999] focus:top-4 transition-all duration-200"
+          style={{ top: '-2.5rem' }}
+          onFocus={(e) => { e.target.style.top = '1rem'; }}
+          onBlur={(e) => { e.target.style.top = '-2.5rem'; }}
+        >
+          Pular para o conteúdo principal
+        </a>
 
         <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
@@ -1292,7 +1334,14 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
             <div className="lg:col-span-2">
               <Link href="/" className="flex items-center space-x-3 mb-6">
-                <Image src="/finnextho.png" alt="Logo Finnextho" width={40} height={40} />
+                <Image 
+                  src="/finnextho.png" 
+                  alt="Logo Finnextho" 
+                  width={40} 
+                  height={40}
+                  quality={85}
+                  sizes="40px"
+                />
                 <span className={`text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 ${
                   resolvedTheme === 'dark' ? '' : 'text-gray-900'
                 }`}>
