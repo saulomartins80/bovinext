@@ -33,8 +33,7 @@ export default function Document() {
           rel="stylesheet"
         />
         
-        {/* Preload da fonte crítica com preconnect */}
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Preload crítico apenas para peso 400 */}
         <link
           rel="preload"
           href="https://fonts.gstatic.com/s/inter/v19/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2"
@@ -43,7 +42,7 @@ export default function Document() {
           crossOrigin="anonymous"
         />
         
-        {/* Fallback font-face para otimização */}
+        {/* Font-face otimizado com font-display: swap */}
         <style>{`
           @font-face {
             font-family: 'Inter';
@@ -51,27 +50,7 @@ export default function Document() {
             font-weight: 400;
             font-display: swap;
             src: url('https://fonts.gstatic.com/s/inter/v19/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2') format('woff2');
-          }
-          @font-face {
-            font-family: 'Inter';
-            font-style: normal;
-            font-weight: 500;
-            font-display: swap;
-            src: url('https://fonts.gstatic.com/s/inter/v19/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa25L7.woff2') format('woff2');
-          }
-          @font-face {
-            font-family: 'Inter';
-            font-style: normal;
-            font-weight: 600;
-            font-display: swap;
-            src: url('https://fonts.gstatic.com/s/inter/v19/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa2ZL7.woff2') format('woff2');
-          }
-          @font-face {
-            font-family: 'Inter';
-            font-style: normal;
-            font-weight: 700;
-            font-display: swap;
-            src: url('https://fonts.gstatic.com/s/inter/v19/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa0pL7.woff2') format('woff2');
+            unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
           }
         `}</style>
         <CriticalCSS />

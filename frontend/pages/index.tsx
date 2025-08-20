@@ -1188,13 +1188,12 @@ export default function HomePage() {
             <Splide 
               options={{
                 ...splideOptions,
-                ariaLabel: 'Depoimentos de clientes',
-                role: 'region'
+                ariaLabel: 'Depoimentos de clientes'
               }} 
               aria-label="Depoimentos de clientes"
             >
               {_featuredTestimonials.map((testimonial, index) => (
-                <SplideSlide key={index} role="tabpanel" aria-label={`Depoimento ${index + 1} de ${_featuredTestimonials.length}`}>
+                <SplideSlide key={index} aria-label={`Depoimento ${index + 1} de ${_featuredTestimonials.length}`}>
                   <motion.div
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1262,10 +1261,8 @@ export default function HomePage() {
 
         <a 
           href="#main-content" 
-          className="skip-link fixed left-4 bg-blue-600 text-white px-4 py-2 rounded-md z-[9999] focus:top-4 transition-all duration-200"
-          style={{ top: '-2.5rem' }}
-          onFocus={(e) => { e.target.style.top = '1rem'; }}
-          onBlur={(e) => { e.target.style.top = '-2.5rem'; }}
+          className="skip-link sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 bg-blue-600 text-white px-4 py-2 rounded-md z-[9999] transition-all duration-200"
+          tabIndex={0}
         >
           Pular para o conteúdo principal
         </a>

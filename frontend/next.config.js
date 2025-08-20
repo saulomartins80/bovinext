@@ -293,6 +293,16 @@ const nextConfig = {
           },
         ],
       },
+      // Cache headers para recursos externos críticos
+      {
+        source: '/api/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+        ],
+      },
     ];
   },
 };
