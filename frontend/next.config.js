@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 import crypto from 'crypto';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const nextConfig = {
   // ✅ CORREÇÃO: Removido output: 'export' para permitir API routes e middleware
@@ -51,10 +56,19 @@ const nextConfig = {
     minimumCacheTTL: 31536000, // 1 ano
   },
   experimental: {
-    optimizeCss: true,
+    optimizeCss: process.env.NODE_ENV === 'production',
     scrollRestoration: true,
     esmExternals: true,
+    forceSwcTransforms: true,
   },
+  
+  // Configurações específicas para desenvolvimento
+  ...(process.env.NODE_ENV === 'development' && {
+    onDemandEntries: {
+      maxInactiveAge: 60 * 1000, // 1 minuto
+      pagesBufferLength: 5,
+    },
+  }),
   
   // ✅ CORREÇÃO: Movido para fora do experimental no Next.js 15
   serverExternalPackages: ['firebase', '@firebase/app', '@firebase/auth', '@firebase/firestore'],
@@ -62,37 +76,26 @@ const nextConfig = {
   // ✅ CORREÇÃO: Configurações de webpack para melhorar performance mobile
   webpack: (config, { dev, isServer, dir }) => {
     if (dev && !isServer) {
-      // Otimizar HMR
+      // Otimizar HMR para resolver Fast Refresh issues
       config.watchOptions = {
-        poll: 1000,
-        aggregateTimeout: 300,
-        ignored: ['**/node_modules', '**/.git', '**/.next'],
+        poll: false, // Desabilitar polling para melhor performance
+        aggregateTimeout: 200, // Reduzir delay
+        ignored: ['**/node_modules', '**/.git', '**/.next', '**/out'],
       };
       
-      // Melhorar performance do HMR
+      // Configurações específicas para Fast Refresh
       config.optimization = {
         ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            default: false,
-            vendors: false,
-            // Criar chunks separados para melhor HMR
-            vendor: {
-              name: 'vendor',
-              chunks: 'all',
-              test: /node_modules/,
-              priority: 20,
-            },
-            common: {
-              name: 'common',
-              minChunks: 2,
-              chunks: 'all',
-              priority: 10,
-              reuseExistingChunk: true,
-              enforce: true,
-            },
-          },
+        removeAvailableModules: false,
+        removeEmptyChunks: false,
+        splitChunks: false, // Desabilitar code splitting em dev para melhor HMR
+      };
+      
+      // Melhorar cache para desenvolvimento
+      config.cache = {
+        type: 'filesystem',
+        buildDependencies: {
+          config: [__filename],
         },
       };
     }

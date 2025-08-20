@@ -33,22 +33,26 @@ const LazyCSSPurger = lazy(() => import('../components/CSSPurger'))
 const LazyFirebaseErrorHandler = lazy(() => import('../components/FirebaseErrorHandler'))
 const LazyAuthInitializer = lazy(() => import('../components/AuthInitializer'))
 
-// Loading fallback component
-const LoadingFallback = () => (
-  <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-  </div>
-)
+// Loading fallback component - Named for Fast Refresh
+function LoadingFallback() {
+  return (
+    <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    </div>
+  )
+}
 
-// Critical styles for above-the-fold content
-const CriticalInlineStyles = () => (
-  <style jsx global>{`
-    body { margin: 0; padding: 0; font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif; }
-    .hero-section { min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-    .loading-skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: loading 1.5s infinite; }
-    @keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-  `}</style>
-)
+// Critical styles for above-the-fold content - Named for Fast Refresh
+function CriticalInlineStyles() {
+  return (
+    <style jsx global>{`
+      body { margin: 0; padding: 0; font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif; }
+      .hero-section { min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+      .loading-skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: loading 1.5s infinite; }
+      @keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    `}</style>
+  )
+}
 
 function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -143,25 +147,19 @@ function MyApp(props: AppProps) {
   const { hasInteracted, markInteracted } = useInteractionState()
   const [isClient, setIsClient] = useState(false)
   
-  // Hydration check
+  // Hydration check - optimized for Fast Refresh
   useEffect(() => {
     setIsClient(true)
   }, [])
   
   const routeNeedsAuth = isProtectedRoute(router.pathname)
   
-  // Server-side rendering with critical content only
+  // Simplified SSR to prevent Fast Refresh conflicts
   if (!isClient) {
     return (
-      <>
-        <CriticalInlineStyles />
-        <div className="hero-section flex items-center justify-center">
-          <div className="text-center text-white">
-            <h1 className="text-4xl md:text-6xl font-bold mb-4">Finnextho</h1>
-            <p className="text-xl opacity-90">Transforme suas finanças com IA</p>
-          </div>
-        </div>
-      </>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
     )
   }
 
