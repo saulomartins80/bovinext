@@ -1,8 +1,13 @@
 // frontend/pages/_app.tsx - Mobile Performance Optimized
 import { useRouter } from 'next/router'
 import { ThemeProvider, useTheme } from '../context/ThemeContext'
-import { AuthProvider } from '../context/AuthContext'
-import { FinanceProvider } from '../context/FinanceContext'
+import CriticalCSSInline from '../components/CriticalCSSInline'
+// import { DynamicCSSLoader } from '../components/DynamicCSSLoader' // Unused for now
+import OptimizedLCP from '../components/OptimizedLCP'
+import ResourceHints from '../components/ResourceHints'
+import CriticalImageOptimizer from '../components/CriticalImageOptimizer'
+import JavaScriptOptimizer from '../components/JavaScriptOptimizer'
+import LayoutShiftFixer from '../components/LayoutShiftFixer'
 import { DashboardProvider } from '../context/DashboardContext'
 import { NotificationProvider } from '../context/NotificationContext'
 import type { AppProps } from 'next/app'
@@ -97,17 +102,15 @@ function AppContent({ Component, pageProps, hasInteracted }: { Component: AppPro
 
 function ProtectedAppContent({ Component, pageProps, hasInteracted }: AppProps & { hasInteracted: boolean }) {
   return (
-    <DashboardProvider>
-      <FinanceProvider>
-        <NotificationProvider>
+        <DashboardProvider>
+          <NotificationProvider>
           <Suspense fallback={<LoadingFallback />}>
             <LazyOptimizedStripe>
               <AppContent Component={Component} pageProps={pageProps} hasInteracted={hasInteracted} />
             </LazyOptimizedStripe>
           </Suspense>
-        </NotificationProvider>
-      </FinanceProvider>
-    </DashboardProvider>
+          </NotificationProvider>
+        </DashboardProvider>
   )
 }
 
@@ -164,9 +167,16 @@ function MyApp(props: AppProps) {
 
   return (
     <ThemeProvider>
-      <AuthProvider>
         <InteractionTracker onInteraction={markInteracted}>
-          {/* Critical components loaded immediately */}
+          {/* Critical CSS inline para LCP otimizado */}
+          <CriticalCSSInline />
+          
+          {/* Otimizações de performance críticas */}
+          <OptimizedLCP />
+          <ResourceHints />
+          <CriticalImageOptimizer />
+          <JavaScriptOptimizer />
+          <LayoutShiftFixer />
           <ToastContainerWithTheme />
           
           {/* Progressive enhancement based on interaction and route type */}
@@ -188,7 +198,6 @@ function MyApp(props: AppProps) {
             <ProtectedAppContent {...props} hasInteracted={hasInteracted} />
           )}
         </InteractionTracker>
-      </AuthProvider>
     </ThemeProvider>
   )
 }
