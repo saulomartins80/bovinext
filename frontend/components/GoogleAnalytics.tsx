@@ -2,7 +2,7 @@
 
 import Script from 'next/script';
 
-export const GoogleAnalytics = () => {
+const GoogleAnalytics = () => {
   if (!process.env.NEXT_PUBLIC_GA_ID) return null;
 
   return (
@@ -25,3 +25,6 @@ export const GoogleAnalytics = () => {
     </>
   );
 };
+
+export { GoogleAnalytics };
+export default GoogleAnalytics;

@@ -1,13 +1,4 @@
-// frontend/pages/_app.tsx
-// 
-// ROUTING STRUCTURE:
-// - PUBLIC PAGES: All marketing, legal, company, blog, community pages (no authentication required)
-//   Examples: /, /recursos, /solucoes, /precos, /clientes, /contato, /sobre, /termos, 
-//             /blog, /comunidade, /carreiras, /imprensa, /privacidade, /cookies, etc.
-// - AUTH PAGES: Login, register, forgot password (no layout, just the form)
-// - PROTECTED PAGES: Only dashboard and financial features (require authentication)
-//   Examples: /dashboard, /transacoes, /investimentos, /metas, /milhas, /configuracoes, /profile
-//
+// frontend/pages/_app.tsx - Mobile Performance Optimized
 import { useRouter } from 'next/router'
 import { ThemeProvider, useTheme } from '../context/ThemeContext'
 import { AuthProvider } from '../context/AuthContext'
@@ -16,77 +7,104 @@ import { DashboardProvider } from '../context/DashboardContext'
 import { NotificationProvider } from '../context/NotificationContext'
 import type { AppProps } from 'next/app'
 import Layout from '../components/Layout'
-// CSS será carregado dinamicamente via CriticalCSS
 import { ToastContainer } from 'react-toastify'
-import 'react-toastify/dist/ReactToastify.css'
+import { Suspense, lazy, useState, useEffect } from 'react'
+import InteractionTracker, { useInteractionState } from '../components/InteractionTracker'
+import { isProtectedRoute, isAuthPage } from '../utils/routes'
+
+// Critical CSS only - other styles loaded on demand
 import '../styles/globals.css'
+import 'react-toastify/dist/ReactToastify.css'
 import '../styles/splide.css'
 import 'react-tabs/style/react-tabs.css'
-import { GoogleAnalytics } from '../components/GoogleAnalytics'
-// LazyScript removido - não utilizado
-import AuthInitializer from '../components/AuthInitializer'
-import { Elements } from '@stripe/react-stripe-js'
-import { useOptimizedStripe } from '../components/OptimizedStripe'
-import FirebaseLoader from '../components/LazyFirebase'
-import { useNonCriticalCSS } from '../components/CriticalCSS'
-import AccessibilityFixes, { useFormAccessibility } from '../components/AccessibilityFixes'
-import CSSPurger, { useCSSPurging } from '../components/CSSPurger'
-import FirebaseErrorHandler, { useFirebaseHealth } from '../components/FirebaseErrorHandler'
-import '../i18n';
-import { isProtectedRoute, isAuthPage } from '../utils/routes';
 
-// Stripe será carregado sob demanda via OptimizedStripe
+// Lazy load heavy components
+const LazyGoogleAnalytics = lazy(() => import('../components/GoogleAnalytics'))
+const LazyFirebaseLoader = lazy(() => import('../components/LazyFirebase'))
+const LazyOptimizedStripe = lazy(() => import('../components/OptimizedStripe'))
+const LazyI18n = lazy(() => import('../i18n').then(() => ({ default: () => null })))
+const LazyAccessibilityFixes = lazy(() => import('../components/AccessibilityFixes'))
+const LazyCSSPurger = lazy(() => import('../components/CSSPurger'))
+const LazyFirebaseErrorHandler = lazy(() => import('../components/FirebaseErrorHandler'))
+const LazyAuthInitializer = lazy(() => import('../components/AuthInitializer'))
+
+// Loading fallback component
+const LoadingFallback = () => (
+  <div className="fixed inset-0 bg-white flex items-center justify-center z-50">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+  </div>
+)
+
+// Critical styles for above-the-fold content
+const CriticalInlineStyles = () => (
+  <style jsx global>{`
+    body { margin: 0; padding: 0; font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif; }
+    .hero-section { min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .loading-skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: loading 1.5s infinite; }
+    @keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+  `}</style>
+)
 
 function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="public-layout min-h-screen flex flex-col">
-      <main className="flex-grow">{children}</main>
-    </div>
+    <>
+      <CriticalInlineStyles />
+      <div className="public-layout min-h-screen flex flex-col">
+        <main className="flex-grow">{children}</main>
+      </div>
+    </>
   )
 }
 
-function AppContent({ Component, pageProps }: { Component: AppProps['Component']; pageProps: AppProps['pageProps'] }) {
+function AppContent({ Component, pageProps, hasInteracted }: { Component: AppProps['Component']; pageProps: AppProps['pageProps']; hasInteracted: boolean }) {
   const router = useRouter()
   
-  // Auth pages (login, register, etc.) get no layout
+  // Auth pages get minimal layout
   if (isAuthPage(router.pathname)) {
-    return <Component {...pageProps} />;
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <Component {...pageProps} />
+      </Suspense>
+    )
   }
   
-  // Protected routes need authentication and the protected layout
+  // Protected routes need full functionality but loaded progressively
   if (isProtectedRoute(router.pathname)) {
     return (
-      <AuthInitializer>
-        <Layout>
-          <Component {...pageProps} />
-        </Layout>
-      </AuthInitializer>
-    );
+      <Suspense fallback={<LoadingFallback />}>
+        <LazyAuthInitializer>
+          <Layout>
+            <Component {...pageProps} />
+          </Layout>
+        </LazyAuthInitializer>
+      </Suspense>
+    )
   }
   
-  // All other routes are public and use the public layout
-  // This includes: marketing pages, legal pages, company info, blog, community, etc.
+  // Public routes with progressive enhancement
   return (
     <PublicLayout>
       <Component {...pageProps} />
+      {/* Load i18n after interaction */}
+      {hasInteracted && (
+        <Suspense fallback={null}>
+          <LazyI18n />
+        </Suspense>
+      )}
     </PublicLayout>
-  );
+  )
 }
 
-function ProtectedAppContent({ Component, pageProps }: AppProps) {
-  const { stripe } = useOptimizedStripe();
-  
+function ProtectedAppContent({ Component, pageProps, hasInteracted }: AppProps & { hasInteracted: boolean }) {
   return (
     <DashboardProvider>
       <FinanceProvider>
         <NotificationProvider>
-          {stripe ? (
-            <Elements stripe={stripe}>
-              <AppContent Component={Component} pageProps={pageProps} />
-            </Elements>
-          ) : (
-            <AppContent Component={Component} pageProps={pageProps} />
-          )}
+          <Suspense fallback={<LoadingFallback />}>
+            <LazyOptimizedStripe>
+              <AppContent Component={Component} pageProps={pageProps} hasInteracted={hasInteracted} />
+            </LazyOptimizedStripe>
+          </Suspense>
         </NotificationProvider>
       </FinanceProvider>
     </DashboardProvider>
@@ -119,38 +137,57 @@ function ToastContainerWithTheme() {
 
 function MyApp(props: AppProps) {
   const router = useRouter()
+  const { hasInteracted, markInteracted } = useInteractionState()
+  const [isClient, setIsClient] = useState(false)
   
-  // Carrega CSS não crítico
-  useNonCriticalCSS();
+  // Hydration check
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
   
-  // Melhora acessibilidade de formulários
-  useFormAccessibility();
+  const routeNeedsAuth = isProtectedRoute(router.pathname)
   
-  // Purga CSS não utilizado
-  useCSSPurging();
-  
-  // Monitora saúde do Firebase
-  useFirebaseHealth();
-  
-  // Check if current route requires authentication (dashboard and financial features only)
-  // All other routes are public (including auth routes, marketing pages, legal pages, etc.)
-  const routeNeedsAuth = isProtectedRoute(router.pathname);
+  // Server-side rendering with critical content only
+  if (!isClient) {
+    return (
+      <>
+        <CriticalInlineStyles />
+        <div className="hero-section flex items-center justify-center">
+          <div className="text-center text-white">
+            <h1 className="text-4xl md:text-6xl font-bold mb-4">Finnextho</h1>
+            <p className="text-xl opacity-90">Transforme suas finanças com IA</p>
+          </div>
+        </div>
+      </>
+    )
+  }
 
   return (
     <ThemeProvider>
       <AuthProvider>
-        <FirebaseLoader triggerOnMount={routeNeedsAuth}>
-          <FirebaseErrorHandler />
-          <AccessibilityFixes />
-          <CSSPurger />
-          <GoogleAnalytics />
+        <InteractionTracker onInteraction={markInteracted}>
+          {/* Critical components loaded immediately */}
           <ToastContainerWithTheme />
-          {!routeNeedsAuth ? (
-            <AppContent {...props} />
-          ) : (
-            <ProtectedAppContent {...props} />
+          
+          {/* Progressive enhancement based on interaction and route type */}
+          {hasInteracted && (
+            <Suspense fallback={null}>
+              <LazyFirebaseLoader triggerOnMount={routeNeedsAuth}>
+                <LazyFirebaseErrorHandler />
+                <LazyAccessibilityFixes />
+                <LazyCSSPurger />
+                <LazyGoogleAnalytics />
+              </LazyFirebaseLoader>
+            </Suspense>
           )}
-        </FirebaseLoader>
+          
+          {/* Main app content */}
+          {!routeNeedsAuth ? (
+            <AppContent {...props} hasInteracted={hasInteracted} />
+          ) : (
+            <ProtectedAppContent {...props} hasInteracted={hasInteracted} />
+          )}
+        </InteractionTracker>
       </AuthProvider>
     </ThemeProvider>
   )

@@ -51,7 +51,7 @@ const nextConfig = {
     minimumCacheTTL: 31536000, // 1 ano
   },
   experimental: {
-    optimizeCss: false,
+    optimizeCss: true,
     scrollRestoration: true,
     esmExternals: true,
   },
@@ -122,18 +122,20 @@ const nextConfig = {
             firebase: {
               name: 'firebase',
               chunks: 'async',
-              test: /[\\/]node_modules[\\/](@firebase|firebase)[\\/]/,
+              test: /[\/]node_modules[\/](@firebase|firebase)[\/]/,
               priority: 35,
               enforce: true,
+              maxSize: 200000,
             },
             
             // Stripe chunk separado - lazy load
             stripe: {
               name: 'stripe',
               chunks: 'async',
-              test: /[\\/]node_modules[\\/](@stripe|stripe)[\\/]/,
+              test: /[\/]node_modules[\/](@stripe|stripe)[\/]/,
               priority: 30,
               enforce: true,
+              maxSize: 150000,
             },
             
             // Framer Motion chunk separado
@@ -190,10 +192,13 @@ const nextConfig = {
           },
         },
         
-        // Otimizações adicionais
+        // Otimizações adicionais para mobile
         usedExports: true,
         sideEffects: false,
         concatenateModules: true,
+        mangleExports: 'size',
+        moduleIds: 'deterministic',
+        chunkIds: 'deterministic',
       };
     }
     
@@ -223,8 +228,10 @@ const nextConfig = {
     ignoreDuringBuilds: process.env.NODE_ENV === 'development',
   },
   
-  // ✅ CORREÇÃO: Configurações de trailing slash
-  trailingSlash: false,
+  // Mobile-first optimizations
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
   
   // ✅ CORREÇÃO: Configurações de powered by header
   poweredByHeader: false,

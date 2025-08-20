@@ -1,5 +1,5 @@
 import { Html, Head, Main, NextScript } from 'next/document'
-import CriticalCSS from '../components/CriticalCSS'
+import { criticalCSS } from '../components/CriticalCSSInline'
 
 export default function Document() {
   return (
@@ -20,16 +20,16 @@ export default function Document() {
         {/* Preconnect para recursos críticos - otimizado para PageSpeed */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://firebase.googleapis.com" />
         <link rel="preconnect" href="https://finup-saas-2025.firebaseapp.com" />
         <link rel="preconnect" href="https://apis.google.com" />
+        <link rel="preconnect" href="https://firebase.googleapis.com" />
         <link rel="preconnect" href="https://js.stripe.com" />
         <link rel="dns-prefetch" href="https://m.stripe.network" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         
-        {/* Google Font com preconnect correto */}
+        {/* Google Font com display=swap para performance */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap"
           rel="stylesheet"
         />
         
@@ -53,7 +53,8 @@ export default function Document() {
             unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
           }
         `}</style>
-        <CriticalCSS />
+        {/* Inline critical CSS for fastest LCP */}
+        <style dangerouslySetInnerHTML={{ __html: criticalCSS }} />
       </Head>
       <body className="bg-gray-50 dark:bg-gray-900">
         <Main />

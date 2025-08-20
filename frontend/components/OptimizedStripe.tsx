@@ -56,3 +56,5 @@ export const OptimizedStripe = ({ children }: { children: React.ReactNode }) => 
 
   return <>{children}</>;
 };
+
+export default OptimizedStripe;
