@@ -21,6 +21,7 @@ interface AutomatedAction {
   action: string;
   payload: Record<string, unknown>;
   chatId?: string;
+  message?: string; // 🔧 CORREÇÃO: Adicionar campo message
 }
 
 // Market data types
@@ -402,6 +403,20 @@ export const chatbotAPI = {
       return response.data;
     } catch (error) {
       console.error('[chatbotAPI] Erro ao buscar sessão:', error);
+      throw error;
+    }
+  },
+  confirmAction: async (actionData: Record<string, unknown>, action: 'confirm' | 'cancel') => {
+    console.log('[chatbotAPI] Confirmando ação:', { actionData, action });
+    try {
+      const response = await api.post('/api/chatbot/confirm-action', {
+        actionData,
+        action
+      });
+      console.log('[chatbotAPI] Ação confirmada com sucesso:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('[chatbotAPI] Erro ao confirmar ação:', error);
       throw error;
     }
   },

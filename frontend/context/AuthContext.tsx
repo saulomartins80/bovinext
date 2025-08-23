@@ -511,11 +511,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const isHomePage = currentPath === '/';
         
         if (isHomePage) {
-          console.log('[AuthContext] Na página inicial, criando usuário básico sem sincronizar com backend');
-          const authUser = normalizeUser(null, firebaseUser);
+          console.log('[AuthContext] Na página inicial, não definindo usuário para evitar redirect');
           setState(prev => ({
             ...prev,
-            user: authUser,
+            user: null,
             subscription: null,
             authChecked: true,
             loading: false,

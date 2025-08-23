@@ -15,7 +15,7 @@ jobs:
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FINUP_SAAS_2025 }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_FINNEXTHO_5D86E }}
           channelId: live
-          projectId: finup-saas-2025
+          projectId: finnextho-5d86e
 

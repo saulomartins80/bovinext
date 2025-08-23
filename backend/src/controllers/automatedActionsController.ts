@@ -1005,29 +1005,14 @@ export const processAutomatedAction = async (req: Request, res: Response): Promi
         return;
       }
     } else {
-      // Processar como mensagem normal do chatbot
-      try {
-        const result = await aiService.processEnterpriseRequest(userId, message, { type: 'contextual_response' });
-        const response = { text: result.response };
-
-        res.status(200).json({
-          success: true,
-          type: 'TEXT_RESPONSE',
-          text: typeof response === 'string' ? response : (response as any).text || 'Olá! Como posso te ajudar hoje?',
-          messageId: uuidv4()
-        });
-        return;
-      } catch (aiError) {
-        console.error('Erro no AI Service:', aiError);
-        // Fallback para resposta simples
-        res.status(200).json({
-          success: true,
-          type: 'TEXT_RESPONSE',
-          text: 'Olá! Como posso te ajudar hoje?',
-          messageId: uuidv4()
-        });
-        return;
-      }
+      // Fallback para resposta simples sem Enterprise AI
+      res.status(200).json({
+        success: true,
+        type: 'TEXT_RESPONSE',
+        text: 'Olá! Como posso te ajudar hoje?',
+        messageId: uuidv4()
+      });
+      return;
     }
   } catch (error) {
     console.error('Erro ao processar ação automatizada:', error);
@@ -1060,9 +1045,9 @@ export async function createTransaction(userId: string, payload: TransactionPayl
     };
 
     console.log('[CreateTransaction] Criando transação:', transactionData);
-    const transacao = new Transacoes(transactionData);
-    const result = await transacao.save();
-    console.log('[CreateTransaction] Transação criada com sucesso:', result._id);
+    const transaction = new Transacoes(transactionData);
+    const result = await transaction.save();
+    console.log('[CreateTransaction] Transação criada rapidamente:', result._id);
     return result;
   } catch (error) {
     console.error('[CreateTransaction] Erro ao criar transação:', error);

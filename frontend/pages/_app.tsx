@@ -33,6 +33,9 @@ const LazyCSSPurger = lazy(() => import('../components/CSSPurger'))
 const LazyFirebaseErrorHandler = lazy(() => import('../components/FirebaseErrorHandler'))
 const LazyAuthInitializer = lazy(() => import('../components/AuthInitializer'))
 
+// Import AuthProvider directly (not lazy) since it's needed for all routes
+import { AuthProvider } from '../context/AuthContext'
+
 // Loading fallback component - Named for Fast Refresh
 function LoadingFallback() {
   return (
@@ -165,6 +168,7 @@ function MyApp(props: AppProps) {
 
   return (
     <ThemeProvider>
+      <AuthProvider>
         <InteractionTracker onInteraction={markInteracted}>
           {/* Critical CSS inline para LCP otimizado */}
           <CriticalCSSInline />
@@ -196,6 +200,7 @@ function MyApp(props: AppProps) {
             <ProtectedAppContent {...props} hasInteracted={hasInteracted} />
           )}
         </InteractionTracker>
+      </AuthProvider>
     </ThemeProvider>
   )
 }

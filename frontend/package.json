@@ -3,7 +3,7 @@
   "type": "module",
   "version": "1.0.0",
   "scripts": {
-    "dev": "next dev",
+    "dev": "cross-env FAST_REFRESH=false next dev",
     "build": "next build",
     "build:no-lint": "cross-env DISABLE_ESLINT_PLUGIN=true next build",
     "build:render": "cross-env DISABLE_ESLINT_PLUGIN=true SKIP_TYPE_CHECK=true NODE_ENV=production TYPESCRIPT_IGNORE_BUILD_ERRORS=true next build",

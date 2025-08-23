@@ -105,25 +105,33 @@ class IntelligentCache {
 // ===== SISTEMA DE DETECÇÃO DE INTENÇÕES RÁPIDO =====
 class FastIntentDetector {
   private patterns = {
+    create_goal: [
+      /meta|objetivo|juntar|poupar|economizar/i,
+      /quero.*juntar|preciso.*juntar|vamos.*juntar/i,
+      /plano.*financeiro|planejamento/i,
+      /natal|aniversário|viagem|casa|carro/i,
+      /até.*\d+\/\d+|prazo.*\d+/i
+    ],
+    create_investment: [
+      /invest[ir]|aplicar|render|cdb|tesouro|ações|selic/i,
+      /bolsa|b3|corretora|rico|xp|btg/i,
+      /rentabilidade|juros|dividendos/i,
+      /registrar.*investimento|novo.*investimento/i,
+      /tesouro.*selic|tesouro.*direto/i
+    ],
     create_transaction: [
       /gast[ei]|comprei|paguei|despesa|receita|transação/i,
-      /registr[ao]|adicionar|criar.*transação/i,
-      /valor.*r\$|\$|real|reais/i,
-      /\d+.*r\$|r\$.*\d+/i,
-      /\d+.*reais|reais.*\d+/i,
+      /registr[ao].*transação|adicionar.*transação/i,
       /conta.*luz|conta.*água|conta.*gás/i,
       /supermercado|mercado|farmácia/i,
       /uber|99|taxi|gasolina|combustível/i
     ],
-    create_goal: [
-      /meta|objetivo|juntar|poupar|economizar/i,
-      /quero.*r\$|preciso.*r\$/i,
-      /plano.*financeiro|planejamento/i
-    ],
-    create_investment: [
-      /invest[ir]|aplicar|render|cdb|tesouro|ações/i,
-      /bolsa|b3|nubank|inter|btg/i,
-      /rentabilidade|juros|dividendos/i
+    create_card: [
+      /cartão|cartao|card/i,
+      /registrar.*cartão|adicionar.*cartão|novo.*cartão/i,
+      /limite|anuidade|vencimento|fechamento/i,
+      /visa|mastercard|elo|american.*express/i,
+      /banco.*brasil|bradesco|itau|santander|nubank|inter/i
     ],
     analyze_data: [
       /analis[ae]|relatório|gráfico|dashboard/i,
@@ -167,69 +175,105 @@ class FastIntentDetector {
 
       // Extrair entidades específicas para TRANSAÇÃO
       if (intent === 'create_transaction') {
-        // Extrair valor - padrões mais flexíveis
-        const valuePatterns = [
-          /r\$\s*(\d+(?:[.,]\d{1,2})?)/i,
-          /(\d+(?:[.,]\d{1,2})?)\s*reais?/i,
-          /(\d+(?:[.,]\d{1,2})?)\s*r\$/i,
-          /valor.*?(\d+(?:[.,]\d{1,2})?)/i,
-          /(\d+(?:[.,]\d{1,2})?)/
-        ];
-        
-        for (const pattern of valuePatterns) {
-          const match = message.match(pattern);
-          if (match) {
-            entities.valor = parseFloat(match[1].replace(',', '.'));
-            break;
-          }
+        // Extrair valor
+        const valueMatch = message.match(/(\d+(?:[.,]\d+)?)/);
+        if (valueMatch) {
+          entities.valor = parseFloat(valueMatch[1].replace(',', '.'));
+          matches += 2;
         }
         
-        // Extrair descrição baseada no contexto
-        if (lowerMessage.includes('gastei')) {
-          entities.descricao = 'Despesa';
-          entities.tipo = 'despesa';
-        } else if (lowerMessage.includes('recebi')) {
-          entities.descricao = 'Receita';
+        // Extrair descrição
+        let descricao = '';
+        const pattern1 = message.match(/(?:comprei|gastei|paguei)\s+(?:um|uma|o|a)?\s*([^0-9,]+?)(?:\s+(?:de|por|no valor|hoje|ontem|na|no)\s*|$)/i);
+        if (pattern1) {
+          descricao = pattern1[1].trim();
+        }
+        
+        const pattern2 = message.match(/([a-záêçõ]+)\s+(?:de|por)\s+(?:R\$)?\s*\d+/i);
+        if (pattern2 && !descricao) {
+          descricao = pattern2[1].trim();
+        }
+        
+        const localMatch = message.match(/(?:na|no)\s+([^0-9,]+?)(?:\s|$)/i);
+        if (localMatch) {
+          entities.local = localMatch[1].trim();
+        }
+        
+        entities.descricao = descricao || 'Despesa';
+        
+        // Detectar tipo baseado na mensagem
+        if (lowerMessage.includes('recebi') || lowerMessage.includes('salário') || lowerMessage.includes('renda')) {
           entities.tipo = 'receita';
-        } else if (lowerMessage.includes('paguei')) {
-          entities.descricao = 'Pagamento';
-          entities.tipo = 'despesa';
-        } else if (lowerMessage.includes('comprei')) {
-          entities.descricao = 'Compra';
-          entities.tipo = 'despesa';
+        } else if (lowerMessage.includes('transferi') || lowerMessage.includes('transferência')) {
+          entities.tipo = 'transferencia';
         } else {
-          entities.descricao = 'Transação';
           entities.tipo = 'despesa';
         }
         
-        // Extrair categoria com mais opções
-        if (lowerMessage.includes('comida') || lowerMessage.includes('restaurante') || lowerMessage.includes('ifood') || lowerMessage.includes('lanche')) {
+        entities.data = new Date().toISOString().split('T')[0];
+        
+        // Extrair categoria baseada nos formulários
+        if (lowerMessage.includes('café') || lowerMessage.includes('padaria') || lowerMessage.includes('restaurante') || lowerMessage.includes('lanche') || lowerMessage.includes('açaí')) {
           entities.categoria = 'Alimentação';
-        } else if (lowerMessage.includes('uber') || lowerMessage.includes('99') || lowerMessage.includes('taxi') || lowerMessage.includes('gasolina') || lowerMessage.includes('combustível') || lowerMessage.includes('transporte')) {
+        } else if (lowerMessage.includes('uber') || lowerMessage.includes('taxi') || lowerMessage.includes('gasolina') || lowerMessage.includes('combustível')) {
           entities.categoria = 'Transporte';
-        } else if (lowerMessage.includes('supermercado') || lowerMessage.includes('mercado') || lowerMessage.includes('compras')) {
+        } else if (lowerMessage.includes('supermercado') || lowerMessage.includes('mercado')) {
           entities.categoria = 'Alimentação';
-        } else if (lowerMessage.includes('luz') || lowerMessage.includes('água') || lowerMessage.includes('gás') || lowerMessage.includes('energia') || lowerMessage.includes('conta')) {
-          entities.categoria = 'Contas';
-        } else if (lowerMessage.includes('farmácia') || lowerMessage.includes('remédio') || lowerMessage.includes('médico') || lowerMessage.includes('saúde')) {
+        } else if (lowerMessage.includes('farmácia') || lowerMessage.includes('remédio') || lowerMessage.includes('medicamento')) {
           entities.categoria = 'Saúde';
+        } else if (lowerMessage.includes('luz') || lowerMessage.includes('água') || lowerMessage.includes('energia') || lowerMessage.includes('conta')) {
+          entities.categoria = 'Contas';
+        } else if (lowerMessage.includes('shopping') || lowerMessage.includes('roupa') || lowerMessage.includes('compras')) {
+          entities.categoria = 'Compras';
         } else {
           entities.categoria = 'Geral';
         }
         
         // Definir conta padrão
         entities.conta = 'Principal';
-        entities.data = new Date().toISOString().split('T')[0];
         
-        // Extrair descrição mais específica baseada na mensagem
-        const palavrasChave = lowerMessage.split(' ');
-        const excludeWords = ['gastei', 'paguei', 'comprei', 'reais', 'valor', 'quero', 'registrar', 'despesa', 'uma', 'de'];
+        // Detectar método de pagamento e parcelas
+        if (lowerMessage.includes('crediário') || lowerMessage.includes('parcelado') || lowerMessage.includes('parcelas')) {
+          // Extrair número de parcelas se mencionado
+          const parcelasMatch = message.match(/(\d+)\s*(?:x|parcelas?|vezes?)/i);
+          if (parcelasMatch) {
+            entities.parcelas = parseInt(parcelasMatch[1]);
+          } else {
+            entities.parcelas = 1; // Padrão se não especificado
+          }
+          entities.metodo_pagamento = 'Cartão de Crédito';
+        } else if (lowerMessage.includes('cartão') || lowerMessage.includes('cartao')) {
+          entities.metodo_pagamento = 'Cartão de Crédito';
+          entities.parcelas = 1;
+        } else if (lowerMessage.includes('pix')) {
+          entities.metodo_pagamento = 'PIX';
+        } else if (lowerMessage.includes('dinheiro') || lowerMessage.includes('espécie')) {
+          entities.metodo_pagamento = 'Dinheiro';
+        } else {
+          entities.metodo_pagamento = 'Outros';
+        }
         
-        // Procurar por palavras relevantes (empresas, estabelecimentos, etc.)
-        for (const palavra of palavrasChave) {
-          if (palavra.length > 2 && !excludeWords.includes(palavra) && !palavra.includes('100') && !palavra.includes('r$')) {
-            entities.descricao = palavra.charAt(0).toUpperCase() + palavra.slice(1);
-            break;
+        // Extrair descrição mais específica baseada na categoria e contexto
+        if (lowerMessage.includes('farmácia') || lowerMessage.includes('remédio') || lowerMessage.includes('medicamento')) {
+          entities.descricao = 'Medicamento';
+        } else if (lowerMessage.includes('açaí')) {
+          entities.descricao = 'Açaí';
+        } else if (lowerMessage.includes('café')) {
+          entities.descricao = 'Café';
+        } else if (lowerMessage.includes('uber')) {
+          entities.descricao = 'Uber';
+        } else if (lowerMessage.includes('gasolina') || lowerMessage.includes('combustível')) {
+          entities.descricao = 'Combustível';
+        } else {
+          // Fallback: procurar por palavras relevantes
+          const palavrasChave = lowerMessage.split(' ');
+          const excludeWords = ['gastei', 'paguei', 'comprei', 'reais', 'valor', 'quero', 'registrar', 'despesa', 'uma', 'de', 'na', 'no', 'com', 'hoje'];
+          
+          for (const palavra of palavrasChave) {
+            if (palavra.length > 3 && !excludeWords.includes(palavra) && !palavra.match(/\d/) && !palavra.includes('r$')) {
+              entities.descricao = palavra.charAt(0).toUpperCase() + palavra.slice(1);
+              break;
+            }
           }
         }
         
@@ -239,8 +283,10 @@ class FastIntentDetector {
         }
       }
 
-      // Extrair entidades específicas para META
+      // 🔧 CORREÇÃO: Extrair entidades para META baseado no schema exato
       if (intent === 'create_goal') {
+        // Schema Meta: meta, descricao, valor_total, valor_atual, data_conclusao, userId, categoria?, prioridade?
+        
         const valuePatterns = [
           /meta.*?r\$\s*(\d+(?:[.,]\d{1,2})?)/i,
           /objetivo.*?r\$\s*(\d+(?:[.,]\d{1,2})?)/i,
@@ -254,36 +300,80 @@ class FastIntentDetector {
           const match = message.match(pattern);
           if (match) {
             entities.valor_total = parseFloat(match[1].replace(',', '.'));
-            entities.valor = entities.valor_total; // Compatibilidade
             break;
           }
         }
         
-        // Extrair prazo se mencionado
+        // Extrair nome da meta (campo obrigatório) - corresponde ao campo "Nome da Meta" do formulário
+        const metaPatterns = [
+          /meta.*?(?:de|para)\s+([^0-9r$]+?)(?:\s+(?:de|no valor)|$)/i,
+          /juntar.*?para\s+([^0-9r$]+?)(?:\s+(?:de|no valor)|$)/i,
+          /poupar.*?para\s+([^0-9r$]+?)(?:\s+(?:de|no valor)|$)/i,
+          /objetivo.*?(?:de|para)\s+([^0-9r$]+?)(?:\s+(?:de|no valor)|$)/i,
+          /(natal|viagem|casa|carro|emergência|reserva)/i
+        ];
+        
+        for (const pattern of metaPatterns) {
+          const match = message.match(pattern);
+          if (match) {
+            entities.meta = match[1].trim().charAt(0).toUpperCase() + match[1].trim().slice(1);
+            break;
+          }
+        }
+        
+        // Extrair descrição (campo obrigatório)
+        entities.descricao = entities.meta || 'Meta financeira';
+        
+        // Extrair prazo para data_conclusao (campo obrigatório)
         const prazoPatterns = [
           /(\d+)\s*meses?/i,
           /(\d+)\s*anos?/i,
-          /até.*?(\d{1,2})\/(\d{1,2})/i
+          /até.*?(\d{1,2})\/(\d{1,2})/i,
+          /dezembro|natal/i
         ];
         
         for (const pattern of prazoPatterns) {
           const match = message.match(pattern);
           if (match) {
             if (pattern.source.includes('meses')) {
-              entities.prazo_meses = parseInt(match[1]);
+              const months = parseInt(match[1]);
+              const targetDate = new Date();
+              targetDate.setMonth(targetDate.getMonth() + months);
+              entities.data_conclusao = targetDate.toISOString().split('T')[0];
             } else if (pattern.source.includes('anos')) {
-              entities.prazo_meses = parseInt(match[1]) * 12;
+              const years = parseInt(match[1]);
+              const targetDate = new Date();
+              targetDate.setFullYear(targetDate.getFullYear() + years);
+              entities.data_conclusao = targetDate.toISOString().split('T')[0];
+            } else if (pattern.source.includes('dezembro|natal')) {
+              const currentYear = new Date().getFullYear();
+              entities.data_conclusao = `${currentYear}-12-25`;
             }
             break;
           }
         }
         
-        entities.descricao = entities.descricao || 'Meta financeira';
-        entities.categoria = 'Economia';
+        // Campos obrigatórios com valores padrão (baseado no formulário)
+        if (!entities.meta) entities.meta = 'Meta financeira'; // Nome da Meta*
+        if (!entities.descricao) entities.descricao = entities.meta; // Descrição*
+        if (!entities.valor_total) entities.valor_total = 0; // Valor Total (R$)*
+        if (!entities.data_conclusao) {
+          const targetDate = new Date();
+          targetDate.setFullYear(targetDate.getFullYear() + 1);
+          entities.data_conclusao = targetDate.toISOString().split('T')[0]; // Data Limite*
+        }
+        
+        // Campos obrigatórios fixos
+        entities.valor_atual = 0; // Valor Atual (R$)*
+        
+        // Campos opcionais do formulário
+        entities.prioridade = 'media'; // Prioridade* (Alta/Média/Baixa)
+        entities.categoria = 'Economia'; // Categoria (opcional)
       }
 
-      // Extrair entidades específicas para INVESTIMENTO
+      // 🔧 CORREÇÃO: Extrair entidades para INVESTIMENTO baseado no schema exato
       if (intent === 'create_investment') {
+        // Schema Investimento: nome, tipo, valor, data, meta?, instituicao?, rentabilidade?, vencimento?, liquidez?, risco?, categoria?
         const valuePatterns = [
           /invest.*?r\$\s*(\d+(?:[.,]\d{1,2})?)/i,
           /aplicar.*?r\$\s*(\d+(?:[.,]\d{1,2})?)/i,
@@ -299,46 +389,162 @@ class FastIntentDetector {
           }
         }
         
-        // Detectar tipo de investimento
+        // Detectar tipo de investimento (campo obrigatório)
         if (lowerMessage.includes('cdb') || lowerMessage.includes('banco')) {
           entities.tipo = 'CDB';
-        } else if (lowerMessage.includes('tesouro') || lowerMessage.includes('selic')) {
+        } else if (lowerMessage.includes('tesouro') || lowerMessage.includes('selic') || lowerMessage.includes('ipca')) {
           entities.tipo = 'Tesouro Direto';
-        } else if (lowerMessage.includes('ações') || lowerMessage.includes('bolsa')) {
+        } else if (lowerMessage.includes('ações') || lowerMessage.includes('acoes') || lowerMessage.includes('bolsa')) {
           entities.tipo = 'Ações';
-        } else if (lowerMessage.includes('fii') || lowerMessage.includes('fundos')) {
+        } else if (lowerMessage.includes('fii') || lowerMessage.includes('fundos imobiliários')) {
           entities.tipo = 'Fundos Imobiliários';
+        } else if (lowerMessage.includes('lci')) {
+          entities.tipo = 'LCI';
+        } else if (lowerMessage.includes('lca')) {
+          entities.tipo = 'LCA';
+        } else if (lowerMessage.includes('poupança')) {
+          entities.tipo = 'Poupança';
         } else {
           entities.tipo = 'Renda Fixa';
         }
         
-        entities.descricao = entities.descricao || `Investimento em ${entities.tipo}`;
+        // Extrair nome do investimento (campo obrigatório)
+        if (entities.tipo === 'Tesouro Direto') {
+          if (lowerMessage.includes('selic')) {
+            entities.nome = 'Tesouro Selic';
+          } else if (lowerMessage.includes('ipca')) {
+            entities.nome = 'Tesouro IPCA+';
+          } else {
+            entities.nome = 'Tesouro Direto';
+          }
+        } else {
+          entities.nome = entities.tipo;
+        }
+        
+        // Extrair instituição (campo opcional)
+        const instituicaoPatterns = [
+          /(?:na|no|pela|pelo)\s+(nubank|inter|itau|bradesco|santander|bb|caixa|xp|rico|clear|easynvest|modal)/i,
+          /corretora\s+([a-z]+)/i
+        ];
+        
+        for (const pattern of instituicaoPatterns) {
+          const match = message.match(pattern);
+          if (match) {
+            entities.instituicao = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+            break;
+          }
+        }
+        
+        // Campos obrigatórios
+        entities.data = new Date().toISOString().split('T')[0];
+        
+        // Campos opcionais com valores padrão
         entities.categoria = 'Investimentos';
+        entities.risco = entities.tipo === 'Tesouro Direto' ? 'Baixo' : 'Médio';
+        entities.liquidez = entities.tipo === 'Tesouro Direto' ? 'D+1' : 'D+0';
+      }
+
+      // 🔧 CORREÇÃO: Extrair entidades para CARTÃO baseado no schema exato
+      if (intent === 'create_card') {
+        // Schema Card: name, bank, program, number, limit, used, dueDate, closingDate, pointsPerReal, annualFee, benefits[], status, color, category
+        
+        // Extrair nome do cartão (campo obrigatório)
+        const nomePatterns = [
+          /cartão\s+([a-zA-Z\s]+?)(?:\s+do|da|$)/i,
+          /card\s+([a-zA-Z\s]+?)(?:\s+do|da|$)/i,
+          /(platinum|gold|black|infinite|standard|básico)/i
+        ];
+        
+        for (const pattern of nomePatterns) {
+          const match = message.match(pattern);
+          if (match) {
+            entities.name = match[1].trim().charAt(0).toUpperCase() + match[1].trim().slice(1);
+            break;
+          }
+        }
+        
+        // Extrair banco (campo obrigatório)
+        const bancoPatterns = [
+          /(nubank|inter|bradesco|itau|santander|banco.*brasil|bb|caixa|xp|c6)/i,
+          /do\s+(nubank|inter|bradesco|itau|santander|bb|caixa)/i
+        ];
+        
+        for (const pattern of bancoPatterns) {
+          const match = message.match(pattern);
+          if (match) {
+            entities.bank = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+            break;
+          }
+        }
+        
+        // Extrair limite se mencionado
+        const limitePatterns = [
+          /limite.*?r\$\s*(\d+(?:[.,]\d{1,2})?)/i,
+          /r\$\s*(\d+(?:[.,]\d{1,2})?)\s*de.*limite/i
+        ];
+        
+        for (const pattern of limitePatterns) {
+          const match = message.match(pattern);
+          if (match) {
+            entities.limit = parseFloat(match[1].replace(',', '.'));
+            break;
+          }
+        }
+        
+        // Extrair últimos 4 dígitos se mencionados
+        const numeroPattern = /(\d{4})$/;
+        const numeroMatch = message.match(numeroPattern);
+        if (numeroMatch) {
+          entities.number = numeroMatch[1];
+        }
+        
+        // Campos obrigatórios com valores padrão (baseado no formulário)
+        if (!entities.name) entities.name = 'Cartão de Crédito'; // Nome do Cartão*
+        if (!entities.bank) entities.bank = 'Banco'; // Banco/Instituição*
+        if (!entities.limit) entities.limit = 1000; // Limite (R$)*
+        if (!entities.number) entities.number = '0000'; // Últimos 4 dígitos*
+        
+        // Campos obrigatórios fixos do formulário
+        entities.program = entities.bank + ' Rewards'; // Programa*
+        entities.used = 0; // Usado (sempre 0 inicialmente)
+        entities.dueDate = 10; // Vencimento (dia)*
+        entities.closingDate = 5; // Fechamento (dia)*
+        entities.pointsPerReal = 1; // Pontos por real
+        entities.annualFee = 0; // Anuidade (R$)*
+        entities.benefits = []; // Benefícios
+        entities.status = 'active'; // Status
+        entities.color = '#3B82F6'; // Cor
+        entities.category = 'standard'; // Categoria
       }
 
       // Calcular confiança de forma mais inteligente
       let confidence = 0;
       
-      if (intent === 'create_transaction') {
-        // Para transações, se tem pelo menos 2 matches, já é alta confiança
-        if (matches >= 2) {
-          confidence = 0.8;
-        } else if (matches >= 1) {
-          confidence = 0.6;
-        }
-        // Boost se encontrou valor
-        if (entities.valor && entities.valor > 0) {
+      if (intent === 'create_goal') {
+        // Prioridade ALTA para metas - detectar primeiro
+        confidence = matches >= 1 ? 0.9 : 0;
+        if (entities.valor_total && entities.valor_total > 0) {
           confidence = Math.min(confidence + 0.1, 1.0);
         }
-      } else if (intent === 'create_goal') {
-        confidence = matches >= 1 ? 0.7 : 0;
-        if (entities.valor_total && entities.valor_total > 0) {
+        // Boost adicional para palavras-chave específicas
+        if (lowerMessage.includes('meta') || lowerMessage.includes('juntar') || lowerMessage.includes('natal')) {
+          confidence = Math.min(confidence + 0.1, 1.0);
+        }
+      } else if (intent === 'create_transaction') {
+        confidence = matches >= 1 ? 0.6 : 0;
+        // Boost se encontrou valor E palavra de transação específica
+        if (entities.valor && entities.valor > 0 && (lowerMessage.includes('gastei') || lowerMessage.includes('paguei') || lowerMessage.includes('comprei'))) {
           confidence = Math.min(confidence + 0.2, 1.0);
         }
       } else if (intent === 'create_investment') {
         confidence = matches >= 1 ? 0.7 : 0;
         if (entities.valor && entities.valor > 0) {
           confidence = Math.min(confidence + 0.2, 1.0);
+        }
+      } else if (intent === 'create_card') {
+        confidence = matches >= 1 ? 0.8 : 0;
+        if (entities.banco || entities.nome) {
+          confidence = Math.min(confidence + 0.1, 1.0);
         }
       } else {
         // Para outros intents, usar cálculo original
@@ -351,6 +557,22 @@ class FastIntentDetector {
     }
 
     return bestMatch;
+  }
+
+  private inferCategory(message: string): string {
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('café') || lowerMessage.includes('padaria') || lowerMessage.includes('restaurante') || lowerMessage.includes('lanche')) {
+      return 'Alimentação';
+    } else if (lowerMessage.includes('uber') || lowerMessage.includes('taxi') || lowerMessage.includes('gasolina')) {
+      return 'Transporte';
+    } else if (lowerMessage.includes('farmácia') || lowerMessage.includes('remédio')) {
+      return 'Saúde';
+    } else if (lowerMessage.includes('supermercado') || lowerMessage.includes('mercado')) {
+      return 'Alimentação';
+    }
+    
+    return 'Geral';
   }
 }
 
@@ -395,6 +617,51 @@ class OptimizedContext {
   // Cache de contexto por usuário
   private userContexts = new Map<string, any>();
   private externalAPI = new ExternalAPIService();
+
+  // Buscar dados do usuário no banco de dados
+  async getUserFinancialData(userId: string): Promise<any> {
+    try {
+      const { Goal } = await import('../models/Goal');
+      const { Transacoes } = await import('../models/Transacoes');
+      const { Investimento } = await import('../models/Investimento');
+
+      // Buscar dados em paralelo
+      const [goals, transactions, investments] = await Promise.all([
+        Goal.find({ userId }).sort({ createdAt: -1 }).limit(5),
+        Transacoes.find({ userId }).sort({ data: -1 }).limit(10),
+        Investimento.find({ userId }).sort({ data: -1 }).limit(5)
+      ]);
+
+      // Calcular estatísticas básicas
+      const totalTransactions = transactions.length;
+      const totalGoals = goals.length;
+      const totalInvestments = investments.reduce((sum, inv) => sum + inv.valor, 0);
+      const monthlyExpenses = transactions
+        .filter(t => t.tipo === 'despesa' && new Date(t.data).getMonth() === new Date().getMonth())
+        .reduce((sum, t) => sum + t.valor, 0);
+
+      return {
+        goals,
+        transactions,
+        investments,
+        stats: {
+          totalTransactions,
+          totalGoals,
+          totalInvestments,
+          monthlyExpenses,
+          hasData: totalTransactions > 0 || totalGoals > 0 || investments.length > 0
+        }
+      };
+    } catch (error) {
+      console.error('Erro ao buscar dados financeiros do usuário:', error);
+      return {
+        goals: [],
+        transactions: [],
+        investments: [],
+        stats: { totalTransactions: 0, totalGoals: 0, totalInvestments: 0, monthlyExpenses: 0, hasData: false }
+      };
+    }
+  }
 
   // Enriquecer resposta com dados financeiros em tempo real
   private async enrichResponseWithMarketData(message: string, response: string): Promise<string> {
@@ -532,7 +799,7 @@ export class OptimizedAIService {
 
   // Sistema de prompts (inicializado no construtor)
   private SYSTEM_PROMPTS = {
-    FINN_CORE: `Você é Finn, o assistente financeiro pessoal da FinNextHo. Seja natural, amigável e direto.
+    FINN_CORE: `Você é Finn, o assistente financeiro pessoal da Finnextho. Seja natural, amigável e direto.
 
 Suas principais funções:
 - Registrar transações, metas e investimentos
@@ -550,11 +817,11 @@ Sempre seja:
 ❌ Não mencione limitações técnicas
 ❌ Não peça desculpas desnecessárias
 ❌ Não mencione datas a menos que o usuário pergunte especificamente`
-  };
+  }
 
   constructor() {
     this.SYSTEM_PROMPTS = {
-      FINN_CORE: this.getSystemPrompt()
+      FINN_CORE: this.getSystemPrompt() // Usa o novo prompt
     };
   }
 
@@ -564,23 +831,16 @@ Sempre seja:
     const currentMonth = now.toLocaleDateString('pt-BR', { month: 'long' });
     const currentYear = now.getFullYear();
     const currentDate = now.toLocaleDateString('pt-BR');
-    const currentQuarter = Math.ceil((now.getMonth() + 1) / 3);
 
-    return `Você é Finn, o assistente financeiro da Finnextho. Hoje é ${currentDate} (${currentMonth} de ${currentYear}, Q${currentQuarter}).
-
-    CONTEXTO TEMPORAL ATUAL:
-    - Data atual: ${currentDate}
-    - Mês atual: ${currentMonth} de ${currentYear}
-    - Trimestre: Q${currentQuarter}
-    - Semana do ano: ${Math.ceil(((now.getTime() - new Date(currentYear, 0, 1).getTime()) / 86400000 + new Date(currentYear, 0, 1).getDay() + 1) / 7)}
+    return `Você é Finn, o assistente financeiro da Finnextho. Hoje é ${currentDate}.
 
     CAPACIDADES PRINCIPAIS:
-    - Análise de gastos e receitas (com foco no período atual)
+    - Análise de gastos e receitas
     - Planejamento financeiro e orçamento
     - Consultoria em investimentos
     - Gestão de cartões de crédito
     - Acompanhamento de metas financeiras
-    - Otimização de programas de milhas
+- Otimização de programas de milhas
     - Educação financeira
 
     PERSONALIDADE:
@@ -588,18 +848,14 @@ Sempre seja:
     - Didático e paciente
     - Proativo em sugestões
     - Focado em resultados práticos
-    - Consciente do tempo e prazos
 
-    DIRETRIZES:
-    - Sempre forneça informações precisas e atualizadas
+DIRETRIZES:
+- Mantenha MEMÓRIA COMPLETA da conversa desde o início
     - Use linguagem clara e acessível
-    - Seja proativo em identificar oportunidades de melhoria
-    - Mantenha o foco na saúde financeira do usuário
+- Seja proativo em identificar oportunidades
     - Confirme ações importantes (transações > R$1000)
-    - Considere sempre o contexto temporal atual nas análises
-    - Mencione datas relevantes (vencimentos, prazos, sazonalidades)
     
-    Responda sempre em português brasileiro de forma clara e objetiva, considerando o contexto temporal atual.`;
+Responda sempre em português brasileiro de forma clara e objetiva.`;
   }
 
   private prompts = {
@@ -626,6 +882,7 @@ Sempre seja:
     entities?: any;
     responseTime: number;
     cached?: boolean;
+    actionData?: any;
   }> {
     const startTime = Date.now();
     
@@ -669,31 +926,68 @@ Finn:`;
         model: 'deepseek-chat',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
-        max_tokens: 600,
+        max_tokens: 1500, // Aumentado para memória completa
       });
 
       const response = completion.choices[0]?.message?.content || 'Como posso te ajudar?';
 
-      // Detectar se a resposta indica necessidade de confirmação
-      const requiresConfirmation = /posso confirmar|confirmar e registrar|pode confirmar|confirmo isso/i.test(response);
+      // 🔧 CORREÇÃO: Detectar intenção PRIMEIRO, depois verificar se precisa confirmação
+      const intentResult = this.intentDetector.detect(message);
+      console.log(`[AI] Intent detectado: ${intentResult.intent}, confiança: ${intentResult.confidence}`);
+      
+      // Só requer confirmação se:
+      // 1. Tem intent válido com confiança alta
+      // 2. É uma ação que modifica dados (não conversas normais)
+      // 3. Tem dados suficientes para executar
+      const validActionIntents = ['create_investment', 'create_goal', 'create_transaction', 'create_card'];
+      const requiresConfirmation = validActionIntents.includes(intentResult.intent) && 
+                                   intentResult.confidence > 0.6 &&
+                                   intentResult.entities && 
+                                   Object.keys(intentResult.entities).length > 0;
+      
+      console.log(`[AI] Requer confirmação: ${requiresConfirmation}`);
       
       let actionData = null;
       if (requiresConfirmation) {
-        // Extrair dados da mensagem original para actionData
-        // Extrair entidades básicas da mensagem
-        const entities = {
-          valor: this.extractValue(message),
-          categoria: this.extractCategory(message),
-          tipo: this.extractType(message),
-          data: new Date().toISOString().split('T')[0],
-          descricao: this.extractCategory(message) || 'Transação',
-          conta: 'Principal'
-        };
-        if (entities.valor) {
+        if (intentResult.intent === 'create_goal') {
+          actionData = {
+            type: 'create_goal',
+            entities: intentResult.entities,
+            userId,
+            confirmationButtons: [
+              { text: 'Confirmar', action: 'confirm', style: 'primary' },
+              { text: 'Cancelar', action: 'cancel', style: 'secondary' }
+            ]
+          };
+        } else if (intentResult.intent === 'create_transaction') {
           actionData = {
             type: 'create_transaction',
-            entities,
-            userId
+            entities: intentResult.entities,
+            userId,
+            confirmationButtons: [
+              { text: 'Confirmar', action: 'confirm', style: 'primary' },
+              { text: 'Cancelar', action: 'cancel', style: 'secondary' }
+            ]
+          };
+        } else if (intentResult.intent === 'create_investment') {
+          actionData = {
+            type: 'create_investment',
+            entities: intentResult.entities,
+            userId,
+            confirmationButtons: [
+              { text: 'Confirmar', action: 'confirm', style: 'primary' },
+              { text: 'Cancelar', action: 'cancel', style: 'secondary' }
+            ]
+          };
+        } else if (intentResult.intent === 'create_card') {
+          actionData = {
+            type: 'create_card',
+            entities: intentResult.entities,
+            userId,
+            confirmationButtons: [
+              { text: 'Confirmar', action: 'confirm', style: 'primary' },
+              { text: 'Cancelar', action: 'cancel', style: 'secondary' }
+            ]
           };
         }
       }
@@ -711,9 +1005,11 @@ Finn:`;
       // 6. Salvar no cache
       const result = {
         text: finalResponse,
+        intent: intentResult.intent,
+        confidence: intentResult.confidence,
+        entities: intentResult.entities,
         requiresConfirmation,
         actionData,
-        confidence: requiresConfirmation ? 0.9 : 0.7,
         responseTime: Date.now() - startTime
       };
 
@@ -727,7 +1023,8 @@ Finn:`;
       return {
         text: 'Desculpe, tive um problema técnico. Pode tentar novamente?',
         responseTime: Date.now() - startTime,
-        confidence: 0.0
+        confidence: 0.0,
+        actionData: null
       };
     }
   }
@@ -785,6 +1082,13 @@ Finn:`;
             confirmationMessage = `📈 Registrar investimento de R$ ${intentResult.entities.valor.toFixed(2)}. Confirmar?`;
           } else {
             confirmationMessage = `📈 Para registrar o investimento, preciso do valor. Qual foi o valor investido?`;
+          }
+          break;
+        case 'create_card':
+          if (intentResult.entities.limite && intentResult.entities.limite > 0) {
+            confirmationMessage = `💳 Criar cartão ${intentResult.entities.banco || 'Novo'} com limite de R$ ${intentResult.entities.limite}. Confirmar?`;
+          } else {
+            confirmationMessage = `💳 Para criar o cartão, preciso do limite. Qual é o limite do cartão?`;
           }
           break;
         default:
@@ -937,6 +1241,10 @@ Finn:`;
     if (intentResult.intent === 'create_investment' && intentResult.entities.valor > 0) {
       return true;
     }
+    
+    if (intentResult.intent === 'create_card') {
+      return true;
+    }
 
     return false;
   }
@@ -959,35 +1267,26 @@ Finn:`;
   private async buildContextPrompt(conversationHistory: ChatMessage[], userContext?: any): Promise<string> {
     let context = '';
     
-    // Informações do usuário (sem mencionar na resposta)
     if (userContext?.userId) {
-      context += `[CONTEXTO INTERNO - NÃO MENCIONAR]\n`;
+      context += `[CONTEXTO INTERNO]\n`;
       context += `Usuário: ${userContext.nome || 'Usuário'}\n`;
-      context += `Plano: ${userContext.subscription?.plan || 'Básico'}\n`;
-      context += `Status: ${userContext.subscription?.status || 'ativo'}\n`;
-      context += `Data atual: ${new Date().toLocaleDateString('pt-BR')}\n`;
       
-      // Buscar registros existentes
       try {
         const records = await this.getExistingRecords(userContext.userId);
-        context += `Transações existentes: ${records.transactions.length}\n`;
-        context += `Metas existentes: ${records.goals.length}\n`;
-        context += `Investimentos existentes: ${records.investments.length}\n`;
-        
-        if (records.transactions.length > 0) {
-          const recent = records.transactions.slice(-3);
-          context += `Últimas transações: ${recent.map(t => `R$ ${t.valor} - ${t.categoria}`).join(', ')}\n`;
-        }
+        context += `Transações: ${records.transactions.length}\n`;
+        context += `Metas: ${records.goals.length}\n`;
+        context += `Investimentos: ${records.investments.length}\n`;
       } catch (error) {
-        console.error('Erro ao buscar contexto de registros:', error);
+        console.error('Erro ao buscar contexto:', error);
       }
       
-      context += `[FIM CONTEXTO INTERNO]\n\n`;
+      context += `[FIM CONTEXTO]\n\n`;
     }
     
     if (conversationHistory.length > 0) {
-      context += 'Histórico da conversa:\n';
-      conversationHistory.slice(-5).forEach((msg, index) => {
+      context += 'HISTÓRICO COMPLETO DA CONVERSA:\n';
+      // TODAS as mensagens com timestamp
+      conversationHistory.forEach((msg) => {
         const role = msg.sender === 'user' ? 'Usuário' : 'Finn';
         context += `${role}: ${msg.content}\n`;
       });

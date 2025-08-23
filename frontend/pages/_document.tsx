@@ -20,7 +20,7 @@ export default function Document() {
         {/* Preconnect para recursos críticos - otimizado para PageSpeed */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://finup-saas-2025.firebaseapp.com" />
+        <link rel="preconnect" href="https://finnextho-5d86e.firebaseapp.com" />
         <link rel="preconnect" href="https://apis.google.com" />
         <link rel="preconnect" href="https://firebase.googleapis.com" />
         <link rel="preconnect" href="https://js.stripe.com" />

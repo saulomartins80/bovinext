@@ -58,7 +58,31 @@ export default function LoginPage() {
       await login(email, password);
     } catch (err: unknown) {
       console.error('Login error:', err);
-      setError('Email ou senha incorretos. Verifique seus dados e tente novamente.');
+      
+      // Tratamento específico de erros do Firebase
+      const firebaseError = err as { code?: string; message?: string };
+      
+      switch (firebaseError.code) {
+        case 'auth/invalid-credential':
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+          setError('Email ou senha incorretos. Verifique seus dados e tente novamente.');
+          break;
+        case 'auth/user-disabled':
+          setError('Esta conta foi desabilitada. Entre em contato com o suporte.');
+          break;
+        case 'auth/too-many-requests':
+          setError('Muitas tentativas de login. Tente novamente em alguns minutos.');
+          break;
+        case 'auth/network-request-failed':
+          setError('Erro de conexão. Verifique sua internet e tente novamente.');
+          break;
+        case 'auth/invalid-email':
+          setError('Formato de email inválido.');
+          break;
+        default:
+          setError('Erro ao fazer login. Tente novamente ou entre em contato com o suporte.');
+      }
     } finally {
       setIsLoading(false);
     }

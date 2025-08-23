@@ -472,8 +472,9 @@ export const useOptimizedChat = () => {
                 }));
                 if (timeoutId) clearTimeout(timeoutId);
                 updateState({ isStreaming: false, isLoading: false });
-                eventSource.close();
-                resolve();
+                // NÃO FECHAR AINDA - aguardar metadados
+                // eventSource.close();
+                // resolve();
               }
             } catch (error) {
               console.error('[useOptimizedChat] Error handling stream data:', error);
@@ -527,27 +528,29 @@ export const useOptimizedChat = () => {
                     confidence: meta.confidence
                   };
                   console.log('[useOptimizedChat] Updated streamingMessage.metadata:', streamingMessage.metadata);
+                  
+                  // FORÇAR ATUALIZAÇÃO IMEDIATA DO ESTADO
+                  setState(prev => {
+                    const newState = {
+                      ...prev,
+                      pendingAction: { 
+                        action: meta.actionData.type, 
+                        payload: meta.actionData.entities || {}, 
+                        autoExecute: false, 
+                        executed: false 
+                      },
+                      // ATUALIZAR MENSAGENS COM METADADOS
+                      messages: prev.messages.map(msg => 
+                        msg.id === streamingMessage?.id 
+                          ? { ...streamingMessage }
+                          : msg
+                      )
+                    };
+                    console.log('[useOptimizedChat] New state with pendingAction:', newState.pendingAction);
+                    console.log('[useOptimizedChat] Updated message with metadata:', newState.messages.find(m => m.id === streamingMessage?.id));
+                    return newState;
+                  });
                 }
-                
-                setState(prev => {
-                  const newState = {
-                    ...prev,
-                    pendingAction: { 
-                      action: meta.actionData.type, 
-                      payload: meta.actionData.entities || {}, 
-                      autoExecute: false, 
-                      executed: false 
-                    },
-                    // ATUALIZAR MENSAGENS COM METADADOS
-                    messages: prev.messages.map(msg => 
-                      msg.id === streamingMessage?.id 
-                        ? { ...streamingMessage }
-                        : msg
-                    )
-                  };
-                  console.log('[useOptimizedChat] New state with pendingAction:', newState.pendingAction);
-                  return newState;
-                });
               }
               // Fallback para formato antigo
               else if (meta?.intent && typeof streamingMessage?.content === 'string') {
@@ -576,37 +579,40 @@ export const useOptimizedChat = () => {
           eventSource.addEventListener('complete', async () => {
             console.log('[useOptimizedChat] Stream completed');
             
-            setState(prev => ({
-              ...prev,
-              messages: prev.messages.map(msg => 
-                msg.id === streamingMessage.id 
-                  ? { 
-                      ...streamingMessage, 
-                      metadata: {
-                        ...streamingMessage.metadata,
-                        isComplete: true
+            // Aguardar um pouco para garantir que metadados foram processados
+            setTimeout(() => {
+              setState(prev => ({
+                ...prev,
+                messages: prev.messages.map(msg => 
+                  msg.id === streamingMessage.id 
+                    ? { 
+                        ...streamingMessage, 
+                        metadata: {
+                          ...streamingMessage.metadata,
+                          isComplete: true
+                        }
                       }
-                    }
-                  : msg
-              )
-            }));
-            
-            updateState({ 
-              isStreaming: false, 
-              isLoading: false,
-              connectionStatus: 'connected'
-            });
-            
-            try {
-              const currentState = { ...state };
-              const shouldAuto = currentState.pendingAction?.autoExecute && !currentState.pendingAction?.executed;
-              if (shouldAuto && currentState.chatId) {
-                await executePendingAction();
+                    : msg
+                )
+              }));
+              
+              updateState({ 
+                isStreaming: false, 
+                isLoading: false,
+                connectionStatus: 'connected'
+              });
+              
+              try {
+                const currentState = { ...state };
+                const shouldAuto = currentState.pendingAction?.autoExecute && !currentState.pendingAction?.executed;
+                if (shouldAuto && currentState.chatId) {
+                  executePendingAction();
+                }
+              } finally {
+                eventSource.close();
+                resolve();
               }
-            } finally {
-              eventSource.close();
-              resolve();
-            }
+            }, 500); // Aguardar 500ms para metadados
           });
 
           // Tratamento de erro mais específico: não acionar fallback prematuro
@@ -628,7 +634,12 @@ export const useOptimizedChat = () => {
         const action = state.pendingAction;
         try {
           updateState({ isLoading: true });
-          const result = await chatbotAPI.executeAction({ action: action.action, payload: action.payload, chatId: state.chatId as string });
+          const result = await chatbotAPI.executeAction({ 
+            action: action.action, 
+            payload: action.payload, 
+            chatId: state.chatId as string,
+            message: content // 🔧 CORREÇÃO: Adicionar mensagem para evitar erro "Mensagem é obrigatória"
+          });
           const successText = result?.text || '✅ Ação executada com sucesso!';
           const botMessage: ChatMessage = {
             id: generateMessageId(),

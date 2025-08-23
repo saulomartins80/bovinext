@@ -62,11 +62,25 @@ const nextConfig = {
     forceSwcTransforms: true,
   },
   
-  // Configurações específicas para desenvolvimento
+  // ✅ CORREÇÃO: Configuração otimizada para desenvolvimento
   ...(process.env.NODE_ENV === 'development' && {
     onDemandEntries: {
       maxInactiveAge: 60 * 1000, // 1 minuto
       pagesBufferLength: 5,
+    },
+    // Desabilitar Fast Refresh para evitar loops infinitos
+    reactStrictMode: false,
+  }),
+  
+  // ✅ CORREÇÃO: Desabilitar Fast Refresh completamente
+  ...(process.env.FAST_REFRESH === 'false' && {
+    experimental: {
+      ...((process.env.NODE_ENV === 'development') && {
+        optimizeCss: false,
+        scrollRestoration: true,
+        esmExternals: true,
+        forceSwcTransforms: true,
+      }),
     },
   }),
   

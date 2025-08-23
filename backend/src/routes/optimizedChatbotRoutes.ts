@@ -7,7 +7,8 @@ import {
   getCacheStats,
   clearCache,
   deleteSession,
-  deleteAllSessions
+  deleteAllSessions,
+  executeConfirmedAction
 } from '../controllers/OptimizedChatbotController';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import { asyncHandler } from '../middlewares/asyncHandler';
@@ -160,6 +161,13 @@ router.get('/cache/stats',
 router.delete('/cache', 
   createRateLimit(300000, 2), // 2 limpezas de cache por 5 minutos
   asyncHandler(clearCache)
+);
+
+// Rota para executar ações confirmadas pelo usuário
+router.post('/confirm-action', 
+  logRequest,
+  createRateLimit(60000, 20), // 20 confirmações por minuto
+  asyncHandler(executeConfirmedAction)
 );
 
 

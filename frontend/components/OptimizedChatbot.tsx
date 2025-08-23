@@ -1,17 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  MessageCircle, X, Send, Bot, 
-  Sparkles, Lightbulb,
-  Copy, ThumbsUp,
-  Target, Trash2,
-  CheckCircle, XCircle,
-  Brain, Zap as ZapIcon,
-  TrendingUp, Shield, Rocket
-} from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { Send, Bot, CheckCircle, X, Lightbulb, TrendingUp, Trash2, Brain, Rocket, Shield, Target, Copy, ThumbsUp, MessageCircle, XCircle, Sparkles, Zap } from 'lucide-react';
 import { useOptimizedChat } from '../src/hooks/useOptimizedChat';
-import { chatbotAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -307,9 +298,7 @@ const EnterpriseMessageBubble: React.FC<{
     button: string;
   };
   onFeedback: (messageId: string) => void;
-  onConfirmAction?: (actionData: Record<string, unknown>) => void;
-  onCancelAction?: () => void;
-}> = ({ message, theme, onFeedback, onConfirmAction, onCancelAction }) => {
+}> = ({ message, theme, onFeedback }) => {
   const isUser = message.sender === 'user';
   const isStreaming = message.metadata?.isStreaming;
   const confidence = message.metadata?.confidence || 0;
@@ -399,28 +388,7 @@ const EnterpriseMessageBubble: React.FC<{
           console.log('[OptimizedChatbot] DEBUG - Should show buttons:', !isUser && message.metadata?.requiresConfirmation && message.metadata?.actionData);
           return null;
         })()}
-        {!isUser && message.metadata?.requiresConfirmation && message.metadata?.actionData && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mt-3 flex gap-2"
-          >
-            <button
-              onClick={() => message.metadata?.actionData && onConfirmAction?.(message.metadata.actionData)}
-              className={`px-4 py-2 text-sm rounded-lg ${theme.button} text-white hover:opacity-90 transition-opacity flex items-center gap-2`}
-            >
-              <CheckCircle className="w-4 h-4" />
-              Confirmar
-            </button>
-            <button
-              onClick={() => onCancelAction?.()}
-              className="px-4 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors flex items-center gap-2"
-            >
-              <X className="w-4 h-4" />
-              Cancelar
-            </button>
-          </motion.div>
-        )}
+        {/* 🔧 CORREÇÃO: Removido botões duplicados - usar apenas o banner de confirmação */}
         
         {/* Recomendações */}
         {!isUser && message.metadata?.recommendations && message.metadata.recommendations.length > 0 && (
@@ -612,46 +580,6 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
     setFeedbackModal({ messageId, isOpen: true });
   }, []);
 
-  // Handler para confirmar ação
-  const handleConfirmAction = useCallback(async (actionData: Record<string, unknown>) => {
-    try {
-      console.log('[OptimizedChatbot] Confirmando ação:', actionData);
-      
-      // Executar ação diretamente usando a API correta
-      try {
-        const response = await chatbotAPI.executeAction({
-          action: actionData.type as string,
-          payload: actionData.entities as Record<string, unknown>,
-          chatId: chatId || undefined
-        });
-        
-        if (response.success) {
-          console.log('[OptimizedChatbot] Ação executada com sucesso:', response);
-          toast.success('Ação executada com sucesso!');
-          
-          // Enviar mensagem de confirmação
-          const actionType = typeof actionData.type === 'string' ? actionData.type : 'ação';
-          const confirmationMessage = `✅ ${actionType.toLowerCase().replace('create_', 'Criação de ')} confirmada e executada!`;
-          await sendMessage(confirmationMessage, { useStreaming: false });
-        } else {
-          console.error('[OptimizedChatbot] Erro na execução:', response.message);
-          toast.error(response.message || 'Erro ao executar ação');
-        }
-      } catch (error) {
-        console.error('[OptimizedChatbot] Erro ao executar ação:', error);
-        toast.error('Erro ao executar ação');
-      }
-    } catch (error) {
-      console.error('[OptimizedChatbot] Erro ao confirmar ação:', error);
-      toast.error('Erro ao confirmar ação');
-    }
-  }, [sendMessage, chatId]);
-
-  // Handler para cancelar ação
-  const handleCancelAction = useCallback(() => {
-    console.log('[OptimizedChatbot] Ação cancelada pelo usuário');
-    toast.info('Ação cancelada');
-  }, []);
 
   // Converter mensagens para formato Enterprise
   const enterpriseMessages: EnterpriseMessage[] = messages.map(msg => ({
@@ -768,8 +696,6 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
                   message={message}
                   theme={theme}
                   onFeedback={handleFeedback}
-                  onConfirmAction={handleConfirmAction}
-                  onCancelAction={handleCancelAction}
                 />
               );
             })
@@ -811,7 +737,7 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
                 Confirma executar a ação detectada?
               </div>
               <div className="text-xs text-gray-700 dark:text-gray-300 mt-1 break-words">
-                {pendingAction?.action?.replace('CREATE_', '').toLowerCase()} — dados: {JSON.stringify(pendingAction?.payload)}
+                {pendingAction?.action?.replace('create_', '').replace('_', ' ')} — {String((pendingAction?.payload as Record<string, unknown>)?.descricao || 'Nova transação')} de R$ {String((pendingAction?.payload as Record<string, unknown>)?.valor || '0')}
               </div>
               <div className="mt-2 flex gap-2">
                 <button
@@ -919,7 +845,7 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
               
               {isStreaming && (
                 <span className="flex items-center gap-1 text-blue-500">
-                  <ZapIcon className="w-3 h-3" />
+                  <Zap className="w-4 h-4" />
                   Streaming ativo
                 </span>
               )}

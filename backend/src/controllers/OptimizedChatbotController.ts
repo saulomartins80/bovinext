@@ -6,6 +6,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { EventEmitter } from 'events';
 import { ObjectId } from 'mongodb';
 import { Goal } from '../models/Goal';
+import { Transacoes } from '../models/Transacoes';
+import { Investimento } from '../models/Investimento';
+import { Card } from '../models/Card';
 import { contextManager } from '../services/ContextManager';
 
 // ===== SISTEMA DE STREAMING PARA SSE =====
@@ -598,7 +601,8 @@ export class OptimizedChatbotController {
     
     try {
       const conversation = await this.chatHistoryService.getConversation(chatId);
-      return conversation.messages.slice(-5); // Últimas 5 mensagens
+      // RETORNA TODAS AS MENSAGENS (memória completa)
+      return conversation.messages;
     } catch (error: any) {
       console.error('[OptimizedChatbot] Error getting conversation history:', error);
       return [];
@@ -745,11 +749,21 @@ export class OptimizedChatbotController {
   }
 
   async streamResponse(req: Request, res: Response): Promise<void> {
+    console.log(`[StreamResponse] 🚀 INICIANDO STREAM RESPONSE`);
+    console.log(`[StreamResponse] Method: ${req.method}`);
+    console.log(`[StreamResponse] Query:`, req.query);
+    console.log(`[StreamResponse] Body:`, req.body);
+    
     try {
       const { message, chatId } = req.method === 'GET' ? req.query : req.body;
       const userId = (req as any).user?.uid || 'anonymous';
 
+      console.log(`[StreamResponse] 📝 Message: "${message}"`);
+      console.log(`[StreamResponse] 👤 UserId: ${userId}`);
+      console.log(`[StreamResponse] 💬 ChatId: ${chatId}`);
+
       if (!message) {
+        console.log(`[StreamResponse] ❌ Mensagem vazia!`);
         res.status(400).json({
           success: false,
           message: 'Mensagem é obrigatória'
@@ -858,9 +872,17 @@ export class OptimizedChatbotController {
           await new Promise(resolve => setTimeout(resolve, 50));
         }
 
-        // Enviar metadados finais
-        if (response.entities || response.intent) {
-          sendSSE('metadata', {
+        // Enviar metadados finais - SEMPRE enviar para debug
+        console.log(`[SSE] 🔍 Verificando condições para metadata:`);
+        console.log(`[SSE] 🔍 response.entities:`, response.entities);
+        console.log(`[SSE] 🔍 response.intent:`, response.intent);
+        console.log(`[SSE] 🔍 response.requiresConfirmation:`, response.requiresConfirmation);
+        console.log(`[SSE] 🔍 response.actionData:`, (response as any).actionData);
+        console.log(`[SSE] 🔍 response.confidence:`, response.confidence);
+        
+        // FORÇAR ENVIO DE METADADOS SEMPRE QUE HOUVER CONFIANÇA > 0.5
+        if (response.confidence && response.confidence > 0.5) {
+          const metadataPayload = {
             intent: response.intent,
             entities: response.entities,
             confidence: response.confidence,
@@ -869,14 +891,23 @@ export class OptimizedChatbotController {
             automationData: automationResult?.data || null,
             requiresInput: automationResult?.requiresInput || false,
             missingFields: automationResult?.missingFields || [],
-            // 🆕 DADOS PARA BOTÕES DE CONFIRMAÇÃO NO STREAMING
+            // 🔧 CORREÇÃO: Usar lógica correta de confirmação
             requiresConfirmation: response.requiresConfirmation || false,
             actionData: response.requiresConfirmation ? {
-              type: response.intent,
-              entities: response.entities,
-              userId: userId
+              type: response.intent || 'create_transaction',
+              entities: response.entities || {},
+              userId: userId,
+              confirmationButtons: [
+                { text: 'Confirmar', action: 'confirm', style: 'primary' },
+                { text: 'Cancelar', action: 'cancel', style: 'secondary' }
+              ]
             } : null
-          });
+          };
+          
+          console.log(`[SSE] 🔔 Enviando metadata com requiresConfirmation:`, metadataPayload.requiresConfirmation);
+          console.log(`[SSE] 🔔 ActionData:`, metadataPayload.actionData);
+          
+          sendSSE('metadata', metadataPayload);
         }
 
         // Finalizar stream
@@ -910,6 +941,122 @@ export class OptimizedChatbotController {
   private generateChatId(): string {
     return `chat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
+
+  // Método para executar ações confirmadas pelo usuário
+  async executeConfirmedAction(req: Request, res: Response): Promise<void> {
+    try {
+      const { actionData, action } = req.body;
+      const userId = req.user?.uid;
+
+      if (!userId || !actionData || action !== 'confirm') {
+        res.status(400).json({ success: false, message: 'Dados inválidos' });
+        return;
+      }
+
+      console.log(`[ACTION] Executando ação confirmada:`, { type: actionData.type, userId });
+
+      let result = null;
+
+      switch (actionData.type) {
+        case 'create_goal':
+          result = await this.createGoal(actionData.entities, userId);
+          break;
+        case 'create_transaction':
+          result = await this.createTransaction(actionData.entities, userId);
+          break;
+        case 'create_investment':
+          result = await this.createInvestment(actionData.entities, userId);
+          break;
+        case 'create_card':
+          result = await this.createCard(actionData.entities, userId);
+          break;
+        default:
+          throw new Error(`Tipo de ação não suportado: ${actionData.type}`);
+      }
+
+      console.log(`[ACTION] ✅ Ação executada com sucesso:`, result);
+
+      res.json({
+        success: true,
+        message: 'Ação executada com sucesso!',
+        data: result
+      });
+
+    } catch (error: any) {
+      console.error('[ACTION] ❌ Erro ao executar ação:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erro ao executar ação',
+        error: error.message
+      });
+    }
+  }
+
+  private async createGoal(entities: any, userId: string) {
+    const goalData = {
+      meta: entities.descricao || 'Meta financeira',
+      valor_total: entities.valor_total || entities.valor || 0,
+      valor_atual: entities.valor_atual || 0,
+      data_conclusao: entities.data_conclusao || new Date(Date.now() + 90 * 24 * 60 * 60 * 1000), // 90 dias
+      prioridade: entities.prioridade || 'media',
+      userId
+    };
+
+    const goal = new Goal(goalData);
+    const savedGoal = await goal.save();
+    console.log(`[DB] Meta salva no MongoDB:`, savedGoal._id);
+    return savedGoal;
+  }
+
+  private async createTransaction(entities: any, userId: string) {
+    const transactionData = {
+      descricao: entities.descricao || 'Transação',
+      valor: entities.valor || 0,
+      data: entities.data ? new Date(entities.data) : new Date(),
+      categoria: entities.categoria || 'Geral',
+      tipo: entities.tipo || 'despesa',
+      conta: entities.conta || 'Principal',
+      userId
+    };
+
+    const transaction = new Transacoes(transactionData);
+    const savedTransaction = await transaction.save();
+    console.log(`[DB] Transação salva no MongoDB:`, savedTransaction._id);
+    return savedTransaction;
+  }
+
+  private async createInvestment(entities: any, userId: string) {
+    const investmentData = {
+      nome: entities.descricao || 'Investimento',
+      tipo: entities.tipo || 'Renda Fixa',
+      valor: entities.valor || 0,
+      data: entities.data ? new Date(entities.data) : new Date(),
+      instituicao: entities.instituicao || entities.banco,
+      userId
+    };
+
+    const investment = new Investimento(investmentData);
+    const savedInvestment = await investment.save();
+    console.log(`[DB] Investimento salvo no MongoDB:`, savedInvestment._id);
+    return savedInvestment;
+  }
+
+  private async createCard(entities: any, userId: string) {
+    const cardData = {
+      nome: entities.nome || 'Cartão de Crédito',
+      banco: entities.banco || 'Não informado',
+      bandeira: entities.bandeira || 'Não informado',
+      limite: entities.limite || 0,
+      tipo: 'credito',
+      ativo: true,
+      userId
+    };
+
+    const card = new Card(cardData);
+    const savedCard = await card.save();
+    console.log(`[DB] Cartão salvo no MongoDB:`, savedCard._id);
+    return savedCard;
+  }
 }
 
 // Instância singleton
@@ -923,6 +1070,7 @@ export const getSessions = optimizedChatbotController.getSessions.bind(optimized
 export const getCacheStats = optimizedChatbotController.getCacheStats.bind(optimizedChatbotController);
 export const clearCache = optimizedChatbotController.clearCache.bind(optimizedChatbotController);
 export const deleteSession = optimizedChatbotController.deleteSession.bind(optimizedChatbotController);
+export const executeConfirmedAction = optimizedChatbotController.executeConfirmedAction.bind(optimizedChatbotController);
 export const deleteAllSessions = optimizedChatbotController.deleteAllSessions.bind(optimizedChatbotController);
 
 export default optimizedChatbotController;

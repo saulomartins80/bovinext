@@ -40,10 +40,10 @@ export default function ResourceHints() {
     const currentPath = window.location.pathname
     
     if (currentPath === '/' || currentPath === '/home') {
-      // Preload hero images
-      const heroImage = new Image()
-      heroImage.src = '/images/hero-bg.webp'
-      heroImage.loading = 'eager'
+      // Preload critical homepage resources
+      const logoImage = new Image()
+      logoImage.src = '/finnextho.png'
+      logoImage.loading = 'eager'
     }
     
     if (currentPath.includes('/dashboard')) {
