@@ -613,11 +613,28 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
     return (
       <motion.button
         onClick={() => handleToggle(!isOpen)}
-        className={`fixed bottom-6 right-6 w-14 h-14 ${theme.button} text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-50`}
+        className={`fixed right-6 w-14 h-14 ${theme.button} text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-50`}
+        style={{ 
+          bottom: typeof window !== 'undefined' && window.innerWidth >= 768 
+            ? '24px' 
+            : 'calc(env(safe-area-inset-bottom, 0px) + 84px)' 
+        }}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
       >
-        <MessageCircle className="w-6 h-6" />
+        <motion.div
+          animate={{ 
+            scale: [1, 1.1, 1],
+            opacity: [1, 0.8, 1]
+          }}
+          transition={{ 
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        >
+          <MessageCircle className="w-5 h-5" />
+        </motion.div>
       </motion.button>
     );
   }
@@ -628,7 +645,12 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="fixed bottom-6 right-6 w-96 h-[600px] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 flex flex-col overflow-hidden"
+        className="fixed right-6 w-96 h-[600px] bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 z-50 flex flex-col overflow-hidden"
+        style={{ 
+          bottom: typeof window !== 'undefined' && window.innerWidth >= 768 
+            ? '24px' 
+            : 'calc(env(safe-area-inset-bottom, 0px) + 84px)' 
+        }}
       >
         {/* Header Enterprise */}
         <div className={`${theme.headerBg} border-b border-gray-200 dark:border-gray-700 p-4`}>

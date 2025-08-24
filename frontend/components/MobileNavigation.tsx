@@ -5,22 +5,28 @@ import {
   Target, 
   Plane, 
   Plus,
-  MessageCircle,
   Menu,
   X,
   Download,
-  Home,
-  CreditCard
+  BarChart2,
+  DollarSign
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface MobileNavigationProps {
-  onChatToggle: () => void;
-  isChatOpen: boolean;
   onSidebarToggle: () => void;
   onAddItem?: () => void;
   onExportPDF?: () => void;
+}
+
+interface NavigationItem {
+  path: string;
+  icon: React.ReactNode;
+  label: string;
+  color: string;
+  type?: string;
+  action?: () => void;
 }
 
 interface PageAction {
@@ -32,8 +38,6 @@ interface PageAction {
 }
 
 const MobileNavigation: React.FC<MobileNavigationProps> = ({ 
-  onChatToggle, 
-  isChatOpen, 
   onSidebarToggle,
   onAddItem,
   onExportPDF
@@ -78,7 +82,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
           {
             type: 'add',
             icon: <Plus size={20} />,
-            label: 'Novo Investimento',
+            label: 'Investimento',
             color: 'bg-green-500',
             action: () => {
               onAddItem?.();
@@ -92,7 +96,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
           {
             type: 'add',
             icon: <Plus size={20} />,
-            label: 'Nova Meta',
+            label: 'Meta',
             color: 'bg-purple-500',
             action: () => {
               onAddItem?.();
@@ -105,8 +109,8 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
         return [
           {
             type: 'add',
-            icon: <Plus size={20} />,
-            label: 'Adicionar Milhas',
+            icon: <Plane size={20} />,
+            label: 'Milhas',
             color: 'bg-orange-500',
             action: () => {
               onAddItem?.();
@@ -120,7 +124,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
           {
             type: 'add',
             icon: <Plus size={20} />,
-            label: 'Nova Transação',
+            label: 'Transação',
             color: 'bg-blue-500',
             action: () => {
               router.push('/transacoes?action=new');
@@ -130,7 +134,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
           {
             type: 'add',
             icon: <Target size={20} />,
-            label: 'Nova Meta',
+            label: 'Meta',
             color: 'bg-purple-500',
             action: () => {
               router.push('/metas?action=new');
@@ -140,7 +144,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
           {
             type: 'add',
             icon: <TrendingUp size={20} />,
-            label: 'Novo Investimento',
+            label: 'Investimento',
             color: 'bg-green-500',
             action: () => {
               router.push('/investimentos?action=new');
@@ -150,7 +154,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
           {
             type: 'add',
             icon: <Plane size={20} />,
-            label: 'Adicionar Milhas',
+            label: 'Milhas',
             color: 'bg-orange-500',
             action: () => {
               router.push('/milhas?action=new');
@@ -161,14 +165,6 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
     }
   };
 
-  // Obter o ícone do botão central baseado na página
-  const getCenterButtonIcon = () => {
-    const actions = getCurrentPageActions();
-    if (actions.length === 1) {
-      return actions[0].icon;
-    }
-    return isActionMenuOpen ? <X size={24} /> : <Plus size={24} />;
-  };
 
   // Lidar com o clique do botão central
   const handleCenterButtonClick = () => {
@@ -189,22 +185,24 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
   }, [router.pathname]);
 
   // Menu principal de navegação
-  const navigationItems = [
-    {
-      path: '/dashboard',
-      icon: <Home size={20} />,
-      label: 'Início',
-      color: 'text-blue-500'
-    },
+  const navigationItems: NavigationItem[] = [
     {
       path: '/transacoes',
-      icon: <CreditCard size={20} />,
+      icon: <BarChart2 size={20} />,
       label: 'Transações',
       color: 'text-blue-500'
     },
     {
+      path: '',
+      type: 'add-button',
+      icon: <Plus size={20} />,
+      label: '+',
+      color: 'text-white',
+      action: handleCenterButtonClick
+    },
+    {
       path: '/investimentos',
-      icon: <TrendingUp size={20} />,
+      icon: <DollarSign size={20} />,
       label: 'Investimentos',
       color: 'text-green-500'
     },
@@ -223,13 +221,13 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.3, ease: "easeOut" }}
-        className={`fixed bottom-0 left-0 right-0 z-50 md:hidden ${
+        className={`fixed bottom-0 left-0 right-0 z-40 md:hidden ${
           resolvedTheme === 'dark' 
             ? 'bg-gray-900/95 border-t border-gray-800/50' 
             : 'bg-white/95 border-t border-gray-200/50'
         } backdrop-blur-xl shadow-2xl`}
       >
-        <div className="flex items-center justify-around px-4 py-3">
+        <div className="relative flex items-center justify-around px-4 py-3">
           {/* Botão Menu (Sidebar) */}
           <motion.button
             whileHover={{ scale: 1.05 }}
@@ -246,82 +244,60 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
           </motion.button>
 
           {/* Navegação Principal */}
-          {navigationItems.map((item) => (
-            <motion.button
-              key={item.path}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => router.push(item.path)}
-              className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 ${
-                isActive(item.path)
-                  ? resolvedTheme === 'dark'
-                    ? 'text-blue-400 bg-blue-500/10'
-                    : 'text-blue-600 bg-blue-50'
-                  : resolvedTheme === 'dark'
-                    ? 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100/50'
-              }`}
-            >
-              {item.icon}
-              <span className="text-xs mt-1 font-medium">{item.label}</span>
-            </motion.button>
-          ))}
-
-          {/* Botão Central (Ação Principal) */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleCenterButtonClick}
-            className={`relative flex items-center justify-center w-14 h-14 rounded-2xl shadow-lg transition-all duration-300 ${
-              resolvedTheme === 'dark' 
-                ? 'bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600' 
-                : 'bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500'
-            } text-white`}
-          >
-            <motion.div
-              animate={{ rotate: isActionMenuOpen ? 45 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              {getCenterButtonIcon()}
-            </motion.div>
+          {navigationItems.map((item, index) => {
+            if (item.type === 'add-button') {
+              return (
+                <motion.button
+                  key={`add-button-${index}`}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={item.action}
+                  className={`flex flex-col items-center justify-center w-12 h-12 rounded-xl transition-all duration-200 ${
+                    resolvedTheme === 'dark' 
+                      ? 'bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600' 
+                      : 'bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500'
+                  } text-white shadow-lg`}
+                >
+                  <motion.div
+                    animate={{ rotate: isActionMenuOpen ? 45 : 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {isActionMenuOpen ? <X size={20} /> : <Plus size={20} />}
+                  </motion.div>
+                  {getCurrentPageActions().length > 1 && !isActionMenuOpen && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white"
+                    />
+                  )}
+                </motion.button>
+              );
+            }
             
-            {/* Indicador de múltiplas ações */}
-            {getCurrentPageActions().length > 1 && !isActionMenuOpen && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"
-              />
-            )}
-          </motion.button>
+            return (
+              <motion.button
+                key={item.path}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => item.path && router.push(item.path)}
+                className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 ${
+                  item.path && isActive(item.path)
+                    ? resolvedTheme === 'dark'
+                      ? 'text-blue-400 bg-blue-500/10'
+                      : 'text-blue-600 bg-blue-50'
+                    : resolvedTheme === 'dark'
+                      ? 'text-gray-400 hover:text-white hover:bg-gray-800/50'
+                      : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100/50'
+                }`}
+              >
+                {item.icon}
+                <span className="text-xs mt-1 font-medium">{item.label}</span>
+              </motion.button>
+            );
+          })}
 
-          {/* Botão Chat */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={onChatToggle}
-            className={`flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 relative ${
-              isChatOpen
-                ? resolvedTheme === 'dark'
-                  ? 'text-blue-400 bg-blue-500/10'
-                  : 'text-blue-600 bg-blue-50'
-                : resolvedTheme === 'dark'
-                  ? 'text-gray-400 hover:text-white hover:bg-gray-800/50'
-                  : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100/50'
-            }`}
-          >
-            <MessageCircle size={20} />
-            <span className="text-xs mt-1 font-medium">Chat</span>
-            
-            {/* Indicador de chat ativo */}
-            {isChatOpen && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full"
-              />
-            )}
-          </motion.button>
+          {/* Chat button removido do cabeçalho móvel (não é mais necessário) */}
         </div>
       </motion.div>
 
@@ -335,12 +311,16 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
             onClick={() => setIsActionMenuOpen(false)}
           >
-            <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2">
+            <div className="absolute bottom-28 left-1/2 transform -translate-x-1/2 -translate-x-8">
               <div className="relative">
                 {/* Botões de Ação em Arco */}
                 {getCurrentPageActions().map((action, index) => {
-                  const angle = (index * 60 - 30 * (getCurrentPageActions().length - 1)) * Math.PI / 180;
-                  const radius = 80;
+                  // Criar arco-íris acima do botão (180° para cima)
+                  const totalActions = getCurrentPageActions().length;
+                  const angleSpread = Math.PI; // 180 graus
+                  const startAngle = Math.PI; // Começar em 180° (esquerda)
+                  const angle = startAngle + (index * angleSpread) / (totalActions - 1 || 1);
+                  const radius = 70;
                   const x = Math.cos(angle) * radius;
                   const y = Math.sin(angle) * radius;
                   
@@ -376,39 +356,6 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   );
                 })}
 
-                {/* Labels das Ações */}
-                {getCurrentPageActions().map((action, index) => {
-                  const angle = (index * 60 - 30 * (getCurrentPageActions().length - 1)) * Math.PI / 180;
-                  const radius = 120;
-                  const x = Math.cos(angle) * radius;
-                  const y = Math.sin(angle) * radius;
-                  
-                  return (
-                    <motion.div
-                      key={`label-${action.label}-${index}`}
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ 
-                        opacity: 1, 
-                        scale: 1,
-                        x: x,
-                        y: y
-                      }}
-                      exit={{ opacity: 0, scale: 0 }}
-                      transition={{ 
-                        delay: 0.2 + index * 0.1,
-                        duration: 0.3
-                      }}
-                      className="absolute text-white text-sm font-medium bg-black/70 px-3 py-1 rounded-lg backdrop-blur-sm"
-                      style={{
-                        left: '50%',
-                        top: '50%',
-                        transform: 'translate(-50%, -50%)'
-                      }}
-                    >
-                      {action.label}
-                    </motion.div>
-                  );
-                })}
               </div>
             </div>
           </motion.div>

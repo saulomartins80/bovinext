@@ -338,6 +338,9 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       setError(null);
       console.log(`[fetchData CALL ${fetchDataCallId}] Proceeding with API calls. Path: ${router.pathname}`);
       
+      // Clear cache before fetching to ensure fresh data
+      localStorage.removeItem('finance_cache');
+      
       // Adicionado guardas em cada chamada individual também, por segurança extra
       const transacoesPromise = (isAuthReady && user) ? transacaoAPI.getAll() : Promise.resolve([]);
       const investimentosPromise = (isAuthReady && user) ? investimentoAPI.getAll() : Promise.resolve([]);

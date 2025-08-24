@@ -33,6 +33,14 @@ const DashboardContent: React.FC = () => {
   const { user, loading } = useAuth();
   const router = useRouter();
   const { transactions, investimentos, loading: financeLoading, error, fetchData } = useFinance();
+
+  // Force refresh data when component mounts or when returning to dashboard
+  useEffect(() => {
+    if (user && !financeLoading && typeof fetchData === 'function') {
+      console.log('[DashboardContent] Forcing data refresh on mount/user change');
+      fetchData();
+    }
+  }, [user, fetchData, financeLoading]);
   const {
     marketData,
     loadingMarketData,
@@ -63,6 +71,22 @@ const DashboardContent: React.FC = () => {
     }
   }, [user, loading, router, refreshMarketData]);
 
+  // Listen for dashboard refresh events from chatbot
+  useEffect(() => {
+    const handleDashboardRefresh = (event: CustomEvent) => {
+      console.log('🔄 [DashboardContent] Received refresh event:', event.detail);
+      if (typeof fetchData === 'function') {
+        fetchData();
+      }
+    };
+
+    window.addEventListener('dashboard-refresh', handleDashboardRefresh as EventListener);
+    
+    return () => {
+      window.removeEventListener('dashboard-refresh', handleDashboardRefresh as EventListener);
+    };
+  }, [fetchData]);
+
   // Funções auxiliares
   const getSafeId = (idObj: string | { $oid: string }): string => {
     return typeof idObj === 'string' ? idObj : idObj.$oid;
@@ -72,17 +96,27 @@ const DashboardContent: React.FC = () => {
     ? transactions.map((t) => ({
         id: getSafeId(t._id),
         tipo: t.tipo,
-        valor: t.valor,
+        valor: Number(t.valor) || 0,
       }))
     : [];
 
   const mappedInvestments = Array.isArray(investimentos)
     ? investimentos.map((inv) => ({
         id: getSafeId(inv._id),
-        valor: inv.valor,
+        valor: Number(inv.valor) || 0,
         tipo: inv.tipo as 'Renda Fixa' | 'Ações' | 'Fundos Imobiliários' | 'Criptomoedas'
       }))
     : [];
+
+  console.log('[DashboardContent] Current data state:', {
+    transactions: Array.isArray(transactions) ? transactions.length : 0,
+    investimentos: Array.isArray(investimentos) ? investimentos.length : 0,
+    mappedTransactions: mappedTransactions.length,
+    mappedInvestments: mappedInvestments.length,
+    totalReceitas: mappedTransactions.filter(t => t.tipo === "receita").reduce((acc, t) => acc + t.valor, 0),
+    totalDespesas: mappedTransactions.filter(t => t.tipo === "despesa").reduce((acc, t) => acc + t.valor, 0),
+    totalInvestimentos: mappedInvestments.reduce((acc, inv) => acc + inv.valor, 0)
+  });
 
   const totalReceitas = mappedTransactions
     .filter((t) => t.tipo === "receita")
@@ -127,9 +161,9 @@ const DashboardContent: React.FC = () => {
         <div className={`p-4 rounded-lg max-w-md text-center ${resolvedTheme === 'dark' ? 'bg-red-900/20 text-red-300 border border-red-700' : 'bg-red-50 text-red-700 border border-red-200'}`}>
           <h3 className="font-bold mb-2">Ops! Algo deu errado</h3>
           <p>Não conseguimos carregar seus dados financeiros. Tente novamente em alguns instantes.</p>
-           {fetchData && (
+           {typeof fetchData === 'function' && (
              <button
-               onClick={() => {fetchData(); refreshMarketData();}}
+               onClick={() => {fetchData(); refreshMarketData && refreshMarketData();}}
                className={`mt-4 px-4 py-2 rounded ${resolvedTheme === 'dark' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
              >
                Tentar novamente

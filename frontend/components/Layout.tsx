@@ -281,8 +281,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             {/* Navegação Mobile */}
             {isMobileView && (
               <MobileNavigation
-                onChatToggle={toggleChat}
-                isChatOpen={isChatOpen}
                 onSidebarToggle={toggleMobileSidebar}
                 onAddItem={handleAddItem}
                 onExportPDF={handleExportPDF}
