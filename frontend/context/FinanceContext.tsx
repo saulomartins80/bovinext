@@ -76,8 +76,10 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [transactions, setTransactions] = useState<Transacao[]>([]);
   const [investimentos, setInvestimentos] = useState<Investimento[]>([]);
   const [metas, setMetas] = useState<Meta[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
+  const [isDataFresh, setIsDataFresh] = useState(false);
 
   const { user, isAuthReady } = useAuth(); // isAuthReady é o authChecked do AuthContext
   // console.log('[FinanceProvider] Auth state from useAuth: isAuthReady =', isAuthReady, 'user exists =', !!user);
@@ -325,76 +327,94 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
 
   const fetchData = useCallback(async () => {
     const fetchDataCallId = Date.now();
-    console.log(`[fetchData CALL ${fetchDataCallId}] Starting. Path: ${router.pathname}, AuthReady: ${isAuthReady}, User: ${!!user}`);
+    const now = Date.now();
+    const CACHE_DURATION = 30000; // 30 segundos de cache
     
+    // Verificar se os dados ainda estão frescos
+    if (isDataFresh && (now - lastFetchTime) < CACHE_DURATION) {
+      console.log(`[fetchData CALL ${fetchDataCallId}] 🔄 CACHE HIT - Dados ainda frescos (${Math.round((now - lastFetchTime) / 1000)}s atrás). Pulando fetch.`);
+      return;
+    }
+    
+    console.log(`[fetchData CALL ${fetchDataCallId}] 🚀 Starting to fetch all data. Path: ${router.pathname}, AuthReady: isAuthReady=${isAuthReady}, user=${!!user}`);
     if (!isAuthReady || !user) {
-      console.log(`[fetchData CALL ${fetchDataCallId}] ABORTED - Auth not ready or no user. Path: ${router.pathname}`);
+      console.log(`[fetchData CALL ${fetchDataCallId}] ❌ ABORTED - Auth not ready or no user. Path: ${router.pathname}`);
       setLoading(false);
       return;
     }
     
+    setLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
-      setError(null);
-      console.log(`[fetchData CALL ${fetchDataCallId}] Proceeding with API calls. Path: ${router.pathname}`);
-      
-      // Clear cache before fetching to ensure fresh data
-      localStorage.removeItem('finance_cache');
-      
-      // Adicionado guardas em cada chamada individual também, por segurança extra
-      const transacoesPromise = (isAuthReady && user) ? transacaoAPI.getAll() : Promise.resolve([]);
-      const investimentosPromise = (isAuthReady && user) ? investimentoAPI.getAll() : Promise.resolve([]);
-      const metasPromise = (isAuthReady && user) ? metaAPI.getAll() : Promise.resolve([]);
-
+      console.log(`[fetchData CALL ${fetchDataCallId}] 📡 Making parallel API calls...`);
       const [transacoes, investimentos, metasData] = await Promise.all([
-        transacoesPromise,
-        investimentosPromise,
-        metasPromise
+        transacaoAPI.getAll(),
+        investimentoAPI.getAll(),
+        metaAPI.getAll()
       ]);
       
-      console.log(`[fetchData CALL ${fetchDataCallId}] Data received:`, { transacoes, investimentos, metas: metasData });
-      
-      setTransactions(transacoes.map(normalizeTransacao));
-      setInvestimentos(investimentos);
-      setMetas(metasData.map(meta => ({
-        ...meta,
-        concluida: meta && meta.valor_atual !== undefined && meta.valor_total !== undefined ? meta.valor_atual >= meta.valor_total : false
-      })));
-      
-      console.log(`[fetchData CALL ${fetchDataCallId}] All data updated successfully. Path: ${router.pathname}`);
+      console.log(`[fetchData CALL ${fetchDataCallId}] 📊 Data received:`, { transacoes, investimentos, metas: metasData });
+    setTransactions(transacoes.map(normalizeTransacao));
+    setInvestimentos(investimentos);
+    setMetas(metasData.map(meta => ({
+      ...meta,
+      concluida: meta && meta.valor_atual !== undefined && meta.valor_total !== undefined ? meta.valor_atual >= meta.valor_total : false
+    })));
+    setLastFetchTime(now);
+    setIsDataFresh(true);
+    console.log(`[fetchData CALL ${fetchDataCallId}] ✅ All data updated successfully. Cache válido por ${CACHE_DURATION/1000}s. Path: ${router.pathname}`);
     } catch (error) {
       const err = error as Error;
       const apiError = error as { response?: { data?: { message?: string } } };
-      console.error(`[fetchData CALL ${fetchDataCallId}] Error fetching data:`, error, "Path:", router.pathname);
+      console.error(`[fetchData CALL ${fetchDataCallId}] ❌ Error fetching data:`, error, "Path:", router.pathname);
       setError(apiError.response?.data?.message || err.message || "Erro desconhecido");
     } finally {
       setLoading(false);
-      console.log(`[fetchData CALL ${fetchDataCallId}] Finished fetching all data. Path: ${router.pathname}`);
+      console.log(`[fetchData CALL ${fetchDataCallId}] 🏁 Finished fetching all data. Path: ${router.pathname}`);
     }
-  }, [isAuthReady, user, router.pathname]);
+  }, [isAuthReady, user, router.pathname, isDataFresh, lastFetchTime]);
 
+  // Debounce para evitar múltiplas chamadas
+  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
+  
   useEffect(() => {
     const effectId = Date.now();
     console.log(`[FinanceProvider EFFECT ${effectId}] Triggered. Path: ${router.pathname}, RouterReady: ${router.isReady}, AuthReady: ${isAuthReady}, User: ${!!user}`);
+    
+    // Limpar timer anterior se existir
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
     
     // Lista de rotas que precisam de dados financeiros
     const protectedRoutes = ['/dashboard', '/investimentos', '/metas', '/transacoes', '/configuracoes', '/profile', '/assinaturas', '/milhas'];
     const isProtectedRoute = protectedRoutes.some(route => router.pathname.startsWith(route));
     
-    if (router.isReady && isProtectedRoute) {
-      console.log(`[FinanceProvider EFFECT ${effectId}] Path is protected route and router IS ready.`);
-      if (isAuthReady && user) {
-        console.log(`[FinanceProvider EFFECT ${effectId}] Conditions MET (auth ready, user exists). CALLING fetchData(). User ID: ${user.uid}`);
+    console.log(`[FinanceProvider EFFECT ${effectId}] DEBUG - isProtectedRoute: ${isProtectedRoute}, router.isReady: ${router.isReady}`);
+    console.log(`[FinanceProvider EFFECT ${effectId}] DEBUG - isAuthReady: ${isAuthReady}, user exists: ${!!user}`);
+    
+    if (router.isReady && isProtectedRoute && isAuthReady && user) {
+      console.log(`[FinanceProvider EFFECT ${effectId}] ⏱️ Setting debounce timer (500ms) for fetchData...`);
+      
+      const timer = setTimeout(() => {
+        console.log(`[FinanceProvider EFFECT ${effectId}] ✅ DEBOUNCE COMPLETE - CALLING fetchData(). User ID: ${user.uid}`);
         fetchData();
-      } else {
-        console.log(`[FinanceProvider EFFECT ${effectId}] Conditions NOT MET for fetchData. isAuthReady: ${isAuthReady}, user: ${!!user}`);
-        setLoading(false);
-      }
+      }, 500); // 500ms de debounce
+      
+      setDebounceTimer(timer);
     } else {
-      console.log(`[FinanceProvider EFFECT ${effectId}] SKIPPING fetchData (not on protected route, or router not ready). Path: ${router.pathname}, RouterReady: ${router.isReady}, isProtectedRoute: ${isProtectedRoute}`);
+      console.log(`[FinanceProvider EFFECT ${effectId}] ❌ SKIPPING fetchData - Path: ${router.pathname}, RouterReady: ${router.isReady}, isProtectedRoute: ${isProtectedRoute}, AuthReady: ${isAuthReady}, User: ${!!user}`);
       setLoading(false);
     }
-  }, [isAuthReady, user, router.isReady, router.pathname, fetchData]);
+    
+    // Cleanup
+    return () => {
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+      }
+    };
+  }, [isAuthReady, user?.uid, router.isReady, router.pathname, fetchData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <FinanceContext.Provider

@@ -102,6 +102,9 @@ app.use(cors({
   origin: [
     process.env.FRONTEND_URL || 'http://localhost:3000',
     'http://localhost:3000',
+    'http://192.168.1.67:3000', // IP da rede local
+    'http://10.223.119.19:10000', // IP do Render
+    'http://localhost:10000', // Porta do Render local
     'https://finnextho-frontend.vercel.app',
     'https://finnextho-frontend.onrender.com',
     'https://accounts.google.com',
@@ -109,10 +112,20 @@ app.use(cors({
     'https://www.finnextho.com',
     'https://finnextho.vercel.app'
   ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-auth-token', 'X-Requested-With'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'x-auth-token', 
+    'X-Requested-With',
+    'X-Mobile-Request',
+    'X-User-Agent',
+    'Accept',
+    'Origin'
+  ],
   credentials: true,
-  exposedHeaders: ['Authorization', 'Set-Cookie']
+  exposedHeaders: ['Authorization', 'Set-Cookie'],
+  optionsSuccessStatus: 200 // Para suporte a browsers mais antigos
 }));
 
 const apiLimiter = rateLimit({

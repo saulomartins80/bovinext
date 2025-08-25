@@ -35,6 +35,7 @@ const LazyAuthInitializer = lazy(() => import('../components/AuthInitializer'))
 
 // Import AuthProvider directly (not lazy) since it's needed for all routes
 import { AuthProvider } from '../context/AuthContext'
+import { FinanceProvider } from '../context/FinanceContext'
 
 // Loading fallback component - Named for Fast Refresh
 function LoadingFallback() {
@@ -109,15 +110,17 @@ function AppContent({ Component, pageProps, hasInteracted }: { Component: AppPro
 
 function ProtectedAppContent({ Component, pageProps, hasInteracted }: AppProps & { hasInteracted: boolean }) {
   return (
-        <DashboardProvider>
-          <NotificationProvider>
-          <Suspense fallback={<LoadingFallback />}>
-            <LazyOptimizedStripe>
-              <AppContent Component={Component} pageProps={pageProps} hasInteracted={hasInteracted} />
-            </LazyOptimizedStripe>
-          </Suspense>
-          </NotificationProvider>
-        </DashboardProvider>
+        <FinanceProvider>
+          <DashboardProvider>
+            <NotificationProvider>
+            <Suspense fallback={<LoadingFallback />}>
+              <LazyOptimizedStripe>
+                <AppContent Component={Component} pageProps={pageProps} hasInteracted={hasInteracted} />
+              </LazyOptimizedStripe>
+            </Suspense>
+            </NotificationProvider>
+          </DashboardProvider>
+        </FinanceProvider>
   )
 }
 

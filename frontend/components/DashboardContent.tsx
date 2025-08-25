@@ -115,7 +115,11 @@ const DashboardContent: React.FC = () => {
     mappedInvestments: mappedInvestments.length,
     totalReceitas: mappedTransactions.filter(t => t.tipo === "receita").reduce((acc, t) => acc + t.valor, 0),
     totalDespesas: mappedTransactions.filter(t => t.tipo === "despesa").reduce((acc, t) => acc + t.valor, 0),
-    totalInvestimentos: mappedInvestments.reduce((acc, inv) => acc + inv.valor, 0)
+    totalInvestimentos: mappedInvestments.reduce((acc, inv) => acc + inv.valor, 0),
+    rawTransactions: transactions,
+    rawInvestimentos: investimentos,
+    financeLoading,
+    error
   });
 
   const totalReceitas = mappedTransactions

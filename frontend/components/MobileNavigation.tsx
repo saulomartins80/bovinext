@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import { 
   TrendingUp, 
   Target, 
-  Plane, 
+  CreditCard, 
   Plus,
   Menu,
   X,
@@ -109,7 +109,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
         return [
           {
             type: 'add',
-            icon: <Plane size={20} />,
+            icon: <CreditCard size={20} />,
             label: 'Milhas',
             color: 'bg-orange-500',
             action: () => {
@@ -153,7 +153,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
           },
           {
             type: 'add',
-            icon: <Plane size={20} />,
+            icon: <CreditCard size={20} />,
             label: 'Milhas',
             color: 'bg-orange-500',
             action: () => {
