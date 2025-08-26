@@ -7,7 +7,7 @@ import {
   Phone, 
   Mail, 
   Clock, 
-  HelpCircle, 
+  CircleHelp, 
   FileText, 
   Video, 
   Users, 
@@ -111,7 +111,7 @@ const SuportePage = () => {
             transition={{ duration: 0.5 }}
             className="inline-flex items-center justify-center px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 mb-4"
           >
-            <HelpCircle className="mr-2" size={18} />
+            <CircleHelp className="mr-2" size={18} />
             <span className="font-medium">Central de Suporte</span>
           </motion.div>
           <motion.h1

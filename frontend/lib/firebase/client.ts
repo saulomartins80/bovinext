@@ -15,7 +15,7 @@ import {
   browserSessionPersistence
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { FirebaseStorage } from 'firebase/storage';
 
 // ✅ CORREÇÃO: Configuração do Firebase usando variáveis de ambiente
 const getFirebaseConfig = () => {
@@ -30,7 +30,7 @@ const getFirebaseConfig = () => {
   };
 
   // ✅ CORREÇÃO: Verificar se todas as variáveis necessárias estão presentes
-  const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'] as const;
+  const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'messagingSenderId', 'appId'] as const; // storageBucket opcional
   const hasAllEnvVars = requiredKeys.every(key => config[key as keyof typeof config]);
 
   if (!hasAllEnvVars) {
@@ -64,7 +64,7 @@ const firebaseConfig = getFirebaseConfig();
 let app: FirebaseApp;
 let auth: Auth;
 let db: ReturnType<typeof getFirestore>;
-let storage: FirebaseStorage;
+let storage: FirebaseStorage | null = null;
 
 const initializeFirebase = () => {
   try {
@@ -110,8 +110,9 @@ const initializeFirebase = () => {
       console.log('Initializing Firestore...');
       db = getFirestore(app);
       
-      console.log('Initializing Firebase Storage...');
-      storage = getStorage(app);
+      // ✅ CORREÇÃO: Storage completamente opcional - não inicializar se não estiver habilitado
+      console.log('Skipping Firebase Storage initialization (disabled to save costs)');
+      storage = null;
       
       console.log('Firebase initialized successfully');
     } else {
@@ -119,7 +120,9 @@ const initializeFirebase = () => {
       app = getApps()[0];
       auth = getAuth(app);
       db = getFirestore(app);
-      storage = getStorage(app);
+      // ✅ CORREÇÃO: Storage desabilitado também no reuso da app
+      console.log('Skipping Firebase Storage on existing app (disabled to save costs)');
+      storage = null;
     }
   } catch (error) {
     console.error('Firebase initialization error:', error);
@@ -306,6 +309,20 @@ export const getFirebaseInstances = () => {
     initializeFirebase();
   }
   return { app, auth, db, storage };
+};
+
+// ✅ NOVA: Função para obter Storage com verificação de disponibilidade
+export const getFirebaseStorage = (): FirebaseStorage | null => {
+  if (!storage) {
+    console.warn('⚠️ Firebase Storage not available. Storage features will be disabled.');
+    return null;
+  }
+  return storage;
+};
+
+// ✅ NOVA: Verificar se Storage está disponível
+export const isStorageAvailable = (): boolean => {
+  return storage !== null;
 };
 
 export {

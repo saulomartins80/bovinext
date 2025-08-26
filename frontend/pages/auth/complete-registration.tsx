@@ -52,8 +52,8 @@ const CompleteRegistration: React.FC = () => {
         cpf: formData.cpf
       });
 
-      // Redirecionar para dashboard após cadastro completo
-      router.push('/dashboard');
+      console.log('Cadastro completo, redirecionando para dashboard...');
+      await router.push('/dashboard');
     } catch (error) {
       console.error('Erro ao completar cadastro:', error);
       alert('Erro ao completar cadastro. Tente novamente.');
