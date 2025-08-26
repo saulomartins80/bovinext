@@ -1,5 +1,6 @@
 // frontend/pages/_app.tsx - Mobile Performance Optimized
 import { useRouter } from 'next/router'
+import Head from 'next/head'
 import { ThemeProvider, useTheme } from '../context/ThemeContext'
 import CriticalCSSInline from '../components/CriticalCSSInline'
 // import { DynamicCSSLoader } from '../components/DynamicCSSLoader' // Unused for now
@@ -173,6 +174,12 @@ function MyApp(props: AppProps) {
     <ThemeProvider>
       <AuthProvider>
         <InteractionTracker onInteraction={markInteracted}>
+          {/* Default document head to ensure every page has a title and viewport */}
+          <Head>
+            <title>Finnextho</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <meta name="theme-color" content="#3b82f6" />
+          </Head>
           {/* Critical CSS inline para LCP otimizado */}
           <CriticalCSSInline />
           

@@ -5,6 +5,7 @@ import {
   initializeAuth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
   type UserCredential,
   type Auth,
   signInWithEmailAndPassword as firebaseSignInWithEmailAndPassword,
@@ -262,10 +263,16 @@ export const loginWithGoogle = async (): Promise<UserCredential> => {
       }
     }
     
-    // ✅ CORREÇÃO: Tratamento específico de erros
-    if (firebaseError.code === 'auth/popup-blocked' || firebaseError.code === 'auth/popup-closed-by-user') {
-      console.log('Popup blocked or closed, trying redirect method...');
-      throw new Error('Popup bloqueado. Por favor, permita popups para este site.');
+    // ✅ CORREÇÃO: Tratamento específico de erros com fallback para redirect
+    if (
+      firebaseError.code === 'auth/popup-blocked' ||
+      firebaseError.code === 'auth/web-storage-unsupported' ||
+      firebaseError.code === 'auth/operation-not-supported-in-this-environment'
+    ) {
+      console.log('Popup or storage blocked. Falling back to redirect sign-in...');
+      await signInWithRedirect(auth, provider);
+      // signInWithRedirect will navigate away; return a rejected promise to stop further handling
+      throw new Error('REDIRECTING_FOR_GOOGLE_SIGNIN');
     }
     
     // ✅ CORREÇÃO: Tratar erro de argumento inválido

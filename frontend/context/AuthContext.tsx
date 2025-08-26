@@ -9,6 +9,7 @@ import {
   signOut as firebaseSignOut,
   onAuthStateChanged,
   IdTokenResult,
+  getRedirectResult,
 } from 'firebase/auth';
 import { loginWithGoogle as firebaseLoginWithGoogle, getFirebaseInstances } from '../lib/firebase/client';
 // import { handleRedirectResult } from '../lib/firebase/auth';
@@ -429,6 +430,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setState(prev => ({ ...prev, loading: false }));
     }
+  }, [router, syncSessionWithBackend]);
+
+  // ✅ NOVO: Processar resultado de login por redirect (fallback quando popup/cookies são bloqueados)
+  useEffect(() => {
+    let isMounted = true;
+    const processRedirectResult = async () => {
+      try {
+        const { auth: firebaseAuth } = getFirebaseInstances();
+        if (!firebaseAuth) return;
+        const result = await getRedirectResult(firebaseAuth);
+        if (!isMounted || !result) return;
+
+        // Se há resultado do redirect, seguir mesmo fluxo do popup
+        const { isNewUser, profile } = await checkAndCreateUserProfile(result.user);
+        if (isNewUser || !profile.isComplete) {
+          router.push('/auth/complete-registration');
+          return;
+        }
+        await syncSessionWithBackend(result.user);
+        router.push('/dashboard');
+      } catch (e) {
+        // Sem resultado ou erro silencioso; não quebrar fluxo normal
+        // Apenas logar para diagnóstico
+        console.log('[AuthContext] Redirect sign-in result not available or failed:', e);
+      }
+    };
+    processRedirectResult();
+    return () => { isMounted = false; };
   }, [router, syncSessionWithBackend]);
 
   const loginWithGoogle = useCallback(async () => {

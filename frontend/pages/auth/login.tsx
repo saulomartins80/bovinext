@@ -174,6 +174,7 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     className={`block w-full pl-10 pr-3 py-3 rounded-lg border ${isValidEmail && email ? 'border-green-500' : 'border-gray-300 dark:border-gray-600'} focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white`}
                     placeholder="seu@email.com"
+                    autoComplete="username"
                     required
                   />
                   {isValidEmail && email && (
@@ -209,6 +210,7 @@ export default function LoginPage() {
                     className="block w-full pl-10 pr-3 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                     placeholder="••••••••"
                     minLength={6}
+                    autoComplete="current-password"
                     required
                   />
                 </div>

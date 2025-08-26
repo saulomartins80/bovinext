@@ -117,6 +117,7 @@ const CompleteRegistration: React.FC = () => {
                     onChange={handleInputChange}
                     className="block w-full pl-10 pr-3 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                     placeholder="Seu nome completo"
+                    autoComplete="name"
                   />
                 </div>
               </div>
@@ -137,6 +138,7 @@ const CompleteRegistration: React.FC = () => {
                     onChange={handleInputChange}
                     className="block w-full pl-10 pr-3 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                     placeholder="(11) 99999-9999"
+                    autoComplete="tel"
                   />
                 </div>
               </div>
@@ -156,6 +158,7 @@ const CompleteRegistration: React.FC = () => {
                     value={formData.dateOfBirth}
                     onChange={handleInputChange}
                     className="block w-full pl-10 pr-3 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                    autoComplete="bday"
                   />
                 </div>
               </div>
@@ -176,6 +179,7 @@ const CompleteRegistration: React.FC = () => {
                     onChange={handleInputChange}
                     className="block w-full pl-10 pr-3 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                     placeholder="000.000.000-00"
+                    autoComplete="off"
                   />
                 </div>
               </div>

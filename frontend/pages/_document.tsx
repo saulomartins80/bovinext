@@ -5,6 +5,7 @@ export default function Document() {
   return (
     <Html lang="pt-BR" className="light">
       <Head>
+        <meta charSet="utf-8" />
         {/* Favicon e ícones */}
         <link rel="icon" href="/favicon.ico" />
         <link rel="icon" type="image/svg+xml" href="/favicon-simple.svg" />

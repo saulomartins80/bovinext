@@ -126,6 +126,7 @@ export default function ChangePasswordPage() {
                   required
                   className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md py-2"
                   placeholder="••••••••"
+                  autoComplete="new-password"
                 />
               </div>
             </div>
@@ -150,6 +151,7 @@ export default function ChangePasswordPage() {
                   required
                   className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-10 sm:text-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-md py-2"
                   placeholder="••••••••"
+                  autoComplete="new-password"
                 />
               </div>
             </div>

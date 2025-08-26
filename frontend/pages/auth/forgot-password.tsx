@@ -129,11 +129,13 @@ export default function ForgotPasswordPage() {
                     </span>
                     <input
                       id="email"
+                      name="email"
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="w-full py-2 px-1 outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                       placeholder="seu@email.com"
+                      autoComplete="email"
                       autoFocus
                       required 
                     />
