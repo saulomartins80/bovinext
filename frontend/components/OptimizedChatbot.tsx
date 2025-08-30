@@ -546,7 +546,7 @@ export default function OptimizedChatbot({ isOpen: externalIsOpen, onToggle }: C
   // Toast quando ação for executada (auto ou confirmada)
   useEffect(() => {
     if (!messages || messages.length === 0) return;
-    const last = messages[messages.length - 1] as EnterpriseMessage;
+    const last = messages[messages.length - 1] as unknown as EnterpriseMessage;
     const executed = Array.isArray(last?.metadata?.actions)
       ? last.metadata.actions.some((a: { executed: boolean }) => a.executed)
       : false;

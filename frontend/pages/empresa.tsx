@@ -1,5 +1,5 @@
 import { useTheme } from '../context/ThemeContext';
-import Head from 'next/head';
+import SEOHead from '../components/SEOHead';
 import { FiBriefcase } from 'react-icons/fi';
 import { InstitutionalHeader } from '../components/layout/InstitutionalHeader';
 import { Footer } from '../components/layout/Footer';
@@ -8,10 +8,12 @@ export default function Empresa() {
   const { resolvedTheme } = useTheme();
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
-      <Head>
-        <title>Empresa | Finnextho</title>
-        <meta name="description" content="Sobre a empresa Finnextho, missão, visão e valores." />
-      </Head>
+      <SEOHead
+        title="Empresa - Soluções Corporativas"
+        description="Soluções financeiras corporativas da FinNEXTHO. Gestão empresarial, controle de fluxo de caixa, relatórios avançados e integração com sistemas ERP para empresas de todos os portes."
+        keywords="soluções corporativas, gestão empresarial, fluxo de caixa, ERP, relatórios financeiros, finnextho empresas"
+        canonical="/empresa"
+      />
       
       <InstitutionalHeader 
         title="Empresa" 

@@ -1,5 +1,5 @@
 import React from 'react';
-import Head from 'next/head';
+import SEOHead from '../components/SEOHead';
 import { motion } from 'framer-motion';
 import { Footer } from '../components/layout/Footer';
 import { ClientHeader } from '../components/layout/ClientHeader';
@@ -133,12 +133,12 @@ export default function Recursos() {
 
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
-      <Head>
-        <title>Recursos e Funcionalidades | Finnextho</title>
-        <meta name="description" content="Descubra todos os recursos avançados da plataforma Finnextho. IA preditiva, automação financeira e muito mais." />
-        <meta property="og:title" content="Recursos e Funcionalidades | Finnextho" />
-        <meta property="og:description" content="Recursos avançados para transformar suas finanças" />
-      </Head>
+      <SEOHead
+        title="Recursos - Funcionalidades e Ferramentas"
+        description="Explore todos os recursos e funcionalidades da plataforma FinNEXTHO. IA financeira, automação, relatórios, integrações e ferramentas avançadas de gestão financeira."
+        keywords="recursos finnextho, funcionalidades, IA financeira, automação, relatórios, integrações, ferramentas financeiras"
+        canonical="/recursos"
+      />
 
       <ClientHeader />
       

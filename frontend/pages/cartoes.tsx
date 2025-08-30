@@ -1486,7 +1486,7 @@ const MilhasRedesign = () => {
                       <input
                         type="text"
                         value={(editData as Partial<CreditCard>).name || ''}
-                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                        onChange={(e) => setEditData({ ...editData, name: e.target.value } as Partial<CreditCard>)}
                         className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
                         placeholder="Nome do cartão"
                       />
@@ -1499,7 +1499,7 @@ const MilhasRedesign = () => {
                         <input
                           type="number"
                           value={(editData as Partial<CreditCard>).limit || ''}
-                          onChange={(e) => setEditData({ ...editData, limit: Number(e.target.value) })}
+                          onChange={(e) => setEditData({ ...editData, limit: Number(e.target.value) } as Partial<CreditCard>)}
                           className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
                           placeholder="25000"
                         />
@@ -1511,7 +1511,7 @@ const MilhasRedesign = () => {
                         <input
                           type="number"
                           value={(editData as Partial<CreditCard>).used || ''}
-                          onChange={(e) => setEditData({ ...editData, used: Number(e.target.value) })}
+                          onChange={(e) => setEditData({ ...editData, used: Number(e.target.value) } as Partial<CreditCard>)}
                           className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
                           placeholder="5000"
                         />
@@ -1529,7 +1529,7 @@ const MilhasRedesign = () => {
                       <input
                         type="text"
                         value={(editData as Partial<MileageProgram>).name || ''}
-                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                        onChange={(e) => setEditData({ ...editData, name: e.target.value } as Partial<MileageProgram>)}
                         className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
                         placeholder="Nome do programa"
                       />
@@ -1542,7 +1542,7 @@ const MilhasRedesign = () => {
                         <input
                           type="number"
                           value={(editData as Partial<MileageProgram>).pointsBalance || ''}
-                          onChange={(e) => setEditData({ ...editData, pointsBalance: Number(e.target.value) })}
+                          onChange={(e) => setEditData({ ...editData, pointsBalance: Number(e.target.value) } as Partial<MileageProgram>)}
                           className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
                           placeholder="125000"
                         />
@@ -1554,7 +1554,7 @@ const MilhasRedesign = () => {
                         <input
                           type="number"
                           value={(editData as Partial<MileageProgram>).estimatedValue || ''}
-                          onChange={(e) => setEditData({ ...editData, estimatedValue: Number(e.target.value) })}
+                          onChange={(e) => setEditData({ ...editData, estimatedValue: Number(e.target.value) } as Partial<MileageProgram>)}
                           className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
                           placeholder="3125"
                         />
@@ -1572,7 +1572,7 @@ const MilhasRedesign = () => {
                       <input
                         type="number"
                         value={(editData as Partial<CreditCard>).nextInvoiceAmount || ''}
-                        onChange={(e) => setEditData({ ...editData, nextInvoiceAmount: Number(e.target.value) })}
+                        onChange={(e) => setEditData({ ...editData, nextInvoiceAmount: Number(e.target.value) } as Partial<CreditCard>)}
                         className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
                         placeholder="1500"
                       />
@@ -1584,7 +1584,7 @@ const MilhasRedesign = () => {
                       <input
                         type="date"
                         value={(editData as Partial<CreditCard>).nextInvoiceDue ? new Date((editData as Partial<CreditCard>).nextInvoiceDue!).toISOString().split('T')[0] : ''}
-                        onChange={(e) => setEditData({ ...editData, nextInvoiceDue: e.target.value })}
+                        onChange={(e) => setEditData({ ...editData, nextInvoiceDue: e.target.value } as Partial<CreditCard>)}
                         className={`w-full p-2 sm:p-3 rounded-xl border ${themeClasses.border} ${themeClasses.cardBg} ${themeClasses.text} text-sm sm:text-base`}
                       />
                     </div>

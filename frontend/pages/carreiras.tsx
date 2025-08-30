@@ -1,5 +1,6 @@
+import React from 'react';
 import { useTheme } from '../context/ThemeContext';
-import Head from 'next/head';
+import SEOHead from '../components/SEOHead';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { 
@@ -164,10 +165,12 @@ export default function Carreiras() {
 
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
-      <Head>
-        <title>Carreiras | Finnextho - Trabalhe Conosco</title>
-        <meta name="description" content="Faça parte do time Finnextho. Vagas em tecnologia, produto, financeiro e marketing. Ambiente inovador e benefícios excepcionais." />
-      </Head>
+      <SEOHead
+        title="Carreiras - Trabalhe Conosco"
+        description="Junte-se à equipe FinNEXTHO e faça parte da revolução da gestão financeira pessoal. Conheça nossas oportunidades de carreira e benefícios."
+        keywords="carreiras finnextho, vagas de emprego, trabalhe conosco, oportunidades de carreira, fintech jobs, tecnologia financeira"
+        canonical="/carreiras"
+      />
       
       <InstitutionalHeader 
         title="Carreiras" 

@@ -1,5 +1,5 @@
 import { useTheme } from '../context/ThemeContext';
-import Head from 'next/head';
+import SEOHead from '../components/SEOHead';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { 
@@ -109,10 +109,12 @@ export default function Sobre() {
 
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
-      <Head>
-        <title>Sobre | Finnextho</title>
-        <meta name="description" content="Conheça a história, missão e equipe da Finnextho. Transformando a relação das pessoas com o dinheiro através da tecnologia e IA." />
-      </Head>
+      <SEOHead
+        title="Sobre Nós - Nossa História e Missão"
+        description="Conheça a história da FinNEXTHO, nossa missão de democratizar a gestão financeira e como estamos transformando o mercado brasileiro com tecnologia e inovação."
+        keywords="sobre finnextho, história, missão, visão, valores, equipe, empresa fintech, gestão financeira"
+        canonical="/sobre"
+      />
       
       <InstitutionalHeader 
         title="Sobre Nós" 

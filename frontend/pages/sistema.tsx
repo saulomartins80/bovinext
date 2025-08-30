@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Activity,
   DollarSign,
@@ -11,249 +11,360 @@ import {
   Brain,
   Pause,
   Play,
-  MessageCircle
+  MessageCircle,
+  BarChart,
+  PieChart,
+  Loader2,
+  // Server,
+  // Zap,
+  TrendingUp,
+  Database,
+  Shield,
+  Globe,
+  // Eye,
+  // Settings,
+  Users,
+  FileText,
+  Image,
+  Mic
+  // Video
 } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
-import LoadingSpinner from '../components/LoadingSpinner';
 
-// Interfaces
+// Simulando hooks externos
+const useTheme = () => ({ resolvedTheme: 'light' });
+const LoadingSpinner = () => <Loader2 className="animate-spin" size={24} />;
+
+// Tipos e interfaces
 interface AIUsageData {
   summary: {
     totalRequests: number;
     totalTokens: number;
     totalCost: number;
-    averageLatency: number;
     successRate: number;
-    activeModels: number;
-    peakHour: string;
-    topModel: string;
+    averageLatency: number;
   };
   breakdown: {
-    byPeriod: {
-      today: { requests: number; tokens: number; cost: number };
-      week: { requests: number; tokens: number; cost: number };
-      month: { requests: number; tokens: number; cost: number };
-    };
-    byModel: Record<string, {
+    byFeature: Array<{
+      name: string;
       requests: number;
-      tokens: number;
       cost: number;
-      latency: number;
+      percentage: number;
     }>;
-    byFeature: Record<string, {
+    byModel: Array<{
+      name: string;
       requests: number;
       tokens: number;
       cost: number;
+    }>;
+    byPeriod: Array<{
+      date: string;
+      requests: number;
+      cost: number;
+      tokens: number;
     }>;
   };
   timeSeries: Array<{
     timestamp: string;
     requests: number;
-    tokens: number;
     cost: number;
+    latency: number;
+    successRate: number;
   }>;
   realtimeStats: {
-    requests: number;
-    tokens: number;
-    cost: number;
-    latency: number[];
-    lastUpdate: Date;
+    activeConnections: number;
+    requestsPerMinute: number;
+    currentLatency: number;
+    errorRate: number;
   };
 }
 
 interface PlanLimits {
-  essencial: {
-    requests: number;
-    tokens: number;
-    cost: number;
-  };
-  profissional: {
-    requests: number;
-    tokens: number;
-    cost: number;
-  };
-  empresarial: {
-    requests: number;
-    tokens: number;
-    cost: number;
-  };
+  requests: number;
+  tokens: number;
+  cost: number;
+  features: string[];
 }
 
-// Hook personalizado para dados de IA
-function useAIUsageData() {
+// Hook principal para dados de uso de IA
+const useAIUsageData = () => {
   const [data, setData] = useState<AIUsageData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRealtime, setIsRealtime] = useState(false);
-  const eventSourceRef = useRef<EventSource | null>(null);
+  const eventSourceRef = useRef<any>(null);
 
-  const fetchData = async (timeframe: string = '7d') => {
-    console.log('Fetching data for timeframe:', timeframe);
+  // Função para gerar dados mock de série temporal
+  const generateMockTimeSeries = useCallback((timeframe: string) => {
+    const now = new Date();
+    const data = [];
+    let intervals: number;
+    let stepMs: number;
+
+    switch (timeframe) {
+      case '1d':
+        intervals = 24;
+        stepMs = 60 * 60 * 1000; // 1 hora
+        break;
+      case '7d':
+        intervals = 7 * 24;
+        stepMs = 60 * 60 * 1000; // 1 hora
+        break;
+      case '30d':
+        intervals = 30;
+        stepMs = 24 * 60 * 60 * 1000; // 1 dia
+        break;
+      case '90d':
+        intervals = 90;
+        stepMs = 24 * 60 * 60 * 1000; // 1 dia
+        break;
+      default:
+        intervals = 24;
+        stepMs = 60 * 60 * 1000;
+    }
+
+    for (let i = intervals - 1; i >= 0; i--) {
+      const timestamp = new Date(now.getTime() - i * stepMs);
+      data.push({
+        timestamp: timestamp.toISOString(),
+        requests: Math.floor(Math.random() * 1000) + 100,
+        cost: Math.random() * 50 + 10,
+        latency: Math.random() * 200 + 50,
+        successRate: 95 + Math.random() * 5
+      });
+    }
+
+    return data;
+  }, []);
+
+  // Buscar dados (mock)
+  const fetchData = useCallback(async (timeframe: string = '7d') => {
     try {
       setIsLoading(true);
+      setError(null);
       
-      // Mock data para desenvolvimento
+      // Simular delay de API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       const mockData: AIUsageData = {
         summary: {
-          totalRequests: 2847,
-          totalTokens: 1250000,
-          totalCost: 47.83,
-          averageLatency: 1.2,
-          successRate: 98.5,
-          activeModels: 3,
-          peakHour: '14:00',
-          topModel: 'deepseek-chat'
+          totalRequests: Math.floor(Math.random() * 100000) + 50000,
+          totalTokens: Math.floor(Math.random() * 10000000) + 5000000,
+          totalCost: Math.random() * 2000 + 500,
+          successRate: 95 + Math.random() * 5,
+          averageLatency: Math.random() * 100 + 50
         },
         breakdown: {
-          byPeriod: {
-            today: { requests: 342, tokens: 150000, cost: 5.75 },
-            week: { requests: 2100, tokens: 950000, cost: 32.15 },
-            month: { requests: 8500, tokens: 3800000, cost: 142.30 }
-          },
-          byModel: {
-            'deepseek-chat': { requests: 2100, tokens: 950000, cost: 32.15, latency: 1.1 },
-            'gpt-4-turbo': { requests: 500, tokens: 200000, cost: 12.50, latency: 1.8 },
-            'claude-3': { requests: 247, tokens: 100000, cost: 3.18, latency: 0.9 }
-          },
-          byFeature: {
-            'chatbot': { requests: 1800, tokens: 800000, cost: 28.50 },
-            'analysis': { requests: 650, tokens: 300000, cost: 12.75 },
-            'automation': { requests: 397, tokens: 150000, cost: 6.58 }
-          }
+          byFeature: [
+            { name: 'Processamento de Texto', requests: 25000, cost: 450, percentage: 35 },
+            { name: 'Geração de Imagens', requests: 18000, cost: 380, percentage: 28 },
+            { name: 'Análise de Sentimentos', requests: 15000, cost: 220, percentage: 22 },
+            { name: 'Tradução Automática', requests: 8000, cost: 150, percentage: 12 },
+            { name: 'Reconhecimento de Voz', requests: 2000, cost: 80, percentage: 3 }
+          ],
+          byModel: [
+            { name: 'GPT-4', requests: 35000, tokens: 8500000, cost: 850 },
+            { name: 'Claude Sonnet', requests: 20000, tokens: 4200000, cost: 420 },
+            { name: 'DALL-E 3', requests: 8000, tokens: 0, cost: 320 },
+            { name: 'Whisper', requests: 5000, tokens: 850000, cost: 85 }
+          ],
+          byPeriod: Array.from({ length: 7 }, (_, i) => {
+            const date = new Date();
+            date.setDate(date.getDate() - (6 - i));
+            return {
+              date: date.toISOString().split('T')[0],
+              requests: Math.floor(Math.random() * 10000) + 5000,
+              cost: Math.random() * 200 + 100,
+              tokens: Math.floor(Math.random() * 1000000) + 500000
+            };
+          })
         },
-        timeSeries: generateMockTimeSeries(),
+        timeSeries: generateMockTimeSeries(timeframe),
         realtimeStats: {
-          requests: 15,
-          tokens: 8500,
-          cost: 2.35,
-          latency: [1.1, 1.3, 0.9, 1.5, 1.2],
-          lastUpdate: new Date()
+          activeConnections: Math.floor(Math.random() * 50) + 10,
+          requestsPerMinute: Math.floor(Math.random() * 100) + 20,
+          currentLatency: Math.random() * 150 + 50,
+          errorRate: Math.random() * 5
         }
       };
-      
+
       setData(mockData);
-      setError(null);
-    } catch (error) {
-      console.error('Erro ao buscar dados:', error);
-      setError('Falha ao carregar dados de uso da IA');
+    } catch (err) {
+      console.error('Erro ao buscar dados:', err);
+      setError('Erro ao carregar dados de uso de IA');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [generateMockTimeSeries]);
 
-  const startRealtime = () => {
+  // Iniciar conexão em tempo real (SSE)
+  const startRealtime = useCallback(() => {
     if (eventSourceRef.current) return;
-    
-    const eventSource = new EventSource('/api/ai-usage/stats/realtime');
-    eventSourceRef.current = eventSource;
-    
-    eventSource.onmessage = (event) => {
-      const newData = JSON.parse(event.data);
-      setData((prevData: AIUsageData | null) => ({ ...prevData!, realtimeStats: newData }));
-    };
-    
-    eventSource.addEventListener('alert', (event) => {
-      const alert = JSON.parse(event.data);
-      console.log('Alerta de IA:', alert);
-    });
-    
-    setIsRealtime(true);
-  };
 
-  const stopRealtime = () => {
+    try {
+      setIsRealtime(true);
+      
+      const interval = setInterval(() => {
+        setData(prevData => {
+          if (!prevData) return prevData;
+          
+          return {
+            ...prevData,
+            realtimeStats: {
+              activeConnections: Math.floor(Math.random() * 50) + 10,
+              requestsPerMinute: Math.floor(Math.random() * 100) + 20,
+              currentLatency: Math.random() * 150 + 50,
+              errorRate: Math.random() * 5
+            }
+          };
+        });
+      }, 2000);
+
+      // Simular EventSource
+      eventSourceRef.current = { close: () => clearInterval(interval) } as any;
+      
+    } catch (err) {
+      console.error('Erro ao iniciar conexão em tempo real:', err);
+      setIsRealtime(false);
+    }
+  }, []);
+
+  // Parar conexão em tempo real
+  const stopRealtime = useCallback(() => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
-      setIsRealtime(false);
     }
-  };
-
-  useEffect(() => {
-    fetchData();
-    return () => stopRealtime();
+    setIsRealtime(false);
   }, []);
 
-  return { data, isLoading, error, fetchData, startRealtime, stopRealtime, isRealtime };
-}
+  // Cleanup ao desmontar
+  useEffect(() => {
+    return () => {
+      stopRealtime();
+    };
+  }, [stopRealtime]);
 
-function generateMockTimeSeries() {
-  const data = [];
-  const now = new Date();
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-    data.push({
-      timestamp: date.toISOString().split('T')[0],
-      requests: Math.floor(Math.random() * 200) + 50,
-      tokens: Math.floor(Math.random() * 50000) + 10000,
-      cost: Math.random() * 5 + 1
-    });
-  }
-  return data;
-}
+  return {
+    data,
+    isLoading,
+    error,
+    isRealtime,
+    fetchData,
+    startRealtime,
+    stopRealtime,
+    refreshMetrics: () => fetchData()
+  };
+};
 
 // Função para obter limites do plano
-function getPlanLimits(): PlanLimits {
-  return {
+const getPlanLimits = (plan: 'essencial' | 'profissional' | 'empresarial'): PlanLimits => {
+  const limits = {
     essencial: {
-      requests: 1000,
-      tokens: 100000,
-      cost: 50
+      requests: 100000,
+      tokens: 10000000,
+      cost: 1000,
+      features: ['Processamento de Texto', 'Análise de Sentimentos']
     },
     profissional: {
-      requests: 5000,
-      tokens: 500000,
-      cost: 200
+      requests: 500000,
+      tokens: 50000000,
+      cost: 5000,
+      features: ['Processamento de Texto', 'Análise de Sentimentos', 'Geração de Imagens', 'Tradução']
     },
     empresarial: {
-      requests: 20000,
-      tokens: 2000000,
-      cost: 1000
+      requests: 2000000,
+      tokens: 200000000,
+      cost: 20000,
+      features: ['Todos os recursos']
     }
   };
-}
+  return limits[plan];
+};
 
-// Função para calcular porcentagem de uso
-function getUsagePercentage(current: number, limit: number): number {
+// Funções utilitárias
+const getUsagePercentage = (current: number, limit: number): number => {
   return Math.min((current / limit) * 100, 100);
-}
+};
 
-// Função para verificar se está próximo do limite
-function isNearLimit(current: number, limit: number): boolean {
-  return (current / limit) >= 0.8;
-}
+const isNearLimit = (current: number, limit: number): boolean => {
+  return getUsagePercentage(current, limit) >= 80;
+};
 
-export default function AISystemDashboard() {
+const formatCurrency = (value: number): string => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  }).format(value);
+};
+
+const formatNumber = (value: number): string => {
+  return new Intl.NumberFormat('pt-BR').format(value);
+};
+
+// Componente principal
+const AISystemDashboard = () => {
   const { resolvedTheme } = useTheme();
-  const { data, isLoading, error, fetchData, startRealtime, stopRealtime, isRealtime } = useAIUsageData();
+  const [timeframe, setTimeframe] = useState('7d');
+  const [currentPlan] = useState<'essencial' | 'profissional' | 'empresarial'>('profissional');
   
-  const [selectedTimeframe, setSelectedTimeframe] = useState('7d');
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const {
+    data,
+    isLoading,
+    error,
+    isRealtime,
+    fetchData,
+    startRealtime,
+    stopRealtime,
+    refreshMetrics
+  } = useAIUsageData();
 
-  // Planos e limites
-  const planLimits = getPlanLimits();
-  const userPlan = 'essencial'; // Pode vir do contexto do usuário
-  const currentPlan = planLimits[userPlan as keyof typeof planLimits];
-  const lastUpdated = data?.realtimeStats?.lastUpdate || new Date();
+  const planLimits = getPlanLimits(currentPlan);
 
-  // Classes condicionais para tema
-  const isDark = resolvedTheme === 'dark';
-  const bgClass = isDark ? 'bg-gray-900' : 'bg-gray-50';
-  const cardBgClass = isDark ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
-  const textPrimaryClass = isDark ? 'text-white' : 'text-gray-900';
-  const textSecondaryClass = isDark ? 'text-gray-300' : 'text-gray-600';
+  // Buscar dados iniciais
+  useEffect(() => {
+    fetchData(timeframe);
+  }, [fetchData, timeframe]);
 
-  // Função para atualizar dados
-  const refreshMetrics = async () => {
-    setIsRefreshing(true);
-    await fetchData(selectedTimeframe);
-    setIsRefreshing(false);
+  const getFeatureIcon = (featureName: string) => {
+    switch (featureName) {
+      case 'Processamento de Texto':
+        return <FileText size={16} />;
+      case 'Geração de Imagens':
+        // eslint-disable-next-line jsx-a11y/alt-text
+        return <Image size={16} />;
+      case 'Análise de Sentimentos':
+        return <Brain size={16} />;
+      case 'Tradução Automática':
+        return <Globe size={16} />;
+      case 'Reconhecimento de Voz':
+        return <Mic size={16} />;
+      default:
+        return <Activity size={16} />;
+    }
   };
 
-  if (isLoading) {
+  const getModelIcon = (modelName: string) => {
+    switch (modelName) {
+      case 'GPT-4':
+        return <Brain size={16} className="text-green-500" />;
+      case 'Claude Sonnet':
+        return <MessageCircle size={16} className="text-blue-500" />;
+      case 'DALL-E 3':
+        // eslint-disable-next-line jsx-a11y/alt-text
+        return <Image size={16} className="text-purple-500" />;
+      case 'Whisper':
+        return <Mic size={16} className="text-orange-500" />;
+      default:
+        return <Cpu size={16} />;
+    }
+  };
+
+  if (isLoading && !data) {
     return (
-      <div className={`min-h-screen ${bgClass} transition-colors duration-300`}>
-        <div className="flex items-center justify-center min-h-screen">
+      <div className={`flex items-center justify-center h-screen ${resolvedTheme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <div className="flex flex-col items-center gap-3">
           <LoadingSpinner />
+          <p className="text-gray-600 dark:text-gray-400">Carregando métricas de IA...</p>
         </div>
       </div>
     );
@@ -261,349 +372,637 @@ export default function AISystemDashboard() {
 
   if (error) {
     return (
-      <div className={`min-h-screen ${bgClass} transition-colors duration-300`}>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className={`${cardBgClass} p-8 rounded-lg border`}>
-            <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h2 className={`text-xl font-bold ${textPrimaryClass} text-center mb-2`}>
-              Erro ao Carregar Dados
-            </h2>
-            <p className={`${textSecondaryClass} text-center mb-4`}>{error}</p>
-            <button
-              onClick={refreshMetrics}
-              className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Tentar Novamente
-            </button>
-          </div>
+      <div className={`flex items-center justify-center h-screen ${resolvedTheme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <div className={`p-6 rounded-lg max-w-md text-center ${resolvedTheme === 'dark' ? 'bg-red-900/20 text-red-300 border border-red-700' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+          <AlertTriangle className="mx-auto mb-3" size={48} />
+          <h3 className="font-bold mb-2">Erro ao carregar dados</h3>
+          <p className="mb-4">{error}</p>
+          <button
+            onClick={refreshMetrics}
+            className={`px-4 py-2 rounded ${resolvedTheme === 'dark' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
+          >
+            Tentar novamente
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen ${bgClass} transition-colors duration-300`}>
-      <div className="container mx-auto px-4 py-8">
+    <div className={`min-h-screen transition-colors duration-300 ${
+      resolvedTheme === "dark" ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"
+    } p-4 md:p-6`}>
+      <div className="container mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center space-x-4">
-            <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg">
-              <Brain className="w-6 h-6 text-white" />
-            </div>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
+          <div className="flex items-center gap-3">
+            <span className={`p-3 rounded-xl ${resolvedTheme === 'dark' ? 'bg-gradient-to-br from-blue-600 to-purple-600 text-white' : 'bg-gradient-to-br from-blue-500 to-purple-500 text-white'} shadow-lg`}>
+              <Brain size={28} />
+            </span>
             <div>
-              <h1 className={`text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent`}>
-                IA & Analytics
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+                Monitoramento de IA
               </h1>
-              <p className={`text-sm ${textSecondaryClass} transition-colors duration-300`}>
-                Métricas e uso da Inteligência Artificial Finnextho
-                {lastUpdated && (
-                  <span className="ml-2">
-                    • Atualizado {lastUpdated.toLocaleTimeString()}
-                  </span>
-                )}
+              <p className="text-sm mt-1 text-gray-600 dark:text-gray-400">
+                Acompanhe seus gastos e uso de inteligência artificial em tempo real.
               </p>
             </div>
           </div>
-
-          <div className="flex items-center space-x-3">
-            {/* Controles de tempo real */}
-            <button
-              onClick={isRealtime ? stopRealtime : startRealtime}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg border transition-colors ${
-                isRealtime 
-                  ? 'bg-green-100 border-green-300 text-green-700 dark:bg-green-900 dark:border-green-600 dark:text-green-300'
-                  : 'bg-gray-100 border-gray-300 text-gray-700 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300'
-              }`}
-            >
-              {isRealtime ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-              <span className="text-sm">{isRealtime ? 'Pausar' : 'Tempo Real'}</span>
-            </button>
-
-            {/* Botão de refresh */}
-            <button
-              onClick={refreshMetrics}
-              disabled={isRefreshing}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg border transition-colors ${
-                isRefreshing 
-                  ? 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed'
-                  : 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:border-blue-600 dark:text-blue-300'
-              }`}
-            >
-              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              <span className="text-sm">Atualizar</span>
-            </button>
-
+          
+          <div className="flex flex-col sm:flex-row gap-3">
             {/* Seletor de período */}
             <select
-              value={selectedTimeframe}
-              onChange={(e) => {
-                setSelectedTimeframe(e.target.value);
-                fetchData(e.target.value);
-              }}
-              className={`px-3 py-2 rounded-lg border ${cardBgClass} ${textPrimaryClass} text-sm`}
+              value={timeframe}
+              onChange={(e) => setTimeframe(e.target.value)}
+              className={`px-4 py-2 rounded-lg border transition-colors text-sm font-medium ${resolvedTheme === 'dark' ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-gray-300 text-gray-800'}`}
             >
-              <option value="1d">Último dia</option>
+              <option value="1d">Últimas 24h</option>
               <option value="7d">Últimos 7 dias</option>
               <option value="30d">Últimos 30 dias</option>
               <option value="90d">Últimos 90 dias</option>
             </select>
+
+            {/* Controles */}
+            <div className="flex gap-2">
+              <button
+                onClick={isRealtime ? stopRealtime : startRealtime}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium ${
+                  isRealtime 
+                    ? (resolvedTheme === 'dark' ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-red-500 hover:bg-red-600 text-white')
+                    : (resolvedTheme === 'dark' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-green-500 hover:bg-green-600 text-white')
+                }`}
+              >
+                {isRealtime ? <Pause size={18} /> : <Play size={18} />}
+                {isRealtime ? 'Pausar' : 'Tempo Real'}
+              </button>
+              <button
+                onClick={refreshMetrics}
+                disabled={isLoading}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors text-sm font-medium ${resolvedTheme === 'dark' ? 'bg-gray-700 hover:bg-gray-600 text-gray-200' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
+              >
+                <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+                Atualizar
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* Métricas principais */}
-        {data && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {/* Total de Requisições */}
-            <div className={`${cardBgClass} p-6 rounded-lg border`}>
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                  <MessageCircle className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        {/* Cards de métricas principais */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {/* Requisições */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
+                  <Activity className="text-blue-600 dark:text-blue-400" size={20} />
                 </div>
-                <span className={`text-xs ${textSecondaryClass} uppercase tracking-wide`}>
-                  Requisições
-                </span>
-              </div>
-              <div className="space-y-2">
-                <div className={`text-2xl font-bold ${textPrimaryClass}`}>
-                  {data.summary.totalRequests.toLocaleString()}
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    className={`h-2 rounded-full transition-all duration-500 ${
-                      isNearLimit(data.summary.totalRequests, currentPlan.requests) 
-                        ? 'bg-red-500' 
-                        : 'bg-blue-500'
-                    }`}
-                    style={{ 
-                      width: `${getUsagePercentage(data.summary.totalRequests, currentPlan.requests)}%` 
-                    }}
-                  />
-                </div>
-                <div className={`text-xs ${textSecondaryClass}`}>
-                  {getUsagePercentage(data.summary.totalRequests, currentPlan.requests).toFixed(1)}% do limite ({currentPlan.requests.toLocaleString()})
-                </div>
-              </div>
-            </div>
-
-            {/* Total de Tokens */}
-            <div className={`${cardBgClass} p-6 rounded-lg border`}>
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                  <Cpu className="w-5 h-5 text-green-600 dark:text-green-400" />
-                </div>
-                <span className={`text-xs ${textSecondaryClass} uppercase tracking-wide`}>
-                  Tokens
-                </span>
-              </div>
-              <div className="space-y-2">
-                <div className={`text-2xl font-bold ${textPrimaryClass}`}>
-                  {(data.summary.totalTokens / 1000).toFixed(0)}K
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    className={`h-2 rounded-full transition-all duration-500 ${
-                      isNearLimit(data.summary.totalTokens, currentPlan.tokens) 
-                        ? 'bg-red-500' 
-                        : 'bg-green-500'
-                    }`}
-                    style={{ 
-                      width: `${getUsagePercentage(data.summary.totalTokens, currentPlan.tokens)}%` 
-                    }}
-                  />
-                </div>
-                <div className={`text-xs ${textSecondaryClass}`}>
-                  {getUsagePercentage(data.summary.totalTokens, currentPlan.tokens).toFixed(1)}% do limite ({(currentPlan.tokens / 1000).toFixed(0)}K)
-                </div>
-              </div>
-            </div>
-
-            {/* Custo Total */}
-            <div className={`${cardBgClass} p-6 rounded-lg border`}>
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
-                  <DollarSign className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                </div>
-                <span className={`text-xs ${textSecondaryClass} uppercase tracking-wide`}>
-                  Custo
-                </span>
-              </div>
-              <div className="space-y-2">
-                <div className={`text-2xl font-bold ${textPrimaryClass}`}>
-                  R$ {data.summary.totalCost.toFixed(2)}
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    className={`h-2 rounded-full transition-all duration-500 ${
-                      isNearLimit(data.summary.totalCost, currentPlan.cost) 
-                        ? 'bg-red-500' 
-                        : 'bg-yellow-500'
-                    }`}
-                    style={{ 
-                      width: `${getUsagePercentage(data.summary.totalCost, currentPlan.cost)}%` 
-                    }}
-                  />
-                </div>
-                <div className={`text-xs ${textSecondaryClass}`}>
-                  {getUsagePercentage(data.summary.totalCost, currentPlan.cost).toFixed(1)}% do limite (R$ {currentPlan.cost})
-                </div>
-              </div>
-            </div>
-
-            {/* Taxa de Sucesso */}
-            <div className={`${cardBgClass} p-6 rounded-lg border`}>
-              <div className="flex items-center justify-between mb-4">
-                <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                  <CheckCircle className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                </div>
-                <span className={`text-xs ${textSecondaryClass} uppercase tracking-wide`}>
-                  Sucesso
-                </span>
-              </div>
-              <div className="space-y-2">
-                <div className={`text-2xl font-bold ${textPrimaryClass}`}>
-                  {data.summary.successRate.toFixed(1)}%
-                </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                  <div 
-                    className="h-2 bg-purple-500 rounded-full transition-all duration-500"
-                    style={{ width: `${data.summary.successRate}%` }}
-                  />
-                </div>
-                <div className={`text-xs ${textSecondaryClass}`}>
-                  Latência média: {data.summary.averageLatency.toFixed(2)}s
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Uso por funcionalidade */}
-        {data && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            {/* Gráfico de uso por funcionalidade */}
-            <div className={`${cardBgClass} p-6 rounded-lg border`}>
-              <h3 className={`text-lg font-semibold ${textPrimaryClass} mb-4`}>
-                Uso por Funcionalidade
-              </h3>
-              <div className="space-y-4">
-                {Object.entries(data.breakdown.byFeature).map(([feature, stats]: [string, any], index) => (
-                  <div key={feature} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className={`text-sm font-medium ${textPrimaryClass} capitalize`}>
-                        {feature}
-                      </span>
-                      <span className={`text-sm ${textSecondaryClass}`}>
-                        {stats.requests} req • R$ {stats.cost.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full transition-all duration-500 ${
-                          index === 0 ? 'bg-blue-500' : 
-                          index === 1 ? 'bg-green-500' : 'bg-purple-500'
-                        }`}
-                        style={{ 
-                          width: `${(stats.requests / data.summary.totalRequests) * 100}%` 
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Uso por modelo */}
-            <div className={`${cardBgClass} p-6 rounded-lg border`}>
-              <h3 className={`text-lg font-semibold ${textPrimaryClass} mb-4`}>
-                Uso por Modelo de IA
-              </h3>
-              <div className="space-y-4">
-                {Object.entries(data.breakdown.byModel).map(([model, stats]: [string, any], index) => (
-                  <div key={model} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className={`text-sm font-medium ${textPrimaryClass}`}>
-                        {model}
-                      </span>
-                      <span className={`text-sm ${textSecondaryClass}`}>
-                        {stats.latency.toFixed(2)}s • R$ {stats.cost.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                      <div 
-                        className={`h-2 rounded-full transition-all duration-500 ${
-                          index === 0 ? 'bg-indigo-500' : 
-                          index === 1 ? 'bg-pink-500' : 'bg-orange-500'
-                        }`}
-                        style={{ 
-                          width: `${(stats.requests / data.summary.totalRequests) * 100}%` 
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Alertas e Status */}
-        {data && (
-          <div className={`${cardBgClass} p-6 rounded-lg border mb-8`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className={`text-lg font-semibold ${textPrimaryClass}`}>
-                Status do Sistema
-              </h3>
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className={`text-sm ${textSecondaryClass}`}>Sistema Operacional</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Alerta de custo */}
-              {isNearLimit(data.summary.totalCost, currentPlan.cost) && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <AlertTriangle className="w-4 h-4 text-red-500" />
-                    <span className="text-sm font-medium text-red-700 dark:text-red-300">
-                      Limite de Custo
-                    </span>
-                  </div>
-                  <p className="text-xs text-red-600 dark:text-red-400">
-                    Você está próximo do limite de custo do seu plano ({getUsagePercentage(data.summary.totalCost, currentPlan.cost).toFixed(1)}%)
+                <div>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Requisições</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {formatNumber(data?.summary.totalRequests || 0)}
                   </p>
                 </div>
-              )}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                <span>Limite do plano</span>
+                <span>{getUsagePercentage(data?.summary.totalRequests || 0, planLimits.requests).toFixed(1)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full transition-all duration-500 ${
+                    isNearLimit(data?.summary.totalRequests || 0, planLimits.requests) ? 'bg-red-500' : 'bg-blue-500'
+                  }`}
+                  style={{ width: `${getUsagePercentage(data?.summary.totalRequests || 0, planLimits.requests)}%` }}
+                />
+              </div>
+            </div>
+          </div>
 
-              {/* Status de performance */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Activity className="w-4 h-4 text-blue-500" />
-                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                    Performance
-                  </span>
+          {/* Tokens */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-lg">
+                  <Database className="text-green-600 dark:text-green-400" size={20} />
                 </div>
-                <p className="text-xs text-blue-600 dark:text-blue-400">
-                  Latência média: {data.summary.averageLatency.toFixed(2)}s
+                <div>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Tokens</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {formatNumber(data?.summary.totalTokens || 0)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                <span>Limite do plano</span>
+                <span>{getUsagePercentage(data?.summary.totalTokens || 0, planLimits.tokens).toFixed(1)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full transition-all duration-500 ${
+                    isNearLimit(data?.summary.totalTokens || 0, planLimits.tokens) ? 'bg-red-500' : 'bg-green-500'
+                  }`}
+                  style={{ width: `${getUsagePercentage(data?.summary.totalTokens || 0, planLimits.tokens)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Custo */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-orange-100 dark:bg-orange-900/30 p-2 rounded-lg">
+                  <DollarSign className="text-orange-600 dark:text-orange-400" size={20} />
+                </div>
+                <div>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Custo Total</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {formatCurrency(data?.summary.totalCost || 0)}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                <span>Limite do plano</span>
+                <span>{getUsagePercentage(data?.summary.totalCost || 0, planLimits.cost).toFixed(1)}%</span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div
+                  className={`h-2 rounded-full transition-all duration-500 ${
+                    isNearLimit(data?.summary.totalCost || 0, planLimits.cost) ? 'bg-red-500' : 'bg-orange-500'
+                  }`}
+                  style={{ width: `${getUsagePercentage(data?.summary.totalCost || 0, planLimits.cost)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Taxa de Sucesso */}
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg">
+                  <CheckCircle className="text-purple-600 dark:text-purple-400" size={20} />
+                </div>
+                <div>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm font-medium">Taxa de Sucesso</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {(data?.summary.successRate || 0).toFixed(1)}%
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-gray-600 dark:text-gray-400">
+                <span>Latência média</span>
+                <span>{(data?.summary.averageLatency || 0).toFixed(0)}ms</span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div
+                  className="bg-purple-500 h-2 rounded-full transition-all duration-500"
+                  style={{ width: `${data?.summary.successRate || 0}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Status do Sistema em Tempo Real */}
+        {isRealtime && data?.realtimeStats && (
+          <div className={`rounded-xl shadow-sm p-6 mb-8 ${resolvedTheme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Status em Tempo Real</h2>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Users size={16} className="text-blue-500" />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Conexões Ativas</span>
+                </div>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">
+                  {data.realtimeStats.activeConnections}
                 </p>
               </div>
-
-              {/* Próxima atualização */}
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Clock className="w-4 h-4 text-green-500" />
-                  <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                    Atualização
-                  </span>
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Activity size={16} className="text-green-500" />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Req/min</span>
                 </div>
-                <p className="text-xs text-green-600 dark:text-green-400">
-                  Última: {lastUpdated.toLocaleTimeString()}
+                <p className="text-xl font-bold text-gray-900 dark:text-white">
+                  {data.realtimeStats.requestsPerMinute}
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <Clock size={16} className="text-orange-500" />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Latência</span>
+                </div>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">
+                  {data.realtimeStats.currentLatency.toFixed(0)}ms
+                </p>
+              </div>
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <AlertTriangle size={16} className="text-red-500" />
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Taxa de Erro</span>
+                </div>
+                <p className="text-xl font-bold text-gray-900 dark:text-white">
+                  {data.realtimeStats.errorRate.toFixed(1)}%
                 </p>
               </div>
             </div>
           </div>
         )}
+
+        {/* Alertas */}
+        {data && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            {isNearLimit(data.summary.totalCost, planLimits.cost) && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="text-red-600 dark:text-red-400" size={20} />
+                  <h3 className="font-semibold text-red-800 dark:text-red-300">Limite de Custo</h3>
+                </div>
+                <p className="text-sm text-red-700 dark:text-red-300">
+                  Você está próximo do limite de custo do seu plano.
+                </p>
+              </div>
+            )}
+
+            {data.summary.averageLatency > 150 && (
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className="text-yellow-600 dark:text-yellow-400" size={20} />
+                  <h3 className="font-semibold text-yellow-800 dark:text-yellow-300">Alta Latência</h3>
+                </div>
+                <p className="text-sm text-yellow-700 dark:text-yellow-300">
+                  A latência média está acima do recomendado ({data.summary.averageLatency.toFixed(0)}ms).
+                </p>
+              </div>
+            )}
+
+            {data.summary.successRate < 95 && (
+              <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Shield className="text-orange-600 dark:text-orange-400" size={20} />
+                  <h3 className="font-semibold text-orange-800 dark:text-orange-300">Taxa de Sucesso Baixa</h3>
+                </div>
+                <p className="text-sm text-orange-700 dark:text-orange-300">
+                  A taxa de sucesso está abaixo do ideal ({data.summary.successRate.toFixed(1)}%).
+                </p>
+              </div>
+            )}
+
+            {!isNearLimit(data.summary.totalCost, planLimits.cost) && data.summary.averageLatency <= 150 && data.summary.successRate >= 95 && (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className="text-green-600 dark:text-green-400" size={20} />
+                  <h3 className="font-semibold text-green-800 dark:text-green-300">Sistema Saudável</h3>
+                </div>
+                <p className="text-sm text-green-700 dark:text-green-300">
+                  Todos os sistemas estão operando normalmente.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Gráficos - Uso por Funcionalidade e Modelo */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          {/* Uso por Funcionalidade */}
+          <div className={`rounded-xl shadow-sm p-6 ${resolvedTheme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
+            <div className="flex items-center gap-3 mb-6">
+              <PieChart className={`${resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`} />
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Uso por Funcionalidade</h2>
+            </div>
+            <div className="space-y-4">
+              {data?.breakdown.byFeature.map((feature, index) => (
+                <div key={index} className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      {getFeatureIcon(feature.name)}
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        {feature.name}
+                      </span>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {formatCurrency(feature.cost)}
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        {formatNumber(feature.requests)} req
+                      </div>
+                    </div>
+                  </div>
+                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all duration-700 ${
+                        index === 0 ? 'bg-blue-500' :
+                        index === 1 ? 'bg-green-500' :
+                        index === 2 ? 'bg-purple-500' :
+                        index === 3 ? 'bg-orange-500' : 'bg-pink-500'
+                      }`}
+                      style={{ width: `${feature.percentage}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                    <span>{feature.percentage}% do total</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Uso por Modelo */}
+          <div className={`rounded-xl shadow-sm p-6 ${resolvedTheme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
+            <div className="flex items-center gap-3 mb-6">
+              <BarChart className={`${resolvedTheme === 'dark' ? 'text-green-400' : 'text-green-600'}`} />
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Uso por Modelo</h2>
+            </div>
+            <div className="space-y-4">
+              {data?.breakdown.byModel.map((model, index) => (
+                <div key={index} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-2">
+                      {getModelIcon(model.name)}
+                      <span className="font-medium text-gray-900 dark:text-white">
+                        {model.name}
+                      </span>
+                    </div>
+                    <span className="text-lg font-bold text-gray-900 dark:text-white">
+                      {formatCurrency(model.cost)}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-500 dark:text-gray-400">Requisições:</span>
+                      <div className="font-semibold text-gray-900 dark:text-white">
+                        {formatNumber(model.requests)}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-500 dark:text-gray-400">Tokens:</span>
+                      <div className="font-semibold text-gray-900 dark:text-white">
+                        {formatNumber(model.tokens)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Gráfico de Série Temporal */}
+        <div className={`rounded-xl shadow-sm p-6 mb-8 ${resolvedTheme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
+          <div className="flex items-center gap-3 mb-6">
+            <TrendingUp className={`${resolvedTheme === 'dark' ? 'text-purple-400' : 'text-purple-600'}`} />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Tendência de Uso</h2>
+          </div>
+          
+          {data?.timeSeries && data.timeSeries.length > 0 ? (
+            <div className="space-y-6">
+              {/* Gráfico de Custos */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Custos ao Longo do Tempo</h3>
+                <div className="relative h-32">
+                  <svg className="w-full h-full" viewBox="0 0 800 120">
+                    {/* Grid lines */}
+                    {[0, 1, 2, 3, 4].map(i => (
+                      <line
+                        key={i}
+                        x1="0"
+                        y1={i * 25 + 10}
+                        x2="800"
+                        y2={i * 25 + 10}
+                        stroke={resolvedTheme === 'dark' ? '#374151' : '#E5E7EB'}
+                        strokeWidth="1"
+                      />
+                    ))}
+                    
+                    {/* Cost line */}
+                    <polyline
+                      points={data.timeSeries.map((point, index) => {
+                        const x = (index / (data.timeSeries.length - 1)) * 780 + 10;
+                        const maxCost = Math.max(...data.timeSeries.map(p => p.cost));
+                        const y = 110 - (point.cost / maxCost) * 90;
+                        return `${x},${y}`;
+                      }).join(' ')}
+                      fill="none"
+                      stroke="#3B82F6"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    />
+                    
+                    {/* Data points */}
+                    {data.timeSeries.map((point, index) => {
+                      const x = (index / (data.timeSeries.length - 1)) * 780 + 10;
+                      const maxCost = Math.max(...data.timeSeries.map(p => p.cost));
+                      const y = 110 - (point.cost / maxCost) * 90;
+                      return (
+                        <circle
+                          key={index}
+                          cx={x}
+                          cy={y}
+                          r="4"
+                          fill="#3B82F6"
+                          className="cursor-pointer"
+                        />
+                      );
+                    })}
+                  </svg>
+                </div>
+              </div>
+
+              {/* Gráfico de Requisições */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Requisições ao Longo do Tempo</h3>
+                <div className="relative h-32">
+                  <svg className="w-full h-full" viewBox="0 0 800 120">
+                    {/* Grid lines */}
+                    {[0, 1, 2, 3, 4].map(i => (
+                      <line
+                        key={i}
+                        x1="0"
+                        y1={i * 25 + 10}
+                        x2="800"
+                        y2={i * 25 + 10}
+                        stroke={resolvedTheme === 'dark' ? '#374151' : '#E5E7EB'}
+                        strokeWidth="1"
+                      />
+                    ))}
+                    
+                    {/* Requests bars */}
+                    {data.timeSeries.map((point, index) => {
+                      const x = (index / (data.timeSeries.length - 1)) * 780 + 10;
+                      const maxRequests = Math.max(...data.timeSeries.map(p => p.requests));
+                      const height = (point.requests / maxRequests) * 90;
+                      const y = 110 - height;
+                      return (
+                        <rect
+                          key={index}
+                          x={x - 8}
+                          y={y}
+                          width="16"
+                          height={height}
+                          fill="#10B981"
+                          rx="2"
+                          className="cursor-pointer"
+                        />
+                      );
+                    })}
+                  </svg>
+                </div>
+              </div>
+
+              {/* Taxa de Sucesso */}
+              <div>
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Taxa de Sucesso (%)</h3>
+                <div className="relative h-32">
+                  <svg className="w-full h-full" viewBox="0 0 800 120">
+                    <defs>
+                      <linearGradient id="successGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                        <stop offset="0%" stopColor="#8B5CF6" stopOpacity="0.8" />
+                        <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0.1" />
+                      </linearGradient>
+                    </defs>
+                    
+                    {/* Grid lines */}
+                    {[0, 1, 2, 3, 4].map(i => (
+                      <line
+                        key={i}
+                        x1="0"
+                        y1={i * 25 + 10}
+                        x2="800"
+                        y2={i * 25 + 10}
+                        stroke={resolvedTheme === 'dark' ? '#374151' : '#E5E7EB'}
+                        strokeWidth="1"
+                      />
+                    ))}
+                    
+                    {/* Success rate area */}
+                    <path
+                      d={`M 10 110 ${data.timeSeries.map((point, index) => {
+                        const x = (index / (data.timeSeries.length - 1)) * 780 + 10;
+                        const y = 110 - ((point.successRate - 90) / 10) * 90; // Scale from 90-100%
+                        return `L ${x} ${y}`;
+                      }).join(' ')} L 790 110 Z`}
+                      fill="url(#successGradient)"
+                      opacity="0.7"
+                    />
+                    
+                    {/* Success rate line */}
+                    <polyline
+                      points={data.timeSeries.map((point, index) => {
+                        const x = (index / (data.timeSeries.length - 1)) * 780 + 10;
+                        const y = 110 - ((point.successRate - 90) / 10) * 90; // Scale from 90-100%
+                        return `${x},${y}`;
+                      }).join(' ')}
+                      fill="none"
+                      stroke="#8B5CF6"
+                      strokeWidth="2"
+                    />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center text-gray-500 dark:text-gray-400">
+              Sem dados de série temporal disponíveis.
+            </div>
+          )}
+        </div>
+
+        {/* Uso por Período */}
+        <div className={`rounded-xl shadow-sm p-6 ${resolvedTheme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
+          <div className="flex items-center gap-3 mb-6">
+            <Clock className={`${resolvedTheme === 'dark' ? 'text-orange-400' : 'text-orange-600'}`} />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Histórico Diário</h2>
+          </div>
+          
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  <th className="text-left py-3 text-sm font-medium text-gray-500 dark:text-gray-400">Data</th>
+                  <th className="text-right py-3 text-sm font-medium text-gray-500 dark:text-gray-400">Requisições</th>
+                  <th className="text-right py-3 text-sm font-medium text-gray-500 dark:text-gray-400">Tokens</th>
+                  <th className="text-right py-3 text-sm font-medium text-gray-500 dark:text-gray-400">Custo</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                {data?.breakdown.byPeriod.map((period, index) => {
+                  const [, month, day] = period.date.split('-');
+                  const formattedDate = `${day}/${month}`;
+                  
+                  return (
+                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                      <td className="py-4 text-sm text-gray-900 dark:text-white font-medium">
+                        {formattedDate}
+                      </td>
+                      <td className="py-4 text-sm text-right text-gray-900 dark:text-white">
+                        {formatNumber(period.requests)}
+                      </td>
+                      <td className="py-4 text-sm text-right text-gray-900 dark:text-white">
+                        {formatNumber(period.tokens)}
+                      </td>
+                      <td className="py-4 text-sm text-right font-semibold text-gray-900 dark:text-white">
+                        {formatCurrency(period.cost)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Footer com informações do plano */}
+        <div className={`rounded-xl shadow-sm p-6 mt-8 ${resolvedTheme === 'dark' ? 'bg-gray-800 border border-gray-700' : 'bg-white border border-gray-200'}`}>
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                Plano Atual: <span className="capitalize text-blue-600 dark:text-blue-400">{currentPlan}</span>
+              </h3>
+              <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
+                <span>Limite de requisições: {formatNumber(planLimits.requests)}</span>
+                <span>Limite de tokens: {formatNumber(planLimits.tokens)}</span>
+                <span>Limite de custo: {formatCurrency(planLimits.cost)}</span>
+              </div>
+              <div className="mt-2">
+                <span className="text-sm text-gray-500 dark:text-gray-400">Recursos disponíveis: </span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                  {planLimits.features.join(', ')}
+                </span>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                Última atualização
+              </p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {new Date().toLocaleString('pt-BR')}
+              </p>
+              {isRealtime && (
+                <div className="flex items-center justify-end gap-1 mt-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-xs text-green-600 dark:text-green-400">Atualizando em tempo real</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default AISystemDashboard;

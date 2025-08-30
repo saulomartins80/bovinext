@@ -27,7 +27,7 @@ interface ChatMessage {
     entities?: Record<string, unknown>;
     isStreaming?: boolean;
     isComplete?: boolean;
-    // Enterprise AI Engine properties
+    // Enterprise AI Engine properties 
     reasoning?: string;
     actions?: Array<{
       type: string;

@@ -1,5 +1,6 @@
+import React from 'react';
 import { useTheme } from '../context/ThemeContext';
-import Head from 'next/head';
+import SEOHead from '../components/SEOHead';
 import { motion } from 'framer-motion';
 import { 
   FiBookOpen, 
@@ -122,10 +123,12 @@ export default function Blog() {
 
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
-      <Head>
-        <title>Blog | Finnextho - Educação Financeira e Tecnologia</title>
-        <meta name="description" content="Artigos sobre educação financeira, investimentos, tecnologia e tendências do mercado. Conteúdo exclusivo da Finnextho para sua evolução financeira." />
-      </Head>
+      <SEOHead
+        title="Blog - Educação Financeira e Tecnologia"
+        description="Artigos sobre educação financeira, investimentos, tecnologia e tendências do mercado. Conteúdo exclusivo da FinNEXTHO para sua evolução financeira."
+        keywords="blog financeiro, educação financeira, investimentos, tecnologia financeira, artigos financeiros, dicas de investimento"
+        canonical="/blog"
+      />
       
       <InstitutionalHeader 
         title="Blog" 

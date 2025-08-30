@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import Head from 'next/head';
+import SEOHead from '../components/SEOHead';
 import { motion, useAnimation, useInView } from 'framer-motion';
 import { Footer } from '../components/layout/Footer';
 import { ClientHeader } from '../components/layout/ClientHeader';
@@ -129,9 +130,13 @@ export default function Clientes() {
 
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
+      <SEOHead
+        title="Clientes - Cases de Sucesso"
+        description="Conheça os cases de sucesso dos nossos clientes e veja como a FinNEXTHO transformou a gestão financeira de pessoas e empresas."
+        keywords="clientes finnextho, cases de sucesso, depoimentos, testemunhos, gestão financeira, resultados"
+        canonical="/clientes"
+      />
       <Head>
-        <title>Clientes e Cases de Sucesso | Finnextho</title>
-        <meta name="description" content="Descubra como nossos clientes transformaram suas finanças com o Finnextho. Cases reais, resultados comprovados." />
         <meta property="og:title" content="Clientes e Cases de Sucesso | Finnextho" />
         <meta property="og:description" content="Cases reais de sucesso com resultados comprovados" />
       </Head>

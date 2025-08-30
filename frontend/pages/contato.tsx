@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import Head from 'next/head';
 import { motion } from 'framer-motion';
 import { Footer } from '../components/layout/Footer';
 import { ClientHeader } from '../components/layout/ClientHeader';
 import { useTheme } from '../context/ThemeContext';
+import SEOHead from '../components/SEOHead';
 import { 
   FiMail, FiPhone, FiMapPin, FiClock, FiSend, FiUser, 
   FiHeadphones, FiZap, FiCheck,
@@ -135,13 +135,12 @@ export default function Contato() {
 
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
-      <Head>
-        <title>Contato e Suporte | Finnextho</title>
-        <meta name="description" content="Entre em contato conosco. Suporte 24/7, demonstrações gratuitas e consultoria personalizada." />
-        <meta property="og:title" content="Contato e Suporte | Finnextho" />
-        <meta property="og:description" content="Fale conosco e transforme suas finanças hoje mesmo" />
-      </Head>
-
+      <SEOHead
+        title="Contato - Fale Conosco"
+        description="Entre em contato com a equipe FinNEXTHO. Tire suas dúvidas, solicite demonstrações e conheça nossas soluções de gestão financeira."
+        keywords="contato finnextho, fale conosco, suporte, demonstração, atendimento, contato comercial"
+        canonical="/contato"
+      />
       <ClientHeader />
       
       {/* Hero Section */}

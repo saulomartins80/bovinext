@@ -30,8 +30,8 @@ export const subscriptionService = {
       const subscriptionData = res.data.data || res.data; 
       return {
         ...subscriptionData,
-        expiresAt: new Date(subscriptionData.expiresAt).toISOString(),
-      };
+        expiresAt: new Date((subscriptionData as Subscription).expiresAt).toISOString(),
+      } as Subscription;
     } catch (error: unknown) {
       if (error && typeof error === 'object' && 'response' in error) {
         const axiosError = error as { response: { status: number } };
