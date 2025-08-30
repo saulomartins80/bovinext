@@ -564,10 +564,9 @@ export const useOptimizedChat = () => {
                   } else if (intent === 'CREATE_INVESTMENT') {
                     payload = extractInvestmentFromText(streamingMessage.content, meta.entities);
                   }
-                  const autoExecute = Number(meta?.confidence) >= 0.85 && !!payload;
                   setState(prev => ({
                     ...prev,
-                    pendingAction: { action: intent, payload: payload || {}, autoExecute, executed: false }
+                    pendingAction: { action: intent, payload: payload || {}, autoExecute: false, executed: false }
                   }));
                 }
               }

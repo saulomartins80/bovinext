@@ -7,6 +7,8 @@ export interface ConversationState {
   currentAction: string | null;        // 'CREATE_GOAL', 'CREATE_CARD', 'CREATE_INVESTMENT'
   pendingEntities: any;               // { valor: 5000, meta: 'Viagem', banco: 'Nubank' }
   confirmationRequired: boolean;
+  awaitingConfirmation: boolean;      // Flag para indicar se está aguardando confirmação
+  entities: any;                      // Entidades extraídas para a ação
   lastUpdated: Date;
   conversationFlow: string[];         // Histórico de ações na conversa
   missingFields: string[];           // Campos que ainda precisam ser preenchidos
@@ -71,6 +73,8 @@ export class ContextManager {
       currentAction: action,
       pendingEntities: { ...state.pendingEntities, ...entities },
       confirmationRequired: requiresConfirmation,
+      awaitingConfirmation: requiresConfirmation,
+      entities: entities,
       lastUpdated: now
     });
     
@@ -150,6 +154,8 @@ export class ContextManager {
       currentAction: null,
       pendingEntities: {},
       confirmationRequired: false,
+      awaitingConfirmation: false,
+      entities: {},
       lastUpdated: new Date(),
       conversationFlow: [],
       missingFields: []

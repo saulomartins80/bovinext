@@ -29,7 +29,8 @@ interface InvestmentPayload {
 }
 
 interface GoalPayload {
-  meta: string;
+  nome_da_meta: string;
+  descricao?: string;
   valor_total: number;
   data_conclusao: string;
   categoria: string;
@@ -1034,14 +1035,13 @@ export async function createTransaction(userId: string, payload: TransactionPayl
     }
 
     const transactionData = {
-      userId: user._id, // Usar o ObjectId do MongoDB
+      userId: userId, // Usar Firebase UID (string) conforme schema
       valor: payload.valor || 0,
       descricao: payload.descricao || 'Transação',
       tipo: payload.tipo || 'despesa',
       categoria: payload.categoria || 'Geral',
       conta: payload.conta || 'Principal',
-      data: payload.data || new Date().toISOString().split('T')[0],
-      createdAt: new Date()
+      data: payload.data ? new Date(payload.data) : new Date(), // Converter para Date object
     };
 
     console.log('[CreateTransaction] Criando transação:', transactionData);
@@ -1064,13 +1064,12 @@ export async function createInvestment(userId: string, payload: InvestmentPayloa
     }
 
     const investmentData = {
-      userId: user._id, // Usar o ObjectId do MongoDB
+      userId: userId, // Usar Firebase UID (string) conforme schema
       nome: payload.nome || 'Investimento',
       valor: payload.valor || 0,
       tipo: payload.tipo || 'Renda Fixa',
       data: payload.data ? new Date(payload.data) : new Date(),
-      instituicao: payload.instituicao || 'Instituição',
-      createdAt: new Date()
+      instituicao: payload.instituicao || 'Instituição'
     };
 
     console.log('[CreateInvestment] Criando investimento:', investmentData);
@@ -1093,14 +1092,14 @@ export async function createGoal(userId: string, payload: GoalPayload): Promise<
     }
 
     const goalData = {
-      userId: user._id, // Usar o ObjectId do MongoDB
-      meta: payload.meta || 'Meta',
+      userId: userId, // Usar Firebase UID (string) conforme schema Goal
+      nome_da_meta: payload.nome_da_meta || 'Meta',
+      descricao: payload.descricao || payload.nome_da_meta || 'Meta',
       valor_total: payload.valor_total || 0,
-      data_conclusao: payload.data_conclusao || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      data_conclusao: payload.data_conclusao ? new Date(payload.data_conclusao) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       categoria: payload.categoria || 'Geral',
       valor_atual: 0,
-      prioridade: 'media',
-      createdAt: new Date()
+      prioridade: 'media'
     };
 
     console.log('[CreateGoal] Criando meta:', goalData);
@@ -1115,27 +1114,42 @@ export async function createGoal(userId: string, payload: GoalPayload): Promise<
 }
 
 export async function createCard(userId: string, payload: CardPayload): Promise<any> {
-  const cardData = {
-    userId,
-    name: payload.nome || 'Cartão',
-    bank: payload.banco || 'Banco',
-    program: payload.programa || 'Programa de Pontos',
-    number: payload.numero || '0000',
-    limit: payload.limite || 0,
-    used: 0,
-    dueDate: payload.vencimento || 10,
-    closingDate: payload.fechamento || 5,
-    pointsPerReal: payload.pontosPorReal || 1,
-    annualFee: payload.anuidade || 0,
-    benefits: payload.beneficios || [],
-    status: payload.status === 'Inativo' ? 'inactive' : 'active',
-    color: payload.cor || '#3B82F6',
-    category: payload.categoria || 'standard',
-    cashback: payload.cashback || 0
-  };
+  try {
+    // PROBLEMA: Card schema usa ObjectId para userId, não string!
+    // Buscar usuário pelo firebaseUid para obter ObjectId
+    const user = await User.findOne({ firebaseUid: userId });
+    if (!user) {
+      throw new Error('Usuário não encontrado');
+    }
 
-  const card = new Card(cardData);
-  return await card.save();
+    const cardData = {
+      userId: user._id, // Usar ObjectId conforme schema Card
+      name: payload.nome || 'Cartão',
+      bank: payload.banco || 'Banco',
+      program: payload.programa || 'Programa de Pontos',
+      number: payload.numero || '0000',
+      limit: payload.limite || 0,
+      used: 0,
+      dueDate: payload.vencimento || 10,
+      closingDate: payload.fechamento || 5,
+      pointsPerReal: payload.pontosPorReal || 1,
+      annualFee: payload.anuidade || 0,
+      benefits: payload.beneficios || [],
+      status: payload.status === 'Inativo' ? 'inactive' : 'active',
+      color: payload.cor || '#3B82F6',
+      category: payload.categoria || 'standard',
+      cashback: payload.cashback || 0
+    };
+
+    console.log('[CreateCard] Criando cartão:', cardData);
+    const card = new Card(cardData);
+    const result = await card.save();
+    console.log('[CreateCard] Cartão criado com sucesso:', result._id);
+    return result;
+  } catch (error) {
+    console.error('[CreateCard] Erro ao criar cartão:', error);
+    throw error;
+  }
 }
 
 export async function analyzeData(userId: string, payload: AnalysisPayload): Promise<any> {

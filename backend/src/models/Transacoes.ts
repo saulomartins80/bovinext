@@ -8,6 +8,7 @@ export interface ITransacao {
   categoria: string;
   tipo: "receita" | "despesa" | "transferencia";
   conta: string;
+  observacao?: string; // Campo opcional para observações
   userId: string; // Alterado para string para usar UID do Firebase
 }
 
@@ -27,6 +28,7 @@ const transacaoSchema = new Schema<ITransacaoDocument>(
       enum: ["receita", "despesa", "transferencia"] 
     },
     conta: { type: String, required: true },
+    observacao: { type: String, required: false }, // Campo opcional para observações
     userId: { type: String, required: true, index: true }, // Alterado para String
   },
   { timestamps: true } // Adiciona createdAt e updatedAt automaticamente

@@ -1,5 +1,3 @@
-import { Investimento, ApiResponse } from '.';
-
-export const getInvestimentos = (): Promise<ApiResponse<Investimento[]>> => {
-  return Promise.resolve({ success: true, data: [] });
-};
+// Este arquivo foi limpo - as funções de API estão em services/api.ts
+// Mantendo apenas para compatibilidade de imports se necessário
+export * from './Investimento';

@@ -1,5 +1,3 @@
-import { Meta, ApiResponse } from '.';
-
-export const getMetas = (): Promise<ApiResponse<Meta[]>> => {
-  return Promise.resolve({ success: true, data: [] });
-};
+// Este arquivo foi limpo - as funções de API estão em services/api.ts
+// Mantendo apenas para compatibilidade de imports se necessário
+export * from './Meta';

@@ -493,12 +493,20 @@ export const subscriptionAPI = {
 
 // API para Investimentos com logs
 export const investimentoAPI = {
-  getAll: async (): Promise<Investimento[]> => {
-    console.log('[investimentoAPI] Fetching all investments');
+  getAll: async (options?: { page?: number; limit?: number; tipo?: string }): Promise<Investimento[]> => {
+    console.log('[investimentoAPI] Fetching investments with options:', options);
     try {
-      const response = await api.get("/api/investimentos");
+      const params = new URLSearchParams();
+      if (options?.page) params.append('page', options.page.toString());
+      if (options?.limit) params.append('limit', options.limit.toString());
+      if (options?.tipo) params.append('tipo', options.tipo);
+      
+      const url = params.toString() ? `/api/investimentos?${params.toString()}` : "/api/investimentos";
+      const response = await api.get(url);
+      
       console.log('[investimentoAPI] Successfully fetched investments', {
-        count: response.data?.length || 0
+        count: response.data?.length || 0,
+        options
       });
       return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
@@ -542,12 +550,21 @@ export const investimentoAPI = {
 
 // API para Transações com logs
 export const transacaoAPI = {
-  getAll: async (): Promise<Transacao[]> => {
-    console.log('[transacaoAPI] Fetching all transactions');
+  getAll: async (options?: { page?: number; limit?: number; startDate?: string; endDate?: string }): Promise<Transacao[]> => {
+    console.log('[transacaoAPI] Fetching transactions with options:', options);
     try {
-      const response = await api.get("/api/transacoes");
+      const params = new URLSearchParams();
+      if (options?.page) params.append('page', options.page.toString());
+      if (options?.limit) params.append('limit', options.limit.toString());
+      if (options?.startDate) params.append('startDate', options.startDate);
+      if (options?.endDate) params.append('endDate', options.endDate);
+      
+      const url = params.toString() ? `/api/transacoes?${params.toString()}` : "/api/transacoes";
+      const response = await api.get(url);
+      
       console.log('[transacaoAPI] Successfully fetched transactions', {
-        count: response.data?.length || 0
+        count: response.data?.length || 0,
+        options
       });
       return Array.isArray(response.data) ? response.data : [];
     } catch (error) {

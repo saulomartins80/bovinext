@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
 
 const GoalSchema = new mongoose.Schema({
-  meta: {
+  nome_da_meta: {
     type: String,
-    required: [true, "O campo 'meta' é obrigatório"],
+    required: [true, "O campo 'nome_da_meta' é obrigatório"],
     trim: true,
-    maxlength: [100, "Meta não pode exceder 100 caracteres"]
+    maxlength: [100, "Nome da meta não pode exceder 100 caracteres"]
   },
   descricao: {
     type: String,

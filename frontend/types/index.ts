@@ -34,7 +34,22 @@ export interface ApiResponse<T = unknown> {
   message?: string;
   data?: T;
   error?: string;
-// Removed duplicate Subscription interface userId?: string;
+}
+
+// Interface para respostas paginadas
+export interface PaginatedResponse<T = unknown> {
+  success: boolean;
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+  message?: string;
+  error?: string;
 }
 
 export interface CommandResponse {

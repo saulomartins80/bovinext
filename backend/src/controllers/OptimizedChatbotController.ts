@@ -87,6 +87,7 @@ class AutomationEngine {
     this.actionHandlers.set('CREATE_GOAL', this.handleCreateGoal.bind(this));
     this.actionHandlers.set('create_investment', this.handleCreateInvestment.bind(this));
     this.actionHandlers.set('CREATE_INVESTMENT', this.handleCreateInvestment.bind(this));
+    this.actionHandlers.set('create_card', this.handleCreateCard.bind(this));
     this.actionHandlers.set('CREATE_CARD', this.handleCreateCard.bind(this));
     this.actionHandlers.set('ANALYZE_DATA', this.handleAnalyzeData.bind(this));
     this.actionHandlers.set('MILEAGE', this.handleMileage.bind(this));
@@ -128,35 +129,58 @@ class AutomationEngine {
   }
 
   private async handleCreateTransaction(entities: any, userId: string): Promise<any> {
-    // Verificar se temos dados suficientes
-    const requiredFields = ['valor'];
-    const missingFields = requiredFields.filter(field => !entities[field]);
-
-    if (missingFields.length > 0) {
+    // Verificar se temos dados suficientes para transação
+    const valor = entities.valor;
+    const descricao = entities.descricao;
+    
+    if (!valor) {
       return {
         success: false,
         message: `Para criar a transação, preciso do valor. Qual foi o valor?`,
         requiresInput: true,
-        missingFields
+        missingFields: ['valor']
+      };
+    }
+
+    if (!descricao) {
+      return {
+        success: false,
+        message: `Para criar a transação, preciso saber o que foi comprado. O que você comprou?`,
+        requiresInput: true,
+        missingFields: ['descricao']
       };
     }
 
     try {
       // Buscar usuário pelo firebaseUid para obter ObjectId
-      const User = require('../models/User');
+      const { User } = await import('../models/User');
       const user = await User.findOne({ firebaseUid: userId });
       if (!user) {
         throw new Error('Usuário não encontrado');
       }
 
       // CRIAR TRANSACTION REAL NO MONGODB
-      const Transacao = require('../models/Transacoes');
+      const Transacoes = (await import('../models/Transacoes')).default;
       
+      // Determinar valor positivo/negativo baseado no tipo
+      let valorFinal = parseFloat(entities.valor);
+      const tipo = entities.tipo || 'despesa';
+      
+      // Aplicar sinal correto baseado no tipo
+      if (tipo === 'receita' && valorFinal > 0) {
+        valorFinal = Math.abs(valorFinal); // Receita sempre positiva
+      } else if (tipo === 'despesa' && valorFinal > 0) {
+        valorFinal = -Math.abs(valorFinal); // Despesa sempre negativa
+      } else if (tipo === 'transferencia') {
+        // Transferência mantém o sinal original ou negativo por padrão
+        valorFinal = valorFinal > 0 ? -valorFinal : valorFinal;
+      }
+
       const transactionData = {
-        userId: user._id, // Usar ObjectId correto
-        valor: parseFloat(entities.valor),
+        userId: userId, // Usar Firebase UID string
+        valor: valorFinal,
         descricao: entities.descricao || 'Transação via chat',
-        tipo: entities.tipo || 'despesa',
+        tipo: tipo,
         categoria: entities.categoria || 'Geral',
         data: entities.data ? new Date(entities.data) : new Date(),
         conta: entities.conta || 'Principal',
@@ -164,7 +188,7 @@ class AutomationEngine {
       };
 
       console.log('[AutomationEngine] Saving transaction to MongoDB:', transactionData);
-      const savedTransaction = await Transacao.create(transactionData);
+      const savedTransaction = await Transacoes.create(transactionData);
       console.log('[AutomationEngine] Transaction saved successfully:', savedTransaction._id);
 
       return {
@@ -200,7 +224,7 @@ class AutomationEngine {
 
     try {
       // Buscar usuário no MongoDB
-      const User = require('../models/User');
+      const { User } = await import('../models/User');
       const user = await User.findOne({ firebaseUid: userId });
       if (!user) {
         throw new Error('Usuário não encontrado');
@@ -209,18 +233,19 @@ class AutomationEngine {
       console.log('[AutomationEngine] 👤 Usuário encontrado:', user._id);
 
       const goalData = {
-        userId: user._id,
-        nome: entities.nome || entities.descricao || 'Meta financeira',
-        valorTotal: parseFloat(valor),
-        valorAtual: 0,
-        categoria: entities.categoria || 'Economia',
-        prazo: entities.prazo || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 ano padrão
-        status: 'ativa',
+        userId: userId, // Usar Firebase UID string
+        nome_da_meta: entities.nome_da_meta || entities.nome || entities.descricao || 'Meta financeira',
+        descricao: entities.descricao || entities.nome_da_meta || entities.nome || 'Meta financeira',
+        valor_total: parseFloat(valor),
+        valor_atual: 0,
+        categoria: entities.categoria || 'Geral',
+        data_conclusao: entities.data_conclusao ? new Date(entities.data_conclusao) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        prioridade: entities.prioridade || 'media',
         createdAt: new Date()
       };
 
       console.log('[AutomationEngine] 💾 Salvando meta no MongoDB:', goalData);
-      const Goal = require('../models/Goal');
+      const { Goal } = await import('../models/Goal');
       const savedGoal = await Goal.create(goalData);
       console.log('[AutomationEngine] ✅ Meta salva com sucesso:', savedGoal._id);
 
@@ -255,7 +280,7 @@ class AutomationEngine {
 
     try {
       // Buscar usuário no MongoDB
-      const User = require('../models/User');
+      const { User } = await import('../models/User');
       const user = await User.findOne({ firebaseUid: userId });
       if (!user) {
         throw new Error('Usuário não encontrado');
@@ -267,17 +292,18 @@ class AutomationEngine {
         userId: user._id,
         tipo: entities.tipo || 'Renda Fixa',
         valor: parseFloat(entities.valor),
+        nome: entities.nome || entities.tipo || 'Investimento',
         descricao: entities.descricao || 'Investimento via chat',
         categoria: entities.categoria || 'Investimentos',
-        dataInvestimento: entities.data ? new Date(entities.data) : new Date(),
+        data: entities.data ? new Date(entities.data) : new Date(),
         status: 'ativo',
         rentabilidade: entities.rentabilidade || 0,
         createdAt: new Date()
       };
 
       console.log('[AutomationEngine] 💾 Salvando investimento no MongoDB:', investmentData);
-      const Investment = require('../models/Investment');
-      const savedInvestment = await Investment.create(investmentData);
+      const { default: Investimento } = await import('../models/Investimento');
+      const savedInvestment = await Investimento.create(investmentData);
       console.log('[AutomationEngine] ✅ Investimento salvo com sucesso:', savedInvestment._id);
 
       return {
@@ -296,8 +322,14 @@ class AutomationEngine {
   }
 
   private async handleCreateCard(entities: any, userId: string): Promise<any> {
+    // Mapear campos de diferentes formatos
+    const nome = entities.nome || entities.name || entities.banco || 'Cartão';
+    const limite = entities.limite || entities.limit;
+    
+    // Verificar se temos dados suficientes
+    const mappedEntities = { ...entities, nome, limite };
     const requiredFields = ['nome', 'limite'];
-    const missingFields = requiredFields.filter(field => !entities[field]);
+    const missingFields = requiredFields.filter(field => !mappedEntities[field]);
 
     if (missingFields.length > 0) {
       return {
@@ -311,36 +343,32 @@ class AutomationEngine {
     try {
       // SALVAR NO MONGODB DE VERDADE
       const cardData = {
-        userId: new ObjectId(userId),
-        nome: entities.nome,
-        limite: entities.limite,
-        banco: entities.banco || 'Banco',
-        programa: entities.programa || 'Programa de Pontos',
-        bandeira: entities.bandeira || 'Visa',
-        tipo: entities.tipo || 'Crédito',
-        status: entities.status || 'Ativo',
-        categoria: entities.categoria || 'standard',
-        ultimosDigitos: entities.ultimosDigitos || '****',
-        vencimento: entities.vencimento || 15,
-        fechamento: entities.fechamento || 30,
-        anuidade: entities.anuidade || 0,
-        data: new Date(),
-        descricao: entities.descricao || ''
+        userId: userId, // Usar Firebase UID string
+        name: nome,
+        limit: limite,
+        bank: entities.banco || entities.bank || 'Nubank',
+        program: entities.programa || entities.program || 'Nubank Rewards',
+        number: entities.ultimosDigitos || entities.number || '****',
+        used: 0,
+        dueDate: entities.vencimento || entities.dueDate || 15,
+        closingDate: entities.fechamento || entities.closingDate || 30,
+        pointsPerReal: entities.pointsPerReal || 1,
+        annualFee: entities.anuidade || entities.annualFee || 0,
+        benefits: entities.benefits || [],
+        status: 'active',
+        color: entities.color || '#8A05BE',
+        category: entities.categoria || entities.category || 'standard'
       };
 
       console.log('[AutomationEngine] Saving card to MongoDB:', cardData);
       
-      // Aqui você precisará importar o modelo de Cartão
-      // const Card = require('../models/Card');
-      // const savedCard = await Card.create(cardData);
-      
-      // Por enquanto, vamos simular o save
-      const savedCard = { ...cardData, _id: new ObjectId() };
+      const { Card } = await import('../models/Card');
+      const savedCard = await Card.create(cardData);
       console.log('[AutomationEngine] Card saved successfully:', savedCard._id);
 
       return {
         success: true,
-        message: `💳 Cartão ${entities.nome} com limite de R$ ${entities.limite} registrado com sucesso!`,
+        message: `💳 Cartão ${nome} com limite de R$ ${limite} registrado com sucesso!`,
         data: savedCard
       };
     } catch (error: any) {
@@ -443,6 +471,52 @@ export class OptimizedChatbotController {
         contextState = contextManager.getConversationState(chatId);
         if (contextState) {
           console.log(`[OptimizedChatbot] Active context: ${contextState.currentAction} for ${chatId}`);
+          
+          // Verificar se é uma confirmação (sim/não)
+          const isConfirmation = /^(sim|yes|confirmar|confirmo|ok|pode|vai)$/i.test(message.trim());
+          const isCancellation = /^(não|no|nao|cancelar|cancelo|para)$/i.test(message.trim());
+          
+          if (isConfirmation && contextState.awaitingConfirmation) {
+            console.log(`[OptimizedChatbot] 🎯 CONFIRMAÇÃO RECEBIDA - Executando ação: ${contextState.currentAction}`);
+            
+            const automationResult = await this.automationEngine.executeAction(
+              contextState.currentAction,
+              contextState.entities,
+              userId
+            );
+            
+            console.log(`[OptimizedChatbot] ✅ Resultado da automação:`, JSON.stringify(automationResult, null, 2));
+            
+            if (automationResult?.success) {
+              contextManager.clearConversationState(chatId);
+              
+              // Salvar no histórico e retornar resultado
+              this.saveMessageToHistory(chatId, userId, message, automationResult.message)
+                .catch((error: any) => console.error('[OptimizedChatbot] Error saving to history:', error));
+              
+              res.status(200).json({
+                success: true,
+                message: automationResult.message,
+                actionExecuted: true,
+                data: automationResult.data
+              });
+              return;
+            }
+          } else if (isCancellation && contextState.awaitingConfirmation) {
+            console.log(`[OptimizedChatbot] ❌ AÇÃO CANCELADA pelo usuário`);
+            contextManager.clearConversationState(chatId);
+            
+            const cancelMessage = 'Ação cancelada. Como posso te ajudar?';
+            this.saveMessageToHistory(chatId, userId, message, cancelMessage)
+              .catch((error: any) => console.error('[OptimizedChatbot] Error saving to history:', error));
+            
+            res.status(200).json({
+              success: true,
+              message: cancelMessage,
+              actionExecuted: false
+            });
+            return;
+          }
         }
       }
 

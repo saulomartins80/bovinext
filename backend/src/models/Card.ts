@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface ICard extends Document {
-  userId: mongoose.Types.ObjectId;
+  userId: string;
   name: string;
   bank: string;
   program: string;
@@ -63,8 +63,7 @@ export interface IMileageProgram extends Document {
 
 const CardSchema = new Schema<ICard>({
   userId: {
-    type: Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
     required: true,
     index: true
   },

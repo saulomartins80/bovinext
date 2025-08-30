@@ -80,11 +80,47 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
   const [lastFetchTime, setLastFetchTime] = useState<number>(0);
   const [isDataFresh, setIsDataFresh] = useState(false);
+  
+  // Cache granular por tipo de dados
+  const [cacheTimestamps, setCacheTimestamps] = useState({
+    transactions: 0,
+    investimentos: 0,
+    metas: 0
+  });
+  const [cacheStatus, setCacheStatus] = useState({
+    transactions: false,
+    investimentos: false,
+    metas: false
+  });
 
   const { user, isAuthReady } = useAuth(); // isAuthReady é o authChecked do AuthContext
   // console.log('[FinanceProvider] Auth state from useAuth: isAuthReady =', isAuthReady, 'user exists =', !!user);
 
+  // Função para invalidar cache específico
+  const invalidateCache = useCallback((type?: 'transactions' | 'investimentos' | 'metas') => {
+    if (type) {
+      setCacheStatus(prev => ({ ...prev, [type]: false }));
+      setCacheTimestamps(prev => ({ ...prev, [type]: 0 }));
+      console.log(`[FinanceContext] Cache invalidado para: ${type}`);
+    } else {
+      // Invalidar todo o cache
+      setCacheStatus({ transactions: false, investimentos: false, metas: false });
+      setCacheTimestamps({ transactions: 0, investimentos: 0, metas: 0 });
+      setIsDataFresh(false);
+      console.log('[FinanceContext] Todo o cache foi invalidado');
+    }
+  }, []);
+
   const fetchTransactions = async () => {
+    const now = Date.now();
+    const CACHE_DURATION = 30000; // 30 segundos
+    
+    // Verificar cache específico para transações
+    if (cacheStatus.transactions && (now - cacheTimestamps.transactions) < CACHE_DURATION) {
+      console.log('[fetchTransactions] Cache hit - dados ainda frescos');
+      return;
+    }
+    
     console.log('[FinanceContext] Attempting to call fetchTransactions. AuthState:', { isAuthReady, user: !!user });
     if (!isAuthReady || !user) {
         console.log('[FinanceContext] fetchTransactions ABORTED - Auth not ready or no user.');
@@ -98,6 +134,11 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       const data = await transacaoAPI.getAll();
       console.log('[fetchTransactions] Data received:', data);
       setTransactions(data.map(normalizeTransacao));
+      
+      // Atualizar cache específico
+      setCacheTimestamps(prev => ({ ...prev, transactions: now }));
+      setCacheStatus(prev => ({ ...prev, transactions: true }));
+      
       console.log('[fetchTransactions] Transactions updated successfully');
     } catch (error) {
       console.error("[fetchTransactions] Error fetching transactions:", error);
@@ -132,6 +173,10 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       const data = await transacaoAPI.create(apiData);
       console.log('[addTransaction] Created successfully:', data);
       setTransactions((prev) => [...prev, normalizeTransacao(data)]);
+      
+      // Invalidar cache após modificação
+      invalidateCache('transactions');
+      
       console.log('[addTransaction] State updated with new transaction');
     } catch (error) {
       console.error("[addTransaction] Error adding transaction:", error);
@@ -154,6 +199,10 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
           return currentId === normalizedId ? normalizeTransacao({...t, ...data}) : t;
         })
       );
+      
+      // Invalidar cache após modificação
+      invalidateCache('transactions');
+      
       console.log('[editTransaction] State updated successfully');
     } catch (error) {
       console.error("[editTransaction] Error editing transaction:", error);
@@ -177,6 +226,10 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
           return currentId !== normalizedId;
         })
       );
+      
+      // Invalidar cache após modificação
+      invalidateCache('transactions');
+      
       console.log('[deleteTransaction] State updated successfully');
     } catch (error) {
       console.error("[deleteTransaction] Error deleting transaction:", error);
@@ -186,6 +239,15 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const fetchInvestimentos = async () => {
+    const now = Date.now();
+    const CACHE_DURATION = 30000; // 30 segundos
+    
+    // Verificar cache específico para investimentos
+    if (cacheStatus.investimentos && (now - cacheTimestamps.investimentos) < CACHE_DURATION) {
+      console.log('[fetchInvestimentos] Cache hit - dados ainda frescos');
+      return;
+    }
+    
     console.log('[FinanceContext] Attempting to call fetchInvestimentos. AuthState:', { isAuthReady, user: !!user });
     if (!isAuthReady || !user) {
         console.log('[FinanceContext] fetchInvestimentos ABORTED - Auth not ready or no user.');
@@ -199,6 +261,11 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
       const data = await investimentoAPI.getAll();
       console.log('[fetchInvestimentos] Data received:', data);
       setInvestimentos(data);
+      
+      // Atualizar cache específico
+      setCacheTimestamps(prev => ({ ...prev, investimentos: now }));
+      setCacheStatus(prev => ({ ...prev, investimentos: true }));
+      
       console.log('[fetchInvestimentos] Investments updated successfully');
     } catch (error) {
       console.error("[fetchInvestimentos] Error fetching investments:", error);
@@ -254,6 +321,15 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const fetchMetas = async () => {
+    const now = Date.now();
+    const CACHE_DURATION = 30000; // 30 segundos
+    
+    // Verificar cache específico para metas
+    if (cacheStatus.metas && (now - cacheTimestamps.metas) < CACHE_DURATION) {
+      console.log('[fetchMetas] Cache hit - dados ainda frescos');
+      return;
+    }
+    
     console.log('[FinanceContext] Attempting to call fetchMetas. AuthState:', { isAuthReady, user: !!user });
     if (!isAuthReady || !user) {
         console.log('[FinanceContext] fetchMetas ABORTED - Auth not ready or no user.');
@@ -271,6 +347,11 @@ export const FinanceProvider = ({ children }: { children: ReactNode }) => {
         concluida: meta && meta.valor_atual !== undefined && meta.valor_total !== undefined ? meta.valor_atual >= meta.valor_total : false
       }));
       setMetas(normalizedMetas);
+      
+      // Atualizar cache específico
+      setCacheTimestamps(prev => ({ ...prev, metas: now }));
+      setCacheStatus(prev => ({ ...prev, metas: true }));
+      
       console.log('[fetchMetas] Goals updated successfully');
     } catch (error) {
       console.error("[fetchMetas] Error fetching goals:", error);

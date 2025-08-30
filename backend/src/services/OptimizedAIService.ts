@@ -120,11 +120,16 @@ class FastIntentDetector {
       /tesouro.*selic|tesouro.*direto/i
     ],
     create_transaction: [
-      /gast[ei]|comprei|paguei|despesa|receita|transação/i,
-      /registr[ao].*transação|adicionar.*transação/i,
+      /gast[ei]|comprei|paguei|despesa|receita|transação|transacao/i,
+      /registr[ao].*transação|adicionar.*transação|nova.*transação/i,
       /conta.*luz|conta.*água|conta.*gás/i,
       /supermercado|mercado|farmácia/i,
-      /uber|99|taxi|gasolina|combustível/i
+      /uber|99|taxi|gasolina|combustível/i,
+      /\d+\s*reais?/i,
+      /r\$\s*\d+/i,
+      /valor.*\d+/i,
+      /pode.*registrar/i,
+      /quero.*registrar/i
     ],
     create_card: [
       /cartão|cartao|card/i,
@@ -173,16 +178,9 @@ class FastIntentDetector {
         }
       }
 
-      // Extrair entidades específicas para TRANSAÇÃO
+      // Extrair entidades específicas para TRANSAÇÃO (ordem do formulário)
       if (intent === 'create_transaction') {
-        // Extrair valor
-        const valueMatch = message.match(/(\d+(?:[.,]\d+)?)/);
-        if (valueMatch) {
-          entities.valor = parseFloat(valueMatch[1].replace(',', '.'));
-          matches += 2;
-        }
-        
-        // Extrair descrição
+        // Extrair descrição primeiro (ordem do formulário)
         let descricao = '';
         const pattern1 = message.match(/(?:comprei|gastei|paguei)\s+(?:um|uma|o|a)?\s*([^0-9,]+?)(?:\s+(?:de|por|no valor|hoje|ontem|na|no)\s*|$)/i);
         if (pattern1) {
@@ -194,25 +192,19 @@ class FastIntentDetector {
           descricao = pattern2[1].trim();
         }
         
-        const localMatch = message.match(/(?:na|no)\s+([^0-9,]+?)(?:\s|$)/i);
-        if (localMatch) {
-          entities.local = localMatch[1].trim();
-        }
-        
         entities.descricao = descricao || 'Despesa';
         
-        // Detectar tipo baseado na mensagem
-        if (lowerMessage.includes('recebi') || lowerMessage.includes('salário') || lowerMessage.includes('renda')) {
-          entities.tipo = 'receita';
-        } else if (lowerMessage.includes('transferi') || lowerMessage.includes('transferência')) {
-          entities.tipo = 'transferencia';
-        } else {
-          entities.tipo = 'despesa';
+        // Extrair valor (segundo no formulário)
+        const valueMatch = message.match(/(\d+(?:[.,]\d+)?)/);
+        if (valueMatch) {
+          entities.valor = parseFloat(valueMatch[1].replace(',', '.'));
+          matches += 2;
         }
         
+        // Data (terceiro no formulário)
         entities.data = new Date().toISOString().split('T')[0];
         
-        // Extrair categoria baseada nos formulários
+        // Categoria (quarto no formulário)
         if (lowerMessage.includes('café') || lowerMessage.includes('padaria') || lowerMessage.includes('restaurante') || lowerMessage.includes('lanche') || lowerMessage.includes('açaí')) {
           entities.categoria = 'Alimentação';
         } else if (lowerMessage.includes('uber') || lowerMessage.includes('taxi') || lowerMessage.includes('gasolina') || lowerMessage.includes('combustível')) {
@@ -229,29 +221,19 @@ class FastIntentDetector {
           entities.categoria = 'Geral';
         }
         
-        // Definir conta padrão
+        // Tipo (quinto no formulário)
+        if (lowerMessage.includes('recebi') || lowerMessage.includes('salário') || lowerMessage.includes('renda') || lowerMessage.includes('ganhei') || lowerMessage.includes('recebimento')) {
+          entities.tipo = 'receita';
+        } else if (lowerMessage.includes('mandei') || lowerMessage.includes('enviei') || lowerMessage.includes('transferi') || lowerMessage.includes('transferência') || lowerMessage.includes('pix para')) {
+          entities.tipo = 'transferencia';
+        } else {
+          entities.tipo = 'despesa';
+        }
+        
+        // Conta padrão (último campo do formulário)
         entities.conta = 'Principal';
         
-        // Detectar método de pagamento e parcelas
-        if (lowerMessage.includes('crediário') || lowerMessage.includes('parcelado') || lowerMessage.includes('parcelas')) {
-          // Extrair número de parcelas se mencionado
-          const parcelasMatch = message.match(/(\d+)\s*(?:x|parcelas?|vezes?)/i);
-          if (parcelasMatch) {
-            entities.parcelas = parseInt(parcelasMatch[1]);
-          } else {
-            entities.parcelas = 1; // Padrão se não especificado
-          }
-          entities.metodo_pagamento = 'Cartão de Crédito';
-        } else if (lowerMessage.includes('cartão') || lowerMessage.includes('cartao')) {
-          entities.metodo_pagamento = 'Cartão de Crédito';
-          entities.parcelas = 1;
-        } else if (lowerMessage.includes('pix')) {
-          entities.metodo_pagamento = 'PIX';
-        } else if (lowerMessage.includes('dinheiro') || lowerMessage.includes('espécie')) {
-          entities.metodo_pagamento = 'Dinheiro';
-        } else {
-          entities.metodo_pagamento = 'Outros';
-        }
+        // Removido campos 'metodo_pagamento' e 'parcelas' - não existem no schema
         
         // Extrair descrição mais específica baseada na categoria e contexto
         if (lowerMessage.includes('farmácia') || lowerMessage.includes('remédio') || lowerMessage.includes('medicamento')) {
@@ -353,22 +335,37 @@ class FastIntentDetector {
           }
         }
         
+        // Extrair nome da meta específico da mensagem
+        let nomeMeta = 'Meta financeira';
+        const metaSpecificPatterns = [
+          /(?:meta|objetivo).*?(?:de|para)\s+([^0-9r$]+?)(?:\s+(?:de|no valor)|$)/i,
+          /juntar.*?para\s+([^0-9r$]+?)(?:\s+(?:de|no valor)|$)/i,
+          /poupar.*?para\s+([^0-9r$]+?)(?:\s+(?:de|no valor)|$)/i,
+          /(carro|casa|viagem|emergência|reserva|natal)/i
+        ];
+        
+        for (const pattern of metaSpecificPatterns) {
+          const match = message.match(pattern);
+          if (match) {
+            nomeMeta = match[1].trim().charAt(0).toUpperCase() + match[1].trim().slice(1);
+            break;
+          }
+        }
+        
         // Campos obrigatórios com valores padrão (baseado no formulário)
-        if (!entities.meta) entities.meta = 'Meta financeira'; // Nome da Meta*
-        if (!entities.descricao) entities.descricao = entities.meta; // Descrição*
-        if (!entities.valor_total) entities.valor_total = 0; // Valor Total (R$)*
+        entities.nome_da_meta = nomeMeta; // Nome da Meta (formulário)
+        entities.descricao = nomeMeta; // Descrição
+        if (!entities.valor_total) entities.valor_total = 0; // Valor Total
         if (!entities.data_conclusao) {
           const targetDate = new Date();
           targetDate.setFullYear(targetDate.getFullYear() + 1);
-          entities.data_conclusao = targetDate.toISOString().split('T')[0]; // Data Limite*
+          entities.data_conclusao = targetDate.toISOString().split('T')[0]; // Data Limite
         }
         
-        // Campos obrigatórios fixos
-        entities.valor_atual = 0; // Valor Atual (R$)*
-        
-        // Campos opcionais do formulário
-        entities.prioridade = 'media'; // Prioridade* (Alta/Média/Baixa)
-        entities.categoria = 'Economia'; // Categoria (opcional)
+        // Campos fixos do schema
+        entities.valor_atual = 0; // Valor Atual
+        entities.prioridade = 'media'; // Prioridade
+        entities.categoria = 'Economia'; // Categoria
       }
 
       // 🔧 CORREÇÃO: Extrair entidades para INVESTIMENTO baseado no schema exato
@@ -435,13 +432,10 @@ class FastIntentDetector {
           }
         }
         
-        // Campos obrigatórios
-        entities.data = new Date().toISOString().split('T')[0];
+        // Campos obrigatórios do schema Investimento
+        entities.data = new Date().toISOString().split('T')[0]; // data: Date, required
         
-        // Campos opcionais com valores padrão
-        entities.categoria = 'Investimentos';
-        entities.risco = entities.tipo === 'Tesouro Direto' ? 'Baixo' : 'Médio';
-        entities.liquidez = entities.tipo === 'Tesouro Direto' ? 'D+1' : 'D+0';
+        // Removidos campos risco e liquidez - não são usados no formulário
       }
 
       // 🔧 CORREÇÃO: Extrair entidades para CARTÃO baseado no schema exato
@@ -498,23 +492,24 @@ class FastIntentDetector {
           entities.number = numeroMatch[1];
         }
         
-        // Campos obrigatórios com valores padrão (baseado no formulário)
-        if (!entities.name) entities.name = 'Cartão de Crédito'; // Nome do Cartão*
-        if (!entities.bank) entities.bank = 'Banco'; // Banco/Instituição*
-        if (!entities.limit) entities.limit = 1000; // Limite (R$)*
-        if (!entities.number) entities.number = '0000'; // Últimos 4 dígitos*
+        // PROBLEMA: Card schema usa ObjectId para userId, não string!
+        // Campos obrigatórios do schema Card
+        if (!entities.name) entities.name = 'Cartão de Crédito'; // name: String, required
+        if (!entities.bank) entities.bank = 'Banco'; // bank: String, required
+        if (!entities.limit) entities.limit = 1000; // limit: Number, required
+        if (!entities.number) entities.number = '0000'; // number: String, required (4 digits)
         
-        // Campos obrigatórios fixos do formulário
-        entities.program = entities.bank + ' Rewards'; // Programa*
-        entities.used = 0; // Usado (sempre 0 inicialmente)
-        entities.dueDate = 10; // Vencimento (dia)*
-        entities.closingDate = 5; // Fechamento (dia)*
-        entities.pointsPerReal = 1; // Pontos por real
-        entities.annualFee = 0; // Anuidade (R$)*
-        entities.benefits = []; // Benefícios
-        entities.status = 'active'; // Status
-        entities.color = '#3B82F6'; // Cor
-        entities.category = 'standard'; // Categoria
+        // Campos obrigatórios do schema
+        entities.program = entities.bank + ' Rewards'; // program: String, required
+        entities.used = 0; // used: Number, required, default 0
+        entities.dueDate = 10; // dueDate: Number, required (1-31)
+        entities.closingDate = 5; // closingDate: Number, required (1-31)
+        entities.pointsPerReal = 1; // pointsPerReal: Number, required
+        entities.annualFee = 0; // annualFee: Number, required
+        entities.benefits = []; // benefits: String[], optional
+        entities.status = 'active'; // status: enum ['active', 'inactive', 'blocked']
+        entities.color = '#3B82F6'; // color: String, default
+        entities.category = 'standard'; // category: enum ['premium', 'standard', 'basic']
       }
 
       // Calcular confiança de forma mais inteligente
@@ -1186,16 +1181,18 @@ Finn:`;
   // Consultar registros existentes para dar contexto à IA
   private async getExistingRecords(userId: string): Promise<{ transactions: any[], goals: any[], investments: any[] }> {
     try {
-      const user = await require('../models/User').default.findOne({ firebaseUid: userId });
+      const user = await User.findOne({ firebaseUid: userId });
       if (!user) {
         console.warn('[OptimizedAI] User not found for context:', userId);
         return { transactions: [], goals: [], investments: [] };
       }
 
+      const Transacoes = (await import('../models/Transacoes')).default;
+      
       const [transactions, goals, investments] = await Promise.all([
-        require('../models/Transacoes').default.find({ userId: user._id }).limit(10).sort({ createdAt: -1 }),
-        Goal.find({ userId: user._id }).limit(5).sort({ createdAt: -1 }),
-        Investimento.find({ userId: user._id }).limit(5).sort({ createdAt: -1 })
+        Transacoes.find({ userId: userId }).limit(10).sort({ createdAt: -1 }),
+        Goal.find({ userId: userId }).limit(5).sort({ createdAt: -1 }),
+        Investimento.find({ userId: userId }).limit(5).sort({ createdAt: -1 })
       ]);
 
       return {
@@ -1229,21 +1226,26 @@ Finn:`;
   }
 
   private shouldRequireConfirmation(intentResult: any): boolean {
-    // Sempre pedir confirmação para criar registros - facilita UX
+    // ✅ CORREÇÃO: Executar automaticamente se tiver dados completos
+    
     if (intentResult.intent === 'create_transaction') {
-      return true;
+      // Executar automaticamente se tiver valor
+      return !(intentResult.entities?.valor && intentResult.entities.valor > 0);
     }
     
     if (intentResult.intent === 'create_goal') {
-      return true;
+      // Executar automaticamente se tiver valor_total e meta
+      return !(intentResult.entities?.valor_total && intentResult.entities.valor_total > 0 && intentResult.entities?.meta);
     }
     
-    if (intentResult.intent === 'create_investment' && intentResult.entities.valor > 0) {
-      return true;
+    if (intentResult.intent === 'create_investment') {
+      // Executar automaticamente se tiver valor e nome
+      return !(intentResult.entities?.valor && intentResult.entities.valor > 0 && intentResult.entities?.nome);
     }
     
     if (intentResult.intent === 'create_card') {
-      return true;
+      // Executar automaticamente se tiver nome e limite
+      return !(intentResult.entities?.name && intentResult.entities?.limit && intentResult.entities.limit > 0);
     }
 
     return false;
