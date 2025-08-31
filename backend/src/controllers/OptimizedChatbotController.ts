@@ -166,18 +166,22 @@ class AutomationEngine {
       let valorFinal = parseFloat(entities.valor);
       const tipo = entities.tipo || 'despesa';
       
-      // Aplicar sinal correto baseado no tipo
-      if (tipo === 'receita' && valorFinal > 0) {
+      // Aplicar sinal correto baseado no tipo - SEGUIR PADRÃO DOS FORMULÁRIOS
+      if (tipo === 'receita') {
         valorFinal = Math.abs(valorFinal); // Receita sempre positiva
-      } else if (tipo === 'despesa' && valorFinal > 0) {
-        valorFinal = -Math.abs(valorFinal); // Despesa sempre negativa
+      } else if (tipo === 'despesa') {
+        valorFinal = Math.abs(valorFinal); // Despesa sempre positiva (como nos formulários)
       } else if (tipo === 'transferencia') {
-        // Transferência mantém o sinal original ou negativo por padrão
-        valorFinal = valorFinal > 0 ? -valorFinal : valorFinal;
+        // Transferência: negativo para saída, positivo para entrada
+        if (entities.descricao && (entities.descricao.toLowerCase().includes('receb') || entities.descricao.toLowerCase().includes('entrada'))) {
+          valorFinal = Math.abs(valorFinal); // Entrada positiva
+        } else {
+          valorFinal = -Math.abs(valorFinal); // Saída negativa
+        }
       }
 
       const transactionData = {
-        userId: userId, // Usar Firebase UID string
+        userId: user._id, // Usar ObjectId do MongoDB
         valor: valorFinal,
         descricao: entities.descricao || 'Transação via chat',
         tipo: tipo,
@@ -233,15 +237,14 @@ class AutomationEngine {
       console.log('[AutomationEngine] 👤 Usuário encontrado:', user._id);
 
       const goalData = {
-        userId: userId, // Usar Firebase UID string
-        nome_da_meta: entities.nome_da_meta || entities.nome || entities.descricao || 'Meta financeira',
-        descricao: entities.descricao || entities.nome_da_meta || entities.nome || 'Meta financeira',
-        valor_total: parseFloat(valor),
+        userId: user._id, // Usar ObjectId do MongoDB
+        nome_da_meta: entities.nome_da_meta || entities.nome || entities.meta || 'Meta',
+        descricao: entities.descricao || entities.nome_da_meta || entities.nome || 'Meta criada via chat',
+        valor_total: valor,
         valor_atual: 0,
-        categoria: entities.categoria || 'Geral',
+        categoria: entities.categoria || 'Economia',
         data_conclusao: entities.data_conclusao ? new Date(entities.data_conclusao) : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        prioridade: entities.prioridade || 'media',
-        createdAt: new Date()
+        prioridade: entities.prioridade || 'media'
       };
 
       console.log('[AutomationEngine] 💾 Salvando meta no MongoDB:', goalData);
@@ -290,15 +293,11 @@ class AutomationEngine {
 
       const investmentData = {
         userId: user._id,
-        tipo: entities.tipo || 'Renda Fixa',
+        nome: entities.nome || entities.ativo || entities.descricao || 'Investimento',
+        tipo: entities.tipo || 'Renda Variável',
         valor: parseFloat(entities.valor),
-        nome: entities.nome || entities.tipo || 'Investimento',
-        descricao: entities.descricao || 'Investimento via chat',
-        categoria: entities.categoria || 'Investimentos',
         data: entities.data ? new Date(entities.data) : new Date(),
-        status: 'ativo',
-        rentabilidade: entities.rentabilidade || 0,
-        createdAt: new Date()
+        instituicao: entities.instituicao || entities.corretora || 'BTG Pactual'
       };
 
       console.log('[AutomationEngine] 💾 Salvando investimento no MongoDB:', investmentData);
@@ -341,23 +340,31 @@ class AutomationEngine {
     }
 
     try {
+      // Buscar usuário no MongoDB
+      const { User } = await import('../models/User');
+      const user = await User.findOne({ firebaseUid: userId });
+      if (!user) {
+        throw new Error('Usuário não encontrado');
+      }
+
       // SALVAR NO MONGODB DE VERDADE
       const cardData = {
-        userId: userId, // Usar Firebase UID string
-        name: nome,
+        userId: user._id, // Usar ObjectId do MongoDB
+        name: nome, // Manter nome específico do usuário
         limit: limite,
-        bank: entities.banco || entities.bank || 'Nubank',
-        program: entities.programa || entities.program || 'Nubank Rewards',
-        number: entities.ultimosDigitos || entities.number || '****',
+        bank: entities.banco || entities.bank || nome.split(' ')[0] || 'Banco',
+        program: entities.programa || entities.program || `${entities.banco || nome.split(' ')[0]} Rewards`,
+        number: entities.ultimosDigitos || entities.number || '0000',
         used: 0,
-        dueDate: entities.vencimento || entities.dueDate || 15,
-        closingDate: entities.fechamento || entities.closingDate || 30,
+        dueDate: entities.vencimento || entities.dueDate || 10,
+        closingDate: entities.fechamento || entities.closingDate || 5,
         pointsPerReal: entities.pointsPerReal || 1,
         annualFee: entities.anuidade || entities.annualFee || 0,
         benefits: entities.benefits || [],
         status: 'active',
-        color: entities.color || '#8A05BE',
-        category: entities.categoria || entities.category || 'standard'
+        color: entities.color || '#3B82F6',
+        category: entities.categoria || entities.category || 'standard',
+        cashback: 0
       };
 
       console.log('[AutomationEngine] Saving card to MongoDB:', cardData);
@@ -888,6 +895,9 @@ export class OptimizedChatbotController {
 
         // 🆕 EXECUTAR AUTOMAÇÃO SE NECESSÁRIO (apenas se NÃO requer confirmação)
         let automationResult = null;
+        let needsConfirmation = false;
+        
+        // Verificar se há intent e confiança suficiente
         if (response.intent && response.confidence && response.confidence > 0.5 && !response.requiresConfirmation) {
           console.log(`[OptimizedChatbot] 🚀 EXECUTANDO AÇÃO NO STREAMING: ${response.intent} com confiança: ${response.confidence}`);
           console.log(`[OptimizedChatbot] 📊 Entidades detectadas:`, response.entities);
@@ -1100,13 +1110,15 @@ export class OptimizedChatbotController {
   }
 
   private async createInvestment(entities: any, userId: string) {
+    const { User } = await import('../models/User');
+    const user = await User.findOne({ firebaseUid: userId });
     const investmentData = {
-      nome: entities.descricao || 'Investimento',
-      tipo: entities.tipo || 'Renda Fixa',
-      valor: entities.valor || 0,
+      userId: user._id, // Usar ObjectId do MongoDB
+      nome: entities.nome || entities.ativo || entities.descricao || 'Investimento',
+      tipo: entities.tipo || 'Renda Variável',
+      valor: parseFloat(entities.valor),
       data: entities.data ? new Date(entities.data) : new Date(),
-      instituicao: entities.instituicao || entities.banco,
-      userId
+      instituicao: entities.instituicao || entities.corretora || 'BTG Pactual'
     };
 
     const investment = new Investimento(investmentData);

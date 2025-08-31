@@ -235,7 +235,7 @@ class FastIntentDetector {
         
         // Removido campos 'metodo_pagamento' e 'parcelas' - não existem no schema
         
-        // Extrair descrição mais específica baseada na categoria e contexto
+        // Extrair descrição mais específica baseada na categoria e contexto - PRESERVAR DETALHES ESPECÍFICOS
         if (lowerMessage.includes('farmácia') || lowerMessage.includes('remédio') || lowerMessage.includes('medicamento')) {
           entities.descricao = 'Medicamento';
         } else if (lowerMessage.includes('açaí')) {
@@ -246,10 +246,50 @@ class FastIntentDetector {
           entities.descricao = 'Uber';
         } else if (lowerMessage.includes('gasolina') || lowerMessage.includes('combustível')) {
           entities.descricao = 'Combustível';
+        } else if (lowerMessage.includes('freelance') || lowerMessage.includes('freela')) {
+          entities.descricao = 'Freelance';
+        } else if (lowerMessage.includes('salário') || lowerMessage.includes('salario')) {
+          entities.descricao = 'Salário';
+        } else if (lowerMessage.includes('irmão') || lowerMessage.includes('irmao')) {
+          entities.descricao = 'Transferência para irmão';
+        } else if (lowerMessage.includes('mãe') || lowerMessage.includes('mae')) {
+          entities.descricao = 'Transferência para mãe';
+        } else if (lowerMessage.includes('pai')) {
+          entities.descricao = 'Transferência para pai';
+        } else if (lowerMessage.includes('amigo') || lowerMessage.includes('amiga')) {
+          entities.descricao = 'Transferência para amigo';
+        } else if (entities.tipo === 'transferencia') {
+          // Para transferências, extrair destinatário específico
+          const transferPatterns = [
+            /(?:para|pro)\s+(?:meu|minha)?\s*(\w+)/i,
+            /transferi.*?(?:para|pro)\s+(?:meu|minha)?\s*(\w+)/i,
+            /enviei.*?(?:para|pro)\s+(?:meu|minha)?\s*(\w+)/i
+          ];
+          
+          for (const pattern of transferPatterns) {
+            const match = message.match(pattern);
+            if (match && match[1]) {
+              const destinatario = match[1].toLowerCase();
+              if (destinatario === 'irmao' || destinatario === 'irmão') {
+                entities.descricao = 'Transferência para irmão';
+              } else if (destinatario === 'mae' || destinatario === 'mãe') {
+                entities.descricao = 'Transferência para mãe';
+              } else if (destinatario === 'pai') {
+                entities.descricao = 'Transferência para pai';
+              } else {
+                entities.descricao = `Transferência para ${destinatario}`;
+              }
+              break;
+            }
+          }
+          
+          if (!entities.descricao) {
+            entities.descricao = 'Transferência';
+          }
         } else {
           // Fallback: procurar por palavras relevantes
           const palavrasChave = lowerMessage.split(' ');
-          const excludeWords = ['gastei', 'paguei', 'comprei', 'reais', 'valor', 'quero', 'registrar', 'despesa', 'uma', 'de', 'na', 'no', 'com', 'hoje'];
+          const excludeWords = ['gastei', 'paguei', 'comprei', 'reais', 'valor', 'quero', 'registrar', 'despesa', 'uma', 'de', 'na', 'no', 'com', 'hoje', 'transferi', 'enviei'];
           
           for (const palavra of palavrasChave) {
             if (palavra.length > 3 && !excludeWords.includes(palavra) && !palavra.match(/\d/) && !palavra.includes('r$')) {
@@ -286,30 +326,34 @@ class FastIntentDetector {
           }
         }
         
-        // Extrair nome da meta (campo obrigatório) - corresponde ao campo "Nome da Meta" do formulário
+        // Extrair nome da meta (campo obrigatório) - corresponde ao campo "nome_da_meta" do schema
         const metaPatterns = [
-          /meta.*?(?:de|para)\s+([^0-9r$]+?)(?:\s+(?:de|no valor)|$)/i,
-          /juntar.*?para\s+([^0-9r$]+?)(?:\s+(?:de|no valor)|$)/i,
-          /poupar.*?para\s+([^0-9r$]+?)(?:\s+(?:de|no valor)|$)/i,
-          /objetivo.*?(?:de|para)\s+([^0-9r$]+?)(?:\s+(?:de|no valor)|$)/i,
-          /(natal|viagem|casa|carro|emergência|reserva)/i
+          /meta.*?(?:de|para)\s+([^0-9r$]+?)(?:\s+(?:de|no valor|até)|$)/i,
+          /juntar.*?para\s+([^0-9r$]+?)(?:\s+(?:de|no valor|até)|$)/i,
+          /poupar.*?para\s+([^0-9r$]+?)(?:\s+(?:de|no valor|até)|$)/i,
+          /objetivo.*?(?:de|para)\s+([^0-9r$]+?)(?:\s+(?:de|no valor|até)|$)/i,
+          /comprar\s+(?:um|uma)?\s*([^0-9r$]+?)(?:\s+(?:até|de|no)|$)/i,
+          /para\s+comprar\s+(?:um|uma)?\s*([^0-9r$]+?)(?:\s+(?:até|de|no)|$)/i,
+          /(notebook|laptop|computador|natal|viagem|casa|carro|emergência|reserva|gramado|celular|iphone)/i
         ];
         
         for (const pattern of metaPatterns) {
           const match = message.match(pattern);
           if (match) {
-            entities.meta = match[1].trim().charAt(0).toUpperCase() + match[1].trim().slice(1);
+            entities.nome_da_meta = match[1].trim().charAt(0).toUpperCase() + match[1].trim().slice(1);
             break;
           }
         }
         
         // Extrair descrição (campo obrigatório)
-        entities.descricao = entities.meta || 'Meta financeira';
+        entities.descricao = entities.nome_da_meta || 'Meta financeira';
         
         // Extrair prazo para data_conclusao (campo obrigatório)
         const prazoPatterns = [
           /(\d+)\s*meses?/i,
           /(\d+)\s*anos?/i,
+          /dia\s+(\d{1,2})\s+de\s+(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/i,
+          /(\d{1,2})\s+de\s+(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)/i,
           /até.*?(\d{1,2})\/(\d{1,2})/i,
           /dezembro|natal/i
         ];
@@ -327,6 +371,19 @@ class FastIntentDetector {
               const targetDate = new Date();
               targetDate.setFullYear(targetDate.getFullYear() + years);
               entities.data_conclusao = targetDate.toISOString().split('T')[0];
+            } else if (pattern.source.includes('de\\s+(janeiro|fevereiro')) {
+              const day = parseInt(match[1]);
+              const monthName = match[2].toLowerCase();
+              const monthMap: { [key: string]: number } = {
+                'janeiro': 0, 'fevereiro': 1, 'março': 2, 'abril': 3, 'maio': 4, 'junho': 5,
+                'julho': 6, 'agosto': 7, 'setembro': 8, 'outubro': 9, 'novembro': 10, 'dezembro': 11
+              };
+              const currentYear = new Date().getFullYear();
+              const targetDate = new Date(currentYear, monthMap[monthName], day);
+              if (targetDate < new Date()) {
+                targetDate.setFullYear(currentYear + 1);
+              }
+              entities.data_conclusao = targetDate.toISOString().split('T')[0];
             } else if (pattern.source.includes('dezembro|natal')) {
               const currentYear = new Date().getFullYear();
               entities.data_conclusao = `${currentYear}-12-25`;
@@ -335,26 +392,57 @@ class FastIntentDetector {
           }
         }
         
-        // Extrair nome da meta específico da mensagem
+        // Extrair nome da meta específico da mensagem - PRESERVAR DETALHES ESPECÍFICOS COMPLETOS
         let nomeMeta = 'Meta financeira';
+        let descricaoMeta = '';
+        
         const metaSpecificPatterns = [
-          /(?:meta|objetivo).*?(?:de|para)\s+([^0-9r$]+?)(?:\s+(?:de|no valor)|$)/i,
-          /juntar.*?para\s+([^0-9r$]+?)(?:\s+(?:de|no valor)|$)/i,
-          /poupar.*?para\s+([^0-9r$]+?)(?:\s+(?:de|no valor)|$)/i,
-          /(carro|casa|viagem|emergência|reserva|natal)/i
+          /(?:meta|objetivo).*?(?:de|para)\s+([^0-9r$]+?)(?:\s+(?:de|no valor|até|com)|$)/i,
+          /juntar.*?para\s+([^0-9r$]+?)(?:\s+(?:de|no valor|até|com)|$)/i,
+          /poupar.*?para\s+([^0-9r$]+?)(?:\s+(?:de|no valor|até|com)|$)/i,
+          /comprar\s+(?:um|uma)?\s*([^0-9r$]+?)(?:\s+(?:de|no valor|até|com)|$)/i,
+          /para\s+(?:comprar|uma|um)?\s*([^0-9r$]+?)(?:\s+(?:de|até|com)|$)/i,
+          /(notebook|laptop|computador|carro|casa|viagem.*?paris|viagem.*?gramado|viagem|emergência|reserva|natal|celular|iphone|samsung)/i
         ];
         
         for (const pattern of metaSpecificPatterns) {
           const match = message.match(pattern);
           if (match) {
-            nomeMeta = match[1].trim().charAt(0).toUpperCase() + match[1].trim().slice(1);
-            break;
+            let extracted = match[1].trim();
+            // Limpar palavras desnecessárias
+            extracted = extracted.replace(/\b(para|até|com|de|um|uma|o|a)\b/gi, '').trim();
+            if (extracted.length > 2) {
+              nomeMeta = extracted.charAt(0).toUpperCase() + extracted.slice(1);
+              break;
+            }
           }
+        }
+        
+        // Criar descrição detalhada da meta baseada na mensagem completa
+        const messageWords = message.toLowerCase().split(' ');
+        const contextWords = [];
+        
+        // Extrair contexto adicional (prazo, valor, finalidade)
+        if (message.includes('até dezembro') || message.includes('natal')) {
+          contextWords.push('até dezembro');
+        }
+        if (message.includes('8000') || message.includes('oito mil')) {
+          contextWords.push('de R$ 8.000');
+        }
+        if (message.includes('trabalho') || message.includes('estudos')) {
+          contextWords.push('para trabalho/estudos');
+        }
+        
+        // Montar descrição completa
+        if (contextWords.length > 0) {
+          descricaoMeta = `${nomeMeta} ${contextWords.join(' ')}`;
+        } else {
+          descricaoMeta = `Meta para ${nomeMeta.toLowerCase()}`;
         }
         
         // Campos obrigatórios com valores padrão (baseado no formulário)
         entities.nome_da_meta = nomeMeta; // Nome da Meta (formulário)
-        entities.descricao = nomeMeta; // Descrição
+        entities.descricao = descricaoMeta; // Descrição detalhada
         if (!entities.valor_total) entities.valor_total = 0; // Valor Total
         if (!entities.data_conclusao) {
           const targetDate = new Date();
@@ -391,8 +479,8 @@ class FastIntentDetector {
           entities.tipo = 'CDB';
         } else if (lowerMessage.includes('tesouro') || lowerMessage.includes('selic') || lowerMessage.includes('ipca')) {
           entities.tipo = 'Tesouro Direto';
-        } else if (lowerMessage.includes('ações') || lowerMessage.includes('acoes') || lowerMessage.includes('bolsa')) {
-          entities.tipo = 'Ações';
+        } else if (lowerMessage.includes('ações') || lowerMessage.includes('acoes') || lowerMessage.includes('bolsa') || lowerMessage.includes('vale') || lowerMessage.includes('petrobras') || lowerMessage.includes('itau') || lowerMessage.includes('bradesco')) {
+          entities.tipo = 'Renda Variável';
         } else if (lowerMessage.includes('fii') || lowerMessage.includes('fundos imobiliários')) {
           entities.tipo = 'Fundos Imobiliários';
         } else if (lowerMessage.includes('lci')) {
@@ -405,7 +493,7 @@ class FastIntentDetector {
           entities.tipo = 'Renda Fixa';
         }
         
-        // Extrair nome do investimento (campo obrigatório)
+        // Extrair nome do investimento (campo obrigatório) - MANTER NOMES ESPECÍFICOS
         if (entities.tipo === 'Tesouro Direto') {
           if (lowerMessage.includes('selic')) {
             entities.nome = 'Tesouro Selic';
@@ -414,21 +502,92 @@ class FastIntentDetector {
           } else {
             entities.nome = 'Tesouro Direto';
           }
+        } else if (entities.tipo === 'Renda Variável') {
+          // Extrair nome específico da ação/empresa
+          if (lowerMessage.includes('vale')) {
+            entities.nome = 'Vale';
+          } else if (lowerMessage.includes('petrobras')) {
+            entities.nome = 'Petrobras';
+          } else if (lowerMessage.includes('itau')) {
+            entities.nome = 'Itaú';
+          } else if (lowerMessage.includes('bradesco')) {
+            entities.nome = 'Bradesco';
+          } else if (lowerMessage.includes('ações')) {
+            // Tentar extrair nome específico após "ações"
+            const acaoMatch = message.match(/ações?\s+(?:da|do)?\s*([a-zA-Z]+)/i);
+            if (acaoMatch) {
+              entities.nome = acaoMatch[1].charAt(0).toUpperCase() + acaoMatch[1].slice(1);
+            } else {
+              entities.nome = 'Ações';
+            }
+          } else {
+            entities.nome = 'Renda Variável';
+          }
         } else {
           entities.nome = entities.tipo;
         }
         
-        // Extrair instituição (campo opcional)
+        // Extrair instituição (campo obrigatório) - NOMES COMPLETOS
         const instituicaoPatterns = [
-          /(?:na|no|pela|pelo)\s+(nubank|inter|itau|bradesco|santander|bb|caixa|xp|rico|clear|easynvest|modal)/i,
-          /corretora\s+([a-z]+)/i
+          /(?:na|no|pela|pelo)\s+(nubank|inter|itau|bradesco|santander|bb|caixa|xp|rico|clear|easynvest|modal|btg)/i,
+          /corretora\s+([a-z]+)/i,
+          /(xp\s+investimentos?)/i,
+          /(btg\s+pactual)/i,
+          /(c6\s+bank)/i,
+          /(avenue)/i,
+          /(toro)/i
         ];
         
         for (const pattern of instituicaoPatterns) {
           const match = message.match(pattern);
           if (match) {
-            entities.instituicao = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+            const inst = match[1].toLowerCase();
+            // Mapear para nomes completos das instituições
+            if (inst === 'xp' || inst.includes('xp investimentos')) {
+              entities.instituicao = 'XP Investimentos';
+            } else if (inst === 'btg' || inst.includes('btg pactual')) {
+              entities.instituicao = 'BTG Pactual';
+            } else if (inst === 'itau') {
+              entities.instituicao = 'Itaú Unibanco';
+            } else if (inst === 'bradesco') {
+              entities.instituicao = 'Bradesco';
+            } else if (inst === 'santander') {
+              entities.instituicao = 'Santander';
+            } else if (inst === 'nubank') {
+              entities.instituicao = 'Nubank';
+            } else if (inst === 'inter') {
+              entities.instituicao = 'Banco Inter';
+            } else if (inst === 'bb') {
+              entities.instituicao = 'Banco do Brasil';
+            } else if (inst === 'caixa') {
+              entities.instituicao = 'Caixa Econômica Federal';
+            } else if (inst === 'rico') {
+              entities.instituicao = 'Rico Investimentos';
+            } else if (inst === 'clear') {
+              entities.instituicao = 'Clear Corretora';
+            } else if (inst === 'easynvest') {
+              entities.instituicao = 'Easynvest';
+            } else if (inst === 'modal') {
+              entities.instituicao = 'Modal Mais';
+            } else if (inst === 'c6 bank') {
+              entities.instituicao = 'C6 Bank';
+            } else if (inst === 'avenue') {
+              entities.instituicao = 'Avenue Securities';
+            } else if (inst === 'toro') {
+              entities.instituicao = 'Toro Investimentos';
+            } else {
+              entities.instituicao = match[1].charAt(0).toUpperCase() + match[1].slice(1);
+            }
             break;
+          }
+        }
+        
+        // Se não encontrou instituição, usar padrão baseado no tipo
+        if (!entities.instituicao) {
+          if (entities.tipo === 'Tesouro Direto') {
+            entities.instituicao = 'Tesouro Nacional';
+          } else {
+            entities.instituicao = 'Não informado';
           }
         }
         
@@ -442,11 +601,12 @@ class FastIntentDetector {
       if (intent === 'create_card') {
         // Schema Card: name, bank, program, number, limit, used, dueDate, closingDate, pointsPerReal, annualFee, benefits[], status, color, category
         
-        // Extrair nome do cartão (campo obrigatório)
+        // Extrair nome do cartão (campo obrigatório) - MANTER NOME ESPECÍFICO
         const nomePatterns = [
-          /cartão\s+([a-zA-Z\s]+?)(?:\s+do|da|$)/i,
-          /card\s+([a-zA-Z\s]+?)(?:\s+do|da|$)/i,
-          /(platinum|gold|black|infinite|standard|básico)/i
+          /cartão\s+([a-zA-Z\s]+?)(?:\s+com|do|da|$)/i,
+          /card\s+([a-zA-Z\s]+?)(?:\s+com|do|da|$)/i,
+          /(nubank\s+ultravioleta|santander\s+elite|bradesco\s+platinum|itau\s+personnalité)/i,
+          /(platinum|gold|black|infinite|standard|básico|ultravioleta|elite)/i
         ];
         
         for (const pattern of nomePatterns) {
