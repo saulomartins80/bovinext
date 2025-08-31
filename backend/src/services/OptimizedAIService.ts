@@ -1,13 +1,22 @@
-import OpenAI from 'openai';
-import { AppError } from '../core/errors/AppError';
-import { ChatMessage } from '../types/chat';
-import { EventEmitter } from 'events';
+import { OpenAI } from 'openai';
+// import { FastIntentDetector } from './FastIntentDetector'; // REMOVIDO - classe definida neste arquivo
+import { OPTIMIZED_CHATBOT_CONFIG } from '../config/optimizedChatbotConfig';
+import { contextManager } from './ContextManager';
+import { UserDataService } from './UserDataService';
 import ExternalAPIService from './ExternalAPIService';
 import { createTransaction, createGoal, createInvestment } from '../controllers/automatedActionsController';
 import { User } from '../models/User';
 import { ITransacao } from '../models/Transacoes';
 import { Goal } from '../models/Goal';
 import { Investimento } from '../models/Investimento';
+import { EventEmitter } from 'events';
+
+// Interface para mensagens de chat
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp?: Date;
+}
 
 // ===== CONFIGURAÇÃO OTIMIZADA =====
 const openai = new OpenAI({
@@ -105,8 +114,34 @@ class IntelligentCache {
 // ===== SISTEMA DE DETECÇÃO DE INTENÇÕES RÁPIDO =====
 class FastIntentDetector {
   private patterns = {
+    // CONSULTA DE DADOS EXISTENTES - NOVA CATEGORIA
+    view_goals: [
+      /(?:ver|mostrar|consultar|visualizar).*(?:meta|objetivo)/i,
+      /(?:minha|minhas).*(?:meta|metas)/i,
+      /(?:qual|quais).*(?:meta|metas)/i,
+      /consegue.*ver.*meta/i,
+      /tem.*meta/i
+    ],
+    view_transactions: [
+      /(?:ver|mostrar|consultar).*(?:transa|gasto|despesa|receita)/i,
+      /(?:minha|minhas).*(?:transa|gastos)/i,
+      /(?:últimas|ultimas).*(?:transa|gastos)/i,
+      /histórico.*financeiro/i
+    ],
+    view_investments: [
+      /(?:ver|mostrar|consultar).*(?:investimento|aplicação)/i,
+      /(?:meu|meus).*(?:investimento|portfolio)/i,
+      /carteira.*investimento/i
+    ],
+    view_summary: [
+      /(?:saldo|resumo|situação).*(?:atual|financeira)/i,
+      /como.*(?:está|esta).*(?:situação|finanças)/i,
+      /balanço.*financeiro/i
+    ],
     create_goal: [
-      /meta|objetivo|juntar|poupar|economizar/i,
+      /(?:criar|registrar|cadastrar).*(?:meta|objetivo)/i,
+      /(?:quero|vou).*(?:juntar|poupar|economizar)/i,
+      /meta.*(?:de|para)/i,
       /quero.*juntar|preciso.*juntar|vamos.*juntar/i,
       /plano.*financeiro|planejamento/i,
       /natal|aniversário|viagem|casa|carro/i,
@@ -165,16 +200,44 @@ class FastIntentDetector {
 
     console.log(`[FastIntentDetector] 🔍 Analisando mensagem: "${message}"`);
 
+    // PRIORIZAR INTENTS DE CONSULTA SOBRE CRIAÇÃO
+    const consultaIntents = ['view_goals', 'view_transactions', 'view_investments', 'view_summary'];
+    const criacaoIntents = ['create_goal', 'create_transaction', 'create_investment', 'create_card'];
+    
+    // Verificar primeiro se é consulta
+    for (const intent of consultaIntents) {
+      const patterns = this.patterns[intent] || [];
+      let matches = 0;
+      
+      console.log(`[FastIntentDetector] 🎯 Testando intent de consulta: ${intent}`);
+      
+      for (const pattern of patterns) {
+        if (pattern.test(lowerMessage)) {
+          matches++;
+          console.log(`[FastIntentDetector] ✅ Pattern match consulta: ${pattern} para intent: ${intent}`);
+        }
+      }
+      
+      if (matches > 0) {
+        const confidence = Math.min(matches / patterns.length + 0.3, 1.0);
+        console.log(`[FastIntentDetector] 🎯 CONSULTA detectada: ${intent} com confiança: ${confidence}`);
+        return { intent, confidence, entities: {} };
+      }
+    }
+
+    // Se não é consulta, verificar criação
     for (const [intent, patterns] of Object.entries(this.patterns)) {
+      if (consultaIntents.includes(intent)) continue; // Já verificado
+      
       let matches = 0;
       const entities: any = {};
 
-      console.log(`[FastIntentDetector] 🎯 Testando intent: ${intent}`);
+      console.log(`[FastIntentDetector] 🎯 Testando intent de criação: ${intent}`);
 
       for (const pattern of patterns) {
         if (pattern.test(lowerMessage)) {
           matches++;
-          console.log(`[FastIntentDetector] ✅ Pattern match: ${pattern} para intent: ${intent}`);
+          console.log(`[FastIntentDetector] ✅ Pattern match criação: ${pattern} para intent: ${intent}`);
         }
       }
 
@@ -733,37 +796,33 @@ class FastIntentDetector {
 
 // ===== SISTEMA DE STREAMING INTELIGENTE =====
 class StreamingResponse extends EventEmitter {
-  private buffer = '';
+  private chunks: string[] = [];
   private isComplete = false;
 
-  async streamResponse(prompt: string, onChunk: (chunk: string) => void): Promise<string> {
-    try {
-      const stream = await openai.chat.completions.create({
-        model: 'deepseek-chat',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,
-        max_tokens: 800,
-        stream: true,
-      });
+  constructor(private userId: string, private chatId: string) {
+    super();
+  }
 
-      let fullResponse = '';
+  addChunk(chunk: string): void {
+    this.chunks.push(chunk);
+    this.emit('chunk', chunk);
+  }
 
-      for await (const chunk of stream) {
-        const content = chunk.choices[0]?.delta?.content || '';
-        if (content) {
-          fullResponse += content;
-          onChunk(content);
-          this.emit('chunk', content);
-        }
-      }
+  complete(): void {
+    this.isComplete = true;
+    this.emit('complete', this.getFullResponse());
+  }
 
-      this.isComplete = true;
-      this.emit('complete', fullResponse);
-      return fullResponse;
-    } catch (error) {
-      this.emit('error', error);
-      throw error;
-    }
+  getFullResponse(): string {
+    return this.chunks.join('');
+  }
+
+  onChunk(callback: (chunk: string) => void): void {
+    this.on('chunk', callback);
+  }
+
+  onComplete(callback: (response: string) => void): void {
+    this.on('complete', callback);
   }
 }
 
@@ -1064,16 +1123,52 @@ Responda sempre em português brasileiro de forma clara e objetiva.`;
       // 3. Atualizar contexto
       this.contextManager.updateContext(userId, message, '');
 
-      // 4. Gerar resposta diretamente com IA - SEM automação complexa
+      // 4. BUSCAR DADOS REAIS DO USUÁRIO ANTES DE RESPONDER
+      let userData = null;
+      try {
+        userData = await UserDataService.getUserFinancialData(userContext.firebaseUid);
+        console.log(`[AI] Dados do usuário carregados:`, {
+          metas: userData?.goals?.length || 0,
+          transacoes: userData?.transactions?.length || 0,
+          investimentos: userData?.investments?.length || 0,
+          cartoes: userData?.cards?.length || 0
+        });
+      } catch (error) {
+        console.error('[AI] Erro ao carregar dados do usuário:', error);
+      }
+
+      // 5. Gerar contexto com dados reais do usuário
       const context = await this.buildContextPrompt(conversationHistory, userContext);
+      
+      let userDataContext = '';
+      if (userData) {
+        userDataContext = `
+
+DADOS REAIS DO USUÁRIO (CONSULTE SEMPRE ANTES DE CRIAR NOVOS):
+
+METAS ATIVAS (${userData.goals.length}):
+${userData.goals.map(g => `- ${g.nome_da_meta}: R$ ${g.valor_atual}/${g.valor_total} (${Math.round((g.valor_atual/g.valor_total)*100)}%) - ${g.descricao}`).join('\n')}
+
+ÚLTIMAS TRANSAÇÕES (${userData.transactions.slice(0, 10).length}):
+${userData.transactions.slice(0, 10).map(t => `- ${t.descricao}: R$ ${t.valor} (${t.tipo}) - ${t.categoria}`).join('\n')}
+
+INVESTIMENTOS (${userData.investments.length}):
+${userData.investments.map(i => `- ${i.nome}: R$ ${i.valor} (${i.tipo}) - ${i.instituicao}`).join('\n')}
+
+CARTÕES (${userData.cards.length}):
+${userData.cards.map(c => `- ${c.name}: Limite R$ ${c.limite} - ${c.banco}`).join('\n')}`;
+      }
+
       const prompt = `${this.SYSTEM_PROMPTS.FINN_CORE}
 
-IMPORTANTE: Se o usuário está pedindo para criar/registrar algo (transação, meta, investimento), você deve:
-1. Responder de forma amigável
-2. Se tiver todos os dados necessários, perguntar "Posso confirmar e registrar isso para você?"
-3. Se faltar dados, perguntar pelos dados faltantes de forma natural
+IMPORTANTE: 
+1. SEMPRE consulte os dados reais do usuário antes de responder
+2. Se o usuário pergunta sobre metas/transações existentes, mostre os dados reais
+3. Se não existir o que ele está perguntando, informe que não encontrou
+4. Não tente criar algo que já existe - consulte primeiro
+5. Seja específico com nomes, valores e descrições dos dados reais
 
-Contexto: ${context}
+Contexto: ${context}${userDataContext}
 Usuário: ${message}
 Finn:`;
 
@@ -1081,7 +1176,7 @@ Finn:`;
         model: 'deepseek-chat',
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.7,
-        max_tokens: 1500, // Aumentado para memória completa
+        max_tokens: 1500,
       });
 
       const response = completion.choices[0]?.message?.content || 'Como posso te ajudar?';
@@ -1090,62 +1185,19 @@ Finn:`;
       const intentResult = this.intentDetector.detect(message);
       console.log(`[AI] Intent detectado: ${intentResult.intent}, confiança: ${intentResult.confidence}`);
       
-      // Só requer confirmação se:
-      // 1. Tem intent válido com confiança alta
-      // 2. É uma ação que modifica dados (não conversas normais)
-      // 3. Tem dados suficientes para executar
+      // SISTEMA SIMPLIFICADO - SEM BOTÕES DE CONFIRMAÇÃO
+      // A IA agora executa diretamente as ações quando detecta intent válido
       const validActionIntents = ['create_investment', 'create_goal', 'create_transaction', 'create_card'];
-      const requiresConfirmation = validActionIntents.includes(intentResult.intent) && 
+      const shouldExecuteDirectly = validActionIntents.includes(intentResult.intent) && 
                                    intentResult.confidence > 0.6 &&
                                    intentResult.entities && 
                                    Object.keys(intentResult.entities).length > 0;
       
-      console.log(`[AI] Requer confirmação: ${requiresConfirmation}`);
+      console.log(`[AI] Execução direta: ${shouldExecuteDirectly}`);
       
+      // Não mais botões de confirmação - execução direta
       let actionData = null;
-      if (requiresConfirmation) {
-        if (intentResult.intent === 'create_goal') {
-          actionData = {
-            type: 'create_goal',
-            entities: intentResult.entities,
-            userId,
-            confirmationButtons: [
-              { text: 'Confirmar', action: 'confirm', style: 'primary' },
-              { text: 'Cancelar', action: 'cancel', style: 'secondary' }
-            ]
-          };
-        } else if (intentResult.intent === 'create_transaction') {
-          actionData = {
-            type: 'create_transaction',
-            entities: intentResult.entities,
-            userId,
-            confirmationButtons: [
-              { text: 'Confirmar', action: 'confirm', style: 'primary' },
-              { text: 'Cancelar', action: 'cancel', style: 'secondary' }
-            ]
-          };
-        } else if (intentResult.intent === 'create_investment') {
-          actionData = {
-            type: 'create_investment',
-            entities: intentResult.entities,
-            userId,
-            confirmationButtons: [
-              { text: 'Confirmar', action: 'confirm', style: 'primary' },
-              { text: 'Cancelar', action: 'cancel', style: 'secondary' }
-            ]
-          };
-        } else if (intentResult.intent === 'create_card') {
-          actionData = {
-            type: 'create_card',
-            entities: intentResult.entities,
-            userId,
-            confirmationButtons: [
-              { text: 'Confirmar', action: 'confirm', style: 'primary' },
-              { text: 'Cancelar', action: 'cancel', style: 'secondary' }
-            ]
-          };
-        }
-      }
+      const requiresConfirmation = false; // DESABILITADO
 
       // 5. Pós-processamento
       const finalResponse = this.postProcessResponse(response, userContext);
@@ -1189,10 +1241,33 @@ Finn:`;
     message: string,
     onChunk: (chunk: string) => void
   ): Promise<string> {
-    const streamer = new StreamingResponse();
+    const streamer = new StreamingResponse(userId, 'stream-chat');
     const prompt = this.buildStreamPrompt(message, userId);
     
-    return streamer.streamResponse(prompt, onChunk);
+    // Implementar streaming manual já que removemos streamResponse
+    try {
+      const completion = await openai.chat.completions.create({
+        model: 'deepseek-chat',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 800,
+        stream: true
+      });
+
+      let fullResponse = '';
+      for await (const chunk of completion) {
+        const content = chunk.choices[0]?.delta?.content || '';
+        if (content) {
+          fullResponse += content;
+          onChunk(content);
+        }
+      }
+
+      return fullResponse;
+    } catch (error) {
+      console.error('[StreamResponse] Erro:', error);
+      return 'Desculpe, ocorreu um erro ao processar sua mensagem.';
+    }
   }
 
   private async generateAutomatedResponse(
@@ -1449,7 +1524,7 @@ Finn:`;
       context += 'HISTÓRICO COMPLETO DA CONVERSA:\n';
       // TODAS as mensagens com timestamp
       conversationHistory.forEach((msg) => {
-        const role = msg.sender === 'user' ? 'Usuário' : 'Finn';
+        const role = msg.role === 'user' ? 'Usuário' : 'Finn';
         context += `${role}: ${msg.content}\n`;
       });
     }

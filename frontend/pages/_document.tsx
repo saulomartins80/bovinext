@@ -12,6 +12,9 @@ export default function Document() {
         <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="theme-color" content="#3b82f6" />
         
+        {/* CSP para permitir Next.js funcionar corretamente */}
+        <meta httpEquiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://fonts.googleapis.com; object-src 'none'; base-uri 'self';" />
+        
         {/* Meta tags para SEO */}
         <meta name="robots" content="index, follow" />
         <meta name="googlebot" content="index, follow" />
@@ -21,12 +24,8 @@ export default function Document() {
         {/* Preconnect para recursos críticos - otimizado para PageSpeed */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://finnextho-5d86e.firebaseapp.com" />
-        <link rel="preconnect" href="https://apis.google.com" />
-        <link rel="preconnect" href="https://firebase.googleapis.com" />
         <link rel="preconnect" href="https://js.stripe.com" />
         <link rel="dns-prefetch" href="https://m.stripe.network" />
-        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
         
         {/* Google Font otimizado - inline critical font-face */}
         

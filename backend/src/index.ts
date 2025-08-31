@@ -99,19 +99,35 @@ app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 app.use(cookieParser());
 
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-    'http://localhost:3000',
-    'http://192.168.1.67:3000', // IP da rede local
-    'http://10.223.119.19:10000', // IP do Render
-    'http://localhost:10000', // Porta do Render local
-    'https://finnextho-frontend.vercel.app',
-    'https://finnextho-frontend.onrender.com',
-    'https://accounts.google.com',
-    'https://finnextho.com',
-    'https://www.finnextho.com',
-    'https://finnextho.vercel.app'
-  ],
+  origin: function (origin, callback) {
+    // Permitir requests sem origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      'http://localhost:3000',
+      'http://192.168.1.67:3000',
+      'http://10.223.119.19:10000',
+      'http://localhost:10000',
+      'https://finnextho-frontend.vercel.app',
+      'https://finnextho-frontend.onrender.com',
+      'https://accounts.google.com',
+      'https://finnextho.com',
+      'https://www.finnextho.com',
+      'https://finnextho.vercel.app'
+    ];
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // Em desenvolvimento, permitir qualquer origin
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
     'Content-Type', 
@@ -125,7 +141,8 @@ app.use(cors({
   ],
   credentials: true,
   exposedHeaders: ['Authorization', 'Set-Cookie'],
-  optionsSuccessStatus: 200 // Para suporte a browsers mais antigos
+  optionsSuccessStatus: 200,
+  preflightContinue: false
 }));
 
 const apiLimiter = rateLimit({
@@ -137,7 +154,7 @@ const apiLimiter = rateLimit({
 });
 app.use('/api/', apiLimiter);
 
-// Middleware para forçar HTTPS em produção
+// Middleware para forçar HTTPS em produção e garantir CORS
 app.use((req, res, next) => {
   // Forçar HTTPS em produção
   if (process.env.NODE_ENV === 'production' && req.header('x-forwarded-proto') !== 'https') {
@@ -153,6 +170,23 @@ app.use((req, res, next) => {
   if (process.env.NODE_ENV === 'production') {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  }
+  
+  // Garantir CORS headers em todas as respostas
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'http://localhost:3000',
+    'https://finnextho-frontend.onrender.com',
+    'https://finnextho.vercel.app',
+    'https://finnextho.com'
+  ];
+  
+  if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-auth-token, X-Requested-With');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
   
   // Remover Cross-Origin-Opener-Policy para permitir popups do Google Auth

@@ -9,6 +9,13 @@ const __dirname = dirname(__filename);
 const nextConfig = {
   // ✅ CORREÇÃO: Removido output: 'export' para permitir API routes e middleware
   trailingSlash: true,
+  
+  // Environment variables para produção
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NODE_ENV === 'production' 
+      ? 'https://finnextho-backend.onrender.com' 
+      : process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+  },
   images: {
     unoptimized: false,
     remotePatterns: [

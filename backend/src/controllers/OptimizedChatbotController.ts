@@ -545,7 +545,8 @@ export class OptimizedChatbotController {
         console.log(`[OptimizedChatbot] 📊 Entidades extraídas:`, JSON.stringify(aiResult.entities, null, 2));
         console.log(`[OptimizedChatbot] 🔐 Requer confirmação: ${aiResult.requiresConfirmation}`);
         
-        if (aiResult.requiresConfirmation) {
+        // SISTEMA DE CONFIRMAÇÃO DESABILITADO - EXECUÇÃO DIRETA
+        if (false) { // aiResult.requiresConfirmation DESABILITADO
           needsConfirmation = true;
           console.log(`[OptimizedChatbot] ⚠️ AÇÃO REQUER CONFIRMAÇÃO: ${aiResult.intent}`);
           
@@ -656,6 +657,7 @@ export class OptimizedChatbotController {
       // Simular dados do usuário (integrar com seus serviços reais)
       const userContext = {
         userId,
+        firebaseUid: userId, // ADICIONAR firebaseUid para UserDataService
         subscriptionPlan: 'free', // ou 'top', 'enterprise'
         totalTransacoes: 0,
         totalMetas: 0,
@@ -898,7 +900,7 @@ export class OptimizedChatbotController {
         let needsConfirmation = false;
         
         // Verificar se há intent e confiança suficiente
-        if (response.intent && response.confidence && response.confidence > 0.5 && !response.requiresConfirmation) {
+        if (response.intent && response.confidence && response.confidence > 0.5) { // REMOVIDO !response.requiresConfirmation
           console.log(`[OptimizedChatbot] 🚀 EXECUTANDO AÇÃO NO STREAMING: ${response.intent} com confiança: ${response.confidence}`);
           console.log(`[OptimizedChatbot] 📊 Entidades detectadas:`, response.entities);
           
@@ -928,8 +930,6 @@ export class OptimizedChatbotController {
             contextManager.clearConversationState(realChatId);
             console.log(`[OptimizedChatbot] Cleared context after successful action`);
           }
-        } else if (response.requiresConfirmation) {
-          console.log(`[OptimizedChatbot] ⏳ Ação requer confirmação - não executando automaticamente: ${response.intent}`);
         } else {
           console.log(`[OptimizedChatbot] ❌ Ação não executada no streaming - Intent: ${response.intent}, Confiança: ${response.confidence}, Threshold: 0.5`);
         }
@@ -975,9 +975,9 @@ export class OptimizedChatbotController {
             automationData: automationResult?.data || null,
             requiresInput: automationResult?.requiresInput || false,
             missingFields: automationResult?.missingFields || [],
-            // 🔧 CORREÇÃO: Usar lógica correta de confirmação
-            requiresConfirmation: response.requiresConfirmation || false,
-            actionData: response.requiresConfirmation ? {
+            // SISTEMA DE CONFIRMAÇÃO DESABILITADO
+            requiresConfirmation: false, // SEMPRE FALSE
+            actionData: false ? { // NUNCA CRIAR actionData
               type: response.intent || 'create_transaction',
               entities: response.entities || {},
               userId: userId,
