@@ -34,6 +34,8 @@ import pluggyRoutes from './routes/pluggyRoutes';
 // 🤖 RPA: Adicionar rotas do sistema RPA
 import rpaRoutes from './routes/rpaRoutes';
 import cardRoutes from './routes/cardRoutes';
+// 📱 Twilio: Adicionar rotas do WhatsApp
+import twilioRoutes from './routes/twilioRoutes';
 // Removed RPA routes and initialization
 
 interface HealthCheckResponse {
@@ -175,10 +177,12 @@ app.use((req, res, next) => {
   // Garantir CORS headers em todas as respostas
   const origin = req.headers.origin;
   const allowedOrigins = [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
     'http://localhost:3000',
+    'http://localhost:3001',
+    'http://127.0.0.1:3000',
     'https://finnextho-frontend.onrender.com',
-    'https://finnextho.vercel.app',
+    'https://finnextho.onrender.com',
+    'https://www.finnextho.com',
     'https://finnextho.com'
   ];
   
@@ -335,6 +339,8 @@ app.use('/api/pluggy', pluggyRoutes);
 app.use('/api/cards', cardRoutes);
 // 🤖 RPA: Registrar rotas do sistema RPA
 app.use('/api/rpa', rpaRoutes);
+// 📱 Twilio: Registrar rotas do WhatsApp
+app.use('/api/twilio', twilioRoutes);
 
 app.use(errorHandler as express.ErrorRequestHandler);
 

@@ -13,7 +13,7 @@ export default function Document() {
         <meta name="theme-color" content="#3b82f6" />
         
         {/* CSP para permitir Next.js funcionar corretamente */}
-        <meta httpEquiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://fonts.googleapis.com; object-src 'none'; base-uri 'self';" />
+        <meta httpEquiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://fonts.googleapis.com https://www.googletagmanager.com; object-src 'none'; base-uri 'self';" />
         
         {/* Meta tags para SEO */}
         <meta name="robots" content="index, follow" />
