@@ -1,0 +1,100 @@
+/* CSS Compatibility Fixes for Cross-Browser Support */
+
+/* Backdrop Filter Support */
+.btn-primary,
+.backdrop-blur {
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+/* Text Size Adjust - Proper Order */
+html {
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Theme Color Meta Tag Fallback */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --theme-color: #1f2937;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --theme-color: #3b82f6;
+  }
+}
+
+/* Performance Optimizations for Animations */
+@keyframes Toastify__slideInRight {
+  0% {
+    transform: translate3d(110%, 0, 0);
+    opacity: 0;
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+/* Remove visibility from keyframes to improve performance */
+.Toastify__slide-enter--top-right {
+  animation-name: Toastify__slideInRight;
+}
+
+/* Webkit Autofill Compatibility */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  -webkit-text-fill-color: #111827 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Firefox Autofill */
+input:-moz-autofill {
+  box-shadow: 0 0 0 30px white inset !important;
+  color: #111827 !important;
+}
+
+/* Dark mode autofill */
+.dark input:-webkit-autofill,
+.dark input:-webkit-autofill:hover,
+.dark input:-webkit-autofill:focus,
+.dark input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #374151 inset !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.dark input:-moz-autofill {
+  box-shadow: 0 0 0 30px #374151 inset !important;
+  color: #ffffff !important;
+}
+
+/* Safari Specific Fixes */
+@supports (-webkit-appearance: none) {
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.5);
+  }
+  
+  .dark input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+}
+
+/* Edge/IE Compatibility */
+@supports (-ms-ime-align: auto) {
+  .btn-primary {
+    background: rgba(59, 130, 246, 0.9);
+  }
+}
+
+/* Firefox Specific */
+@-moz-document url-prefix() {
+  input[type="date"] {
+    background: transparent;
+  }
+}

@@ -55,21 +55,21 @@ export default function Sobre() {
 
   const team = [
     {
-      name: 'Saulo  Martins',
+      name: 'Saulo  Chagas M',
       role: 'CEO & Fundador',
       bio: 'Visionário e empreendedor, fundador da Finnextho com expertise em tecnologia financeira e inovação',
       image: '/api/placeholder/150/150',
       linkedin: '#'
     },
     {
-      name: 'Sirley Celestino ',
+      name: 'Fernando G A',
       role: 'CTO & Co-fundadora',
-      bio: 'Ex-engenheira sênior do IFPAX, especialista em IA',
+      bio: 'Ex-engenheiro sênior do IFPAX, especialista em IA',
       image: '/api/placeholder/150/150',
       linkedin: '#'
     },
     {
-      name: 'David mota',
+      name: 'Guilherme Almeida G',
       role: 'Head of Product',
       bio: 'Ex-product manager do iFood, focada em UX',
       image: '/api/placeholder/150/150',

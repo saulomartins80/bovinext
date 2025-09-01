@@ -20,6 +20,7 @@ import { isProtectedRoute, isAuthPage } from '../utils/routes'
 
 // Critical CSS only - other styles loaded on demand
 import '../styles/globals.css'
+import '../styles/compatibility.css'
 import 'react-toastify/dist/ReactToastify.css'
 import '../styles/splide.css'
 import 'react-tabs/style/react-tabs.css'

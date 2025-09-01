@@ -12,8 +12,8 @@ export default function Document() {
         <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="theme-color" content="#3b82f6" />
         
-        {/* CSP para permitir Next.js funcionar corretamente */}
-        <meta httpEquiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://fonts.googleapis.com https://www.googletagmanager.com; object-src 'none'; base-uri 'self';" />
+        {/* CSP otimizada para produção */}
+        <meta httpEquiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://fonts.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://finnextho-backend.onrender.com https://api.stripe.com; frame-src https://js.stripe.com; object-src 'none'; base-uri 'self';" />
         
         {/* Meta tags para SEO */}
         <meta name="robots" content="index, follow" />

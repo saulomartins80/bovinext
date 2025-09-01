@@ -163,10 +163,11 @@ app.use((req, res, next) => {
     return res.redirect(301, `https://${req.header('host')}${req.url}`);
   }
   
-  // Headers de segurança
+  // Headers de segurança obrigatórios
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.removeHeader('X-Powered-By');
   
   // Headers HTTPS obrigatórios em produção
   if (process.env.NODE_ENV === 'production') {

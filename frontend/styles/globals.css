@@ -5,9 +5,10 @@
 @layer base {
   html {
     font-family: 'Inter', system-ui, sans-serif;
-    /* Improve text scaling behavior across browsers */
-    text-size-adjust: 100%;
+    /* Improve text scaling behavior across browsers - webkit first for compatibility */
     -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 }
 
