@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
 
     try {
       await sendPasswordResetEmail(auth, email);
-      setSuccess(`Link de redefinição enviado para ${email}. Verifique sua caixa de entrada ou spam.`);
+      setSuccess(`Enviamos um link profissional de redefinição para ${email}. Por favor, verifique sua caixa de entrada e também a pasta de spam. O link é válido por 1 hora.`);
       setEmailSent(true);
       setCountdown(30); // 30 segundos para reenvio
     } catch (err: unknown) {
@@ -167,7 +167,7 @@ export default function ForgotPasswordPage() {
                 </motion.div>
 
                 <p className="text-gray-600 dark:text-gray-300 mb-6">
-                  Se o e-mail não aparecer em alguns minutos, verifique sua pasta de spam.
+                  Enviamos um e-mail profissional com instruções detalhadas para redefinir sua senha. Se não receber em alguns minutos, verifique sua pasta de spam ou lixo eletrônico.
                 </p>
 
                 <button

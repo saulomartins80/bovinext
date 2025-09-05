@@ -12,9 +12,7 @@ const nextConfig = {
   
   // Environment variables para produção
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NODE_ENV === 'production' 
-      ? 'https://finnextho-backend.onrender.com' 
-      : process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
   },
   images: {
     unoptimized: false,
@@ -285,6 +283,10 @@ const nextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()'
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https: http:; connect-src 'self' http://localhost:5000 https://finnextho-backend.onrender.com https://api.stripe.com https://finnextho-5d86e.firebaseapp.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebase.googleapis.com https://www.google.com https://accounts.google.com https://www.googleapis.com https://oauth2.googleapis.com https://www.google-analytics.com; frame-src 'self' https://js.stripe.com https://accounts.google.com; object-src 'none'; base-uri 'self';"
           },
         ],
       },

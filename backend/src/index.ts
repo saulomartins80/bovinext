@@ -36,6 +36,8 @@ import rpaRoutes from './routes/rpaRoutes';
 import cardRoutes from './routes/cardRoutes';
 // 📱 Twilio: Adicionar rotas do WhatsApp
 import twilioRoutes from './routes/twilioRoutes';
+// 📁 Storage: Adicionar rotas do Firebase Storage
+import storageRoutes from './routes/storageRoutes';
 // Removed RPA routes and initialization
 
 interface HealthCheckResponse {
@@ -342,6 +344,8 @@ app.use('/api/cards', cardRoutes);
 app.use('/api/rpa', rpaRoutes);
 // 📱 Twilio: Registrar rotas do WhatsApp
 app.use('/api/twilio', twilioRoutes);
+// 📁 Storage: Registrar rotas do Firebase Storage
+app.use('/api/storage', storageRoutes);
 
 app.use(errorHandler as express.ErrorRequestHandler);
 

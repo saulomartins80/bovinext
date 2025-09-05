@@ -6,7 +6,8 @@
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect, useMemo } from 'react';
 import { FiEdit, FiCamera, FiCheck, FiX, FiEye, FiEyeOff, FiSettings, FiAlertCircle } from 'react-icons/fi';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import FileUpload from '../components/FileUpload';
+import { storageService } from '../services/storageService';
 import { toast } from 'react-toastify';
 import Image from 'next/image';
 import api from '../services/api';
@@ -72,16 +73,10 @@ export default function Profile() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Initialize Firebase Storage with explicit app initialization
-  const storage = useMemo(() => {
-    try {
-      const firebaseApp = getApp();
-      return getStorage(firebaseApp);
-    } catch (error) {
-      console.error('Failed to initialize Firebase Storage:', error);
-      return null;
-    }
-  }, []);
+  const handleAvatarUpload = async (file: File): Promise<string> => {
+    if (!user) throw new Error('Usuário não autenticado');
+    return await storageService.uploadAvatar(file, user.uid);
+  };
 
   useEffect(() => {
     if (user) {
@@ -169,20 +164,7 @@ export default function Profile() {
       if (avatarFile) {
         setIsUploading(true);
         try {
-          if (!storage) {
-            throw new Error('Serviço de armazenamento não disponível');
-          }
-          if (!user.uid) {
-            throw new Error('UID do usuário indisponível para upload de avatar.');
-          }
-          if (!(avatarFile instanceof Blob)) {
-            throw new Error('Tipo de arquivo inválido para upload.');
-          }
-
-          const timestamp = Date.now();
-          const storageRef = ref(storage, `avatars/${user.uid}/avatar_${timestamp}`);
-          await uploadBytes(storageRef, avatarFile);
-          finalPhotoUrl = await getDownloadURL(storageRef);
+          finalPhotoUrl = await handleAvatarUpload(avatarFile);
           updatePayload.photoUrl = finalPhotoUrl;
         } catch (error) {
           console.error('Erro no upload da foto:', error);

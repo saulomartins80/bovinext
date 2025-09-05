@@ -56,7 +56,8 @@ if (!admin.apps.length) {
       clientEmail: serviceAccount.client_email,
       privateKey: serviceAccount.private_key
     }),
-    databaseURL: `https://${serviceAccount.project_id}.firebaseio.com`
+    databaseURL: `https://${serviceAccount.project_id}.firebaseio.com`,
+    storageBucket: `${serviceAccount.project_id}.appspot.com`
   });
 }
 

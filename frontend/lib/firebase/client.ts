@@ -3,22 +3,21 @@ import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import {
   getAuth,
   initializeAuth,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInWithRedirect,
+  signInWithEmailAndPassword as firebaseSignInWithEmailAndPassword,
   type UserCredential,
   type Auth,
-  signInWithEmailAndPassword as firebaseSignInWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
   getIdToken,
-  browserPopupRedirectResolver,
-  browserSessionPersistence
+  browserSessionPersistence,
+  browserPopupRedirectResolver
 } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { FirebaseStorage } from 'firebase/storage';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { GoogleAuthEnhanced, GoogleAuthErrorHandler, GoogleAuthDiagnostics } from './googleAuthEnhanced';
+import { GoogleAuthValidator, validateGoogleAuthQuick } from './googleAuthValidator';
 
-// ✅ CORREÇÃO: Configuração do Firebase usando variáveis de ambiente
+// ✅ ENHANCED: Configuração do Firebase com validação robusta
 const getFirebaseConfig = () => {
   const config = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -27,36 +26,32 @@ const getFirebaseConfig = () => {
     storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
   };
 
-  // ✅ CORREÇÃO: Verificar se todas as variáveis necessárias estão presentes
-  const requiredKeys = ['apiKey', 'authDomain', 'projectId', 'messagingSenderId', 'appId'] as const; // storageBucket opcional
-  const hasAllEnvVars = requiredKeys.every(key => config[key as keyof typeof config]);
-
-  if (!hasAllEnvVars) {
-    console.error('❌ Variáveis de ambiente do Firebase não encontradas:');
-    requiredKeys.forEach(key => {
-      const envKey = `NEXT_PUBLIC_FIREBASE_${key.toUpperCase()}`;
-      console.error(`${envKey}: ${process.env[envKey] ? '✅ Presente' : '❌ Ausente'}`);
-    });
-    throw new Error('Configuração do Firebase incompleta. Verifique as variáveis de ambiente.');
+  // ✅ ENHANCED: Usar validador robusto
+  const validation = GoogleAuthValidator.validateConfiguration();
+  
+  if (!validation.isValid) {
+    console.error('❌ Firebase configuration validation failed:');
+    validation.errors.forEach(error => console.error(`  - ${error}`));
+    throw new Error(`Firebase configuration incomplete: ${validation.errors.join(', ')}`);
+  }
+  
+  if (validation.warnings.length > 0) {
+    console.warn('⚠️ Firebase configuration warnings:');
+    validation.warnings.forEach(warning => console.warn(`  - ${warning}`));
+  }
+  
+  console.log(`🔒 Firebase Security Score: ${validation.securityScore}/100`);
+  
+  // Domain validation
+  const domainValidation = GoogleAuthValidator.validateDomainConfiguration();
+  if (!domainValidation.isValid) {
+    console.warn('⚠️ Domain configuration issues:');
+    domainValidation.issues.forEach(issue => console.warn(`  - ${issue}`));
   }
 
-  // ✅ CORREÇÃO: Verificar se as variáveis não estão vazias
-  const emptyVars = requiredKeys.filter(key => !config[key as keyof typeof config] || config[key as keyof typeof config] === '');
-  if (emptyVars.length > 0) {
-    console.error('❌ Variáveis de ambiente do Firebase vazias:', emptyVars);
-    throw new Error('Configuração do Firebase incompleta. Algumas variáveis estão vazias.');
-  }
-
-  console.log('✅ Usando configuração das variáveis de ambiente');
-  console.log('✅ Configuração do Firebase válida:', {
-    authDomain: config.authDomain,
-    projectId: config.projectId,
-    hasApiKey: !!config.apiKey,
-    hasAppId: !!config.appId
-  });
+  console.log('✅ Firebase configuration validated successfully');
   return config;
 };
 
@@ -111,9 +106,15 @@ const initializeFirebase = () => {
       console.log('Initializing Firestore...');
       db = getFirestore(app);
       
-      // ✅ CORREÇÃO: Storage completamente opcional - não inicializar se não estiver habilitado
-      console.log('Skipping Firebase Storage initialization (disabled to save costs)');
-      storage = null;
+      // ✅ CORREÇÃO: Inicializar Firebase Storage
+      console.log('Initializing Firebase Storage...');
+      try {
+        storage = getStorage(app);
+        console.log('✅ Firebase Storage initialized successfully');
+      } catch (error) {
+        console.error('❌ Firebase Storage initialization failed:', error);
+        storage = null;
+      }
       
       console.log('Firebase initialized successfully');
     } else {
@@ -121,9 +122,14 @@ const initializeFirebase = () => {
       app = getApps()[0];
       auth = getAuth(app);
       db = getFirestore(app);
-      // ✅ CORREÇÃO: Storage desabilitado também no reuso da app
-      console.log('Skipping Firebase Storage on existing app (disabled to save costs)');
-      storage = null;
+      // ✅ CORREÇÃO: Inicializar Storage também no reuso da app
+      try {
+        storage = getStorage(app);
+        console.log('✅ Firebase Storage reused successfully');
+      } catch (error) {
+        console.error('❌ Firebase Storage reuse failed:', error);
+        storage = null;
+      }
     }
   } catch (error) {
     console.error('Firebase initialization error:', error);
@@ -161,39 +167,6 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// Retry mechanism for network requests
-const retryWithBackoff = async <T>(
-  operation: () => Promise<T>,
-  maxRetries: number = 3,
-  baseDelay: number = 1000
-): Promise<T> => {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await operation();
-    } catch (error) {
-      const firebaseError = error as { code?: string; message?: string };
-      
-      // Don't retry certain errors
-      if (
-        firebaseError.code === 'auth/popup-blocked' ||
-        firebaseError.code === 'auth/popup-closed-by-user' ||
-        firebaseError.code === 'auth/unauthorized-domain' ||
-        firebaseError.code === 'auth/operation-not-allowed'
-      ) {
-        throw error;
-      }
-      
-      if (attempt === maxRetries) {
-        throw error;
-      }
-      
-      const delay = baseDelay * Math.pow(2, attempt - 1);
-      console.log(`🔄 Retry attempt ${attempt}/${maxRetries} after ${delay}ms`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-  throw new Error('Max retries exceeded');
-};
 
 export const loginWithGoogle = async (): Promise<UserCredential> => {
   if (!auth) {
@@ -201,106 +174,42 @@ export const loginWithGoogle = async (): Promise<UserCredential> => {
     throw new Error('Firebase Auth não foi inicializado. Verifique a configuração.');
   }
 
-  const provider = new GoogleAuthProvider();
-  
-  // Detectar mobile
-  const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  console.log('🔍 Login attempt - Device type:', { isMobile });
-  
-  // ✅ CORREÇÃO: Configurações otimizadas para mobile
-  provider.setCustomParameters({
-    prompt: 'select_account',
-    access_type: 'offline',
-    include_granted_scopes: 'true',
-    ...(isMobile && {
-      // Configurações específicas para mobile
-      display: 'popup',
-      response_type: 'code'
-    })
-  });
-
-  // ✅ CORREÇÃO: Adicionar escopos necessários
-  provider.addScope('email');
-  provider.addScope('profile');
-
   try {
-    console.log('Attempting Google sign-in with popup...');
-    console.log('Firebase config check:', {
-      authDomain: auth.config.authDomain,
-      hasApiKey: !!auth.config.apiKey
-    });
+    // Use the enhanced Google Auth class
+    const googleAuth = new GoogleAuthEnhanced(auth);
     
-    // Use retry mechanism for network requests
-    const result = await retryWithBackoff(async () => {
-      return await signInWithPopup(auth, provider, browserPopupRedirectResolver);
-    }, 3, 1000);
+    // Run diagnostics before attempting login
+    const configCheck = await GoogleAuthDiagnostics.checkConfiguration();
+    if (!configCheck.valid) {
+      console.error('❌ Google Auth configuration issues:', configCheck.issues);
+      throw new Error('Configuração do Google Auth incompleta: ' + configCheck.issues.join(', '));
+    }
     
-    console.log('Google sign-in successful');
+    const servicesCheck = await GoogleAuthDiagnostics.testGoogleServices();
+    if (!servicesCheck.available) {
+      console.warn('⚠️ Google services may not be fully available:', servicesCheck.services);
+    }
+    
+    console.log('🚀 Starting enhanced Google sign-in...');
+    console.log('📊 Device info:', googleAuth.getProviderInfo());
+    
+    const result = await googleAuth.signIn();
+    console.log('✅ Google sign-in successful');
     return result;
+    
   } catch (error: unknown) {
-    console.error('Google sign-in error:', error);
+    console.error('❌ Google sign-in error:', error);
     
-    // Type guard para verificar se é um erro do Firebase
     const firebaseError = error as { code?: string; message?: string };
-    console.error('Error code:', firebaseError.code);
-    console.error('Error message:', firebaseError.message);
     
-    // ✅ CORREÇÃO: Tratamento específico de erros de rede
-    if (firebaseError.code === 'auth/network-request-failed') {
-      console.error('Network request failed - checking connectivity');
-      
-      // Test basic connectivity
-      try {
-        await fetch('https://www.google.com/favicon.ico', { 
-          mode: 'no-cors',
-          cache: 'no-cache'
-        });
-        console.log('Internet connectivity confirmed');
-        throw new Error('Erro de conectividade com Firebase. Verifique sua conexão e tente novamente.');
-      } catch {
-        console.error('No internet connectivity detected');
-        throw new Error('Sem conexão com a internet. Verifique sua conexão e tente novamente.');
-      }
+    // Special handling for redirect case
+    if (firebaseError.message === 'REDIRECTING_FOR_GOOGLE_SIGNIN') {
+      throw error;
     }
     
-    // ✅ CORREÇÃO: Tratamento específico de erros com fallback para redirect
-    if (
-      firebaseError.code === 'auth/popup-blocked' ||
-      firebaseError.code === 'auth/web-storage-unsupported' ||
-      firebaseError.code === 'auth/operation-not-supported-in-this-environment'
-    ) {
-      console.log('Popup or storage blocked. Falling back to redirect sign-in...');
-      await signInWithRedirect(auth, provider);
-      // signInWithRedirect will navigate away; return a rejected promise to stop further handling
-      throw new Error('REDIRECTING_FOR_GOOGLE_SIGNIN');
-    }
-    
-    // ✅ CORREÇÃO: Tratar erro de argumento inválido
-    if (firebaseError.code === 'auth/argument-error') {
-      console.error('Firebase configuration error detected');
-      console.error('Current config:', firebaseConfig);
-      throw new Error('Erro de configuração do Firebase. Verifique as variáveis de ambiente.');
-    }
-    
-    // ✅ CORREÇÃO: Tratar erro de credenciais inválidas
-    if (firebaseError.code === 'auth/invalid-credential') {
-      console.error('Invalid credential error - possible configuration issue');
-      throw new Error('Credenciais inválidas. Verifique a configuração do Firebase.');
-    }
-    
-    // ✅ CORREÇÃO: Tratar erro de domínio não autorizado
-    if (firebaseError.code === 'auth/unauthorized-domain') {
-      console.error('Unauthorized domain error');
-      throw new Error('Domínio não autorizado. Verifique a configuração do Firebase.');
-    }
-    
-    // ✅ CORREÇÃO: Tratar erro de operação não permitida
-    if (firebaseError.code === 'auth/operation-not-allowed') {
-      console.error('Operation not allowed error');
-      throw new Error('Login com Google não está habilitado. Verifique a configuração do Firebase.');
-    }
-    
-    throw error;
+    // Use enhanced error handler
+    const userFriendlyMessage = GoogleAuthErrorHandler.getErrorMessage(firebaseError);
+    throw new Error(userFriendlyMessage);
   }
 };
 
@@ -332,6 +241,56 @@ export const isStorageAvailable = (): boolean => {
   return storage !== null;
 };
 
+// ✅ NOVA: Função para processar resultado de redirect do Google
+export const handleGoogleRedirectResult = async (): Promise<UserCredential | null> => {
+  if (!auth) {
+    console.warn('Firebase Auth not initialized for redirect result');
+    return null;
+  }
+  
+  try {
+    const googleAuth = new GoogleAuthEnhanced(auth);
+    return await googleAuth.handleRedirectResult();
+  } catch (error) {
+    console.error('Error handling Google redirect result:', error);
+    throw error;
+  }
+};
+
+// ✅ NOVA: Função para diagnóstico completo do Google Auth
+export const diagnoseGoogleAuth = async (): Promise<{
+  configuration: { valid: boolean; issues: string[] };
+  services: { available: boolean; services: Record<string, boolean> };
+  recommendations: string[];
+}> => {
+  const configuration = await GoogleAuthDiagnostics.checkConfiguration();
+  const services = await GoogleAuthDiagnostics.testGoogleServices();
+  
+  const recommendations: string[] = [];
+  
+  if (!configuration.valid) {
+    recommendations.push('Verifique as variáveis de ambiente do Firebase e Google OAuth');
+  }
+  
+  if (!services.available) {
+    recommendations.push('Verifique a conectividade com os serviços do Google');
+  }
+  
+  if (!services.services.accounts) {
+    recommendations.push('Google Accounts pode estar bloqueado ou indisponível');
+  }
+  
+  if (!services.services.oauth) {
+    recommendations.push('Google OAuth pode estar bloqueado ou indisponível');
+  }
+  
+  return {
+    configuration,
+    services,
+    recommendations
+  };
+};
+
 export {
   app,
   auth,
@@ -339,5 +298,10 @@ export {
   storage,
   firebaseSignOut as signOut,
   onAuthStateChanged,
-  getIdToken
+  getIdToken,
+  GoogleAuthEnhanced,
+  GoogleAuthErrorHandler,
+  GoogleAuthDiagnostics,
+  GoogleAuthValidator,
+  validateGoogleAuthQuick
 }; 

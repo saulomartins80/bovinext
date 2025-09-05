@@ -4,8 +4,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   FiGlobe,
-  FiBell,
-  FiDatabase,
+  FiBell,  
   FiUser,
   FiMail,
   FiLock,
@@ -16,7 +15,7 @@ import {
   FiShield,
   FiTrash2,
   FiKey,
-  FiHardDrive,
+  FiDatabase,
   FiPlusCircle,
   FiSave,
   FiCheck,
@@ -320,7 +319,7 @@ export default function ConfiguracoesPage() {
       description: 'Faça backup dos seus dados pessoais',
       type: 'action',
       action: handleBackupData,
-      icon: <FiHardDrive className="w-5 h-5" />,
+      icon: <FiDatabase className="w-5 h-5" />,
       status: backupStatus === 'in-progress' ? 'Gerando backup...' : 
               backupStatus === 'completed' ? 'Backup concluído' : 
               backupStatus === 'failed' ? 'Falha no backup' : undefined,

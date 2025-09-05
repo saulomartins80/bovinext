@@ -2,6 +2,14 @@ import { Html, Head, Main, NextScript } from 'next/document'
 import { criticalCSS } from '../components/CriticalCSSInline'
 
 export default function Document() {
+  const isDevelopment = process.env.NODE_ENV === 'development'
+  
+  // CSP mais permissiva para desenvolvimento (permite unsafe-eval para React Refresh)
+  const developmentCSP = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://fonts.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' http://localhost:5000 https://finnextho-backend.onrender.com https://api.stripe.com https://finnextho-5d86e.firebaseapp.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebase.googleapis.com https://www.google.com https://accounts.google.com https://www.googleapis.com https://oauth2.googleapis.com https://www.google-analytics.com; frame-src 'self' https://js.stripe.com https://accounts.google.com; object-src 'none'; base-uri 'self';"
+  
+  // CSP restritiva para produção (sem unsafe-eval)
+  const productionCSP = "default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://fonts.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://finnextho-backend.onrender.com https://api.stripe.com https://finnextho-5d86e.firebaseapp.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebase.googleapis.com https://www.google.com https://accounts.google.com https://www.googleapis.com https://oauth2.googleapis.com https://www.google-analytics.com; frame-src 'self' https://js.stripe.com https://accounts.google.com; object-src 'none'; base-uri 'self';"
+
   return (
     <Html lang="pt-BR" className="light">
       <Head>
@@ -12,8 +20,8 @@ export default function Document() {
         <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="theme-color" content="#3b82f6" />
         
-        {/* CSP otimizada para produção */}
-        <meta httpEquiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://fonts.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://finnextho-backend.onrender.com https://api.stripe.com https://finnextho-5d86e.firebaseapp.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebase.googleapis.com https://www.google.com; frame-src https://js.stripe.com; object-src 'none'; base-uri 'self';" />
+        {/* CSP condicional: permissiva em dev, restritiva em produção */}
+        <meta httpEquiv="Content-Security-Policy" content={isDevelopment ? developmentCSP : productionCSP} />
         
         {/* Meta tags para SEO */}
         <meta name="robots" content="index, follow" />
@@ -44,3 +52,5 @@ export default function Document() {
     </Html>
   )
 }
+32
+1

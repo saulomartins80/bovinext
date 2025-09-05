@@ -72,10 +72,9 @@ export default function RegisterPage() {
       if (registerResponse.ok) {
         setSuccess(true); // Define sucesso para mostrar a mensagem
 
-        // Redirecionar para a página de login após sucesso
-        // Adicionado um pequeno delay visual antes de redirecionar
+        // Redirecionar para dashboard após sucesso
         setTimeout(() => {
-          router.push('/auth/login?registration=success');
+          router.push('/dashboard?welcome=true');
         }, 1500); // Redireciona após 1.5 segundos para dar tempo de ver a mensagem
 
         // Removida lógica de login imediato e syncSessionWithBackend

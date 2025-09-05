@@ -11,7 +11,12 @@ import {
   IdTokenResult,
   getRedirectResult,
 } from 'firebase/auth';
-import { loginWithGoogle as firebaseLoginWithGoogle, getFirebaseInstances } from '../lib/firebase/client';
+import { 
+  loginWithGoogle as firebaseLoginWithGoogle, 
+  getFirebaseInstances,
+  handleGoogleRedirectResult,
+  diagnoseGoogleAuth
+} from '../lib/firebase/client';
 // import { handleRedirectResult } from '../lib/firebase/auth';
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/router';
@@ -432,73 +437,102 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, [router, syncSessionWithBackend]);
 
-  // ✅ NOVO: Processar resultado de login por redirect (fallback quando popup/cookies são bloqueados)
+  // ✅ DISABLED: Redirect result processing to prevent infinite loops
   useEffect(() => {
-    let isMounted = true;
-    const processRedirectResult = async () => {
-      try {
-        const { auth: firebaseAuth } = getFirebaseInstances();
-        if (!firebaseAuth) return;
-        const result = await getRedirectResult(firebaseAuth);
-        if (!isMounted || !result) return;
-
-        // Se há resultado do redirect, seguir mesmo fluxo do popup
-        const { isNewUser, profile } = await checkAndCreateUserProfile(result.user);
-        if (isNewUser || !profile.isComplete) {
-          router.push('/auth/complete-registration');
-          return;
-        }
-        await syncSessionWithBackend(result.user);
-        router.push('/dashboard');
-      } catch (e) {
-        // Sem resultado ou erro silencioso; não quebrar fluxo normal
-        // Apenas logar para diagnóstico
-        console.log('[AuthContext] Redirect sign-in result not available or failed:', e);
-      }
-    };
-    processRedirectResult();
-    return () => { isMounted = false; };
-  }, [router, syncSessionWithBackend]);
+    // Temporarily disabled to prevent infinite reload loops
+    console.log('ℹ️ [AuthContext] Redirect result processing disabled to prevent loops');
+  }, []);
 
   const loginWithGoogle = useCallback(async () => {
     try {
+      console.log('🚀 [AuthContext] Starting enhanced Google login...');
       setState(prev => ({ ...prev, loading: true, error: null }));
       
+      // Run pre-login diagnostics
+      try {
+        const diagnostics = await diagnoseGoogleAuth();
+        console.log('🔧 [AuthContext] Pre-login diagnostics:', diagnostics);
+        
+        if (!diagnostics.configuration.valid) {
+          console.error('❌ [AuthContext] Configuration issues detected:', diagnostics.configuration.issues);
+          setState(prev => ({ 
+            ...prev, 
+            error: `Configuração do Google Auth: ${diagnostics.configuration.issues.join(', ')}`,
+            loading: false 
+          }));
+          return;
+        }
+        
+        if (diagnostics.recommendations.length > 0) {
+          console.warn('⚠️ [AuthContext] Recommendations:', diagnostics.recommendations);
+        }
+      } catch (diagError) {
+        console.warn('⚠️ [AuthContext] Could not run pre-login diagnostics:', diagError);
+      }
+      
       const result = await firebaseLoginWithGoogle();
+      console.log('✅ [AuthContext] Google login successful');
       
       // Verificar se é um novo usuário ou se precisa completar cadastro
       const { isNewUser, profile } = await checkAndCreateUserProfile(result.user);
       
       if (isNewUser || !profile.isComplete) {
-        // Redirecionar para completar cadastro
+        console.log('👤 [AuthContext] New user or incomplete profile, redirecting to registration');
         router.push('/auth/complete-registration');
         return;
       }
       
-      // Sincronizar com backend
+      console.log('🔄 [AuthContext] Syncing with backend after Google login...');
       await syncSessionWithBackend(result.user);
       
-      // Redirecionar para dashboard
+      console.log('🎯 [AuthContext] Redirecting to dashboard');
       router.push('/dashboard');
     } catch (error) {
       const err = error as { message?: string; code?: string };
-      console.error('Erro no login com Google:', error);
+      console.error('❌ [AuthContext] Google login error:', error);
+      
+      // Special handling for redirect case
+      if (err.message === 'REDIRECTING_FOR_GOOGLE_SIGNIN') {
+        console.log('🔄 [AuthContext] Redirecting for Google sign-in (popup blocked)');
+        // Don't set error state for redirect case
+        return;
+      }
+      
+      // Enhanced error handling with diagnostics
+      let errorMessage = 'Falha ao entrar com Google. Tente novamente.';
       
       // Tratamento específico para erro de quota excedida
       if (err.message?.includes('auth/quota-exceeded') || err.code === 'auth/quota-exceeded') {
-        setState(prev => ({ 
-          ...prev, 
-          error: 'Serviço temporariamente indisponível. Tente novamente mais tarde.',
-          loading: false 
-        }));
-        return;
+        errorMessage = 'Serviço temporariamente indisponível. Tente novamente mais tarde.';
+      } else if (err.message?.includes('auth/operation-not-allowed')) {
+        errorMessage = 'Login com Google não está habilitado. Entre em contato com o suporte.';
+      } else if (err.message?.includes('auth/unauthorized-domain')) {
+        errorMessage = 'Domínio não autorizado. Verifique a configuração.';
+      } else if (err.message?.includes('network')) {
+        errorMessage = 'Erro de conexão. Verifique sua internet e tente novamente.';
+      } else if (err.message) {
+        // Use the enhanced error message if available
+        errorMessage = err.message;
       }
       
       setState(prev => ({ 
         ...prev, 
-        error: 'Falha ao entrar com Google. Tente novamente.',
+        error: errorMessage,
         loading: false 
       }));
+      
+      // Run post-error diagnostics
+      try {
+        const diagnostics = await diagnoseGoogleAuth();
+        console.log('🔧 [AuthContext] Post-error diagnostics:', diagnostics);
+        
+        if (diagnostics.recommendations.length > 0) {
+          console.log('💡 [AuthContext] Error recovery recommendations:', diagnostics.recommendations);
+        }
+      } catch (diagError) {
+        console.error('🚨 [AuthContext] Failed to run post-error diagnostics:', diagError);
+      }
+      
       throw error;
     }
   }, [router, syncSessionWithBackend]);
