@@ -8,11 +8,14 @@ Sitemap: https://finnextho.com/sitemap.xml
 Disallow: /admin/
 Disallow: /api/
 Disallow: /dashboard/
-Disallow: /auth/
+Disallow: /auth/reset-password
+Disallow: /auth/verify-email
 Disallow: /test-email
 
 # Allow important pages
 Allow: /
+Allow: /auth/login
+Allow: /auth/register
 Allow: /recursos
 Allow: /solucoes
 Allow: /precos

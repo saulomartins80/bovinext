@@ -11,7 +11,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_API_URL
-        value: https://finnextho-backend.onrender.com
+        value: https://theclosen-backend.onrender.com
       - key: NEXT_PUBLIC_FIREBASE_API_KEY
         sync: false
       - key: NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN
@@ -55,7 +55,7 @@ services:
       - key: STRIPE_WEBHOOK_SECRET
         sync: false
       - key: FRONTEND_URL
-        value: https://finnextho-frontend.onrender.com
+        value: https://theclosen-frontend.onrender.com
       - key: REDIS_URL
         value: redis://red-d1gsqdvgi27c73c34r8g:6379
       - key: OPENAI_API_KEY
