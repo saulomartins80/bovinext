@@ -1,6 +1,9 @@
-import mongoose, { Schema, Document, models } from 'mongoose';
-import Stripe from 'stripe';
-import { SubscriptionStatus } from '../modules/users/types/User';
+import { supabaseService } from '../services/SupabaseService';
+import { Database } from '../types/database.types';
+
+type UserRow = Database['public']['Tables']['users']['Row'];
+type UserInsert = Database['public']['Tables']['users']['Insert'];
+type UserUpdate = Database['public']['Tables']['users']['Update'];
 
 export interface ISubscription {
     stripeCustomerId?: string;
@@ -16,86 +19,68 @@ export interface ISubscription {
     updatedAt?: Date;
 }
 
-export interface IUser extends Document {
-    _id: mongoose.Types.ObjectId;
+// Interface para compatibilidade com código existente
+export interface IUser {
+    id: string;
     email?: string;
     name?: string;
     firebaseUid: string;
     photoUrl?: string;
-    password?: string;
-    settings?: {
-        theme?: string;
-        notifications?: boolean;
-    };
-    subscription?: ISubscription;
-    transacoes?: any[];
-    investimentos?: any[];
-    metas?: any[];
-    mileageBalance?: number;
-    mileagePreferences?: {
-        defaultProgram?: string;
-        preferredCards?: string[];
-        autoConnect?: boolean;
-    };
-    lastPayment?: {
-        date: Date;
-        amount: number;
+    fazenda_nome: string;
+    fazenda_area?: number;
+    fazenda_localizacao?: string;
+    tipo_criacao?: string;
+    experiencia_anos?: number;
+    subscription?: {
+        plan: string;
         status: string;
     };
     createdAt?: Date;
     updatedAt?: Date;
 }
 
-const userSchema = new Schema<IUser>(
-    {
-        firebaseUid: { type: String, required: true, unique: true, index: true },
-        email: { type: String, required: true },
-        name: { type: String },
-        password: { type: String },
-        photoUrl: { type: String },
-        settings: {
-            theme: { type: String, default: 'light' },
-            notifications: { type: Boolean, default: true }
-        },
-        subscription: {
-            stripeCustomerId: { type: String, index: true },
-            stripeSubscriptionId: { type: String },
-            stripePriceId: String,
-            status: String,
-            plan: String,
-            cancelAtPeriodEnd: Boolean,
-            expiresAt: Date,
-            currentPeriodEnd: Date,
-            trialEndsAt: Date,
-            subscriptionId: String,
-            updatedAt: Date
-        },
-        transacoes: [{ type: Schema.Types.Mixed }],
-        investimentos: [{ type: Schema.Types.Mixed }],
-        metas: [{ type: Schema.Types.Mixed }],
-        mileageBalance: { type: Number, default: 0 },
-        mileagePreferences: {
-            defaultProgram: { type: String, default: 'Smiles' },
-            preferredCards: [{ type: String }],
-            autoConnect: { type: Boolean, default: false }
-        },
-        lastPayment: {
-            date: Date,
-            amount: Number,
-            status: String
-        }
-    },
-    {
-        timestamps: true,
-        toJSON: { getters: true, virtuals: true },
-        toObject: { getters: true, virtuals: true }
+export class User {
+  static async create(userData: UserInsert): Promise<UserRow> {
+    return await supabaseService.createUser(userData);
+  }
+
+  static async findByFirebaseUid(firebaseUid: string): Promise<UserRow | null> {
+    return await supabaseService.getUserByFirebaseUid(firebaseUid);
+  }
+
+  static async findById(userId: string): Promise<UserRow | null> {
+    try {
+      return await supabaseService.getUserByFirebaseUid(userId);
+    } catch (error) {
+      return null;
     }
-);
+  }
 
-userSchema.virtual('id').get(function(this: IUser) {
-    return (this._id as mongoose.Types.ObjectId).toHexString();
-});
+  static async update(userId: string, updates: UserUpdate): Promise<UserRow> {
+    return await supabaseService.updateUser(userId, updates);
+  }
 
-userSchema.index({ 'subscription.stripeSubscriptionId': 1 }, { unique: true, sparse: true });
+  // Método para compatibilidade com código existente
+  static async findOne(query: { firebaseUid: string }): Promise<IUser | null> {
+    const user = await supabaseService.getUserByFirebaseUid(query.firebaseUid);
+    if (!user) return null;
 
-export const User = (models.User as mongoose.Model<IUser>) || mongoose.model<IUser>('User', userSchema);
+    return {
+      id: user.id,
+      firebaseUid: user.firebase_uid,
+      email: user.email,
+      name: user.display_name || undefined,
+      fazenda_nome: user.fazenda_nome,
+      fazenda_area: user.fazenda_area || undefined,
+      fazenda_localizacao: user.fazenda_localizacao || undefined,
+      tipo_criacao: user.tipo_criacao || undefined,
+      experiencia_anos: user.experiencia_anos || undefined,
+      subscription: {
+        plan: user.subscription_plan,
+        status: user.subscription_status
+      },
+      createdAt: new Date(user.created_at),
+      updatedAt: new Date(user.updated_at)
+    };
+  }
+}

@@ -27,24 +27,34 @@ export class TwilioService {
   }
 
   /**
-   * Enviar mensagem via Twilio WhatsApp
+   * Enviar mensagem BOVINEXT via WhatsApp
    */
-  async sendMessage(to: string, message: string): Promise<boolean> {
+  async sendBovinoMessage(to: string, message: string): Promise<boolean> {
     try {
-      console.log(`[TwilioService] Enviando mensagem para: ${to}`);
+      console.log(`[BOVINEXT] Enviando mensagem para: ${to}`);
+      
+      // Adicionar prefixo BOVINEXT
+      const bovinoMessage = `🐂 *BOVINEXT*\n\n${message}`;
       
       const result = await this.client.messages.create({
         from: `whatsapp:+14155238886`, // Número do Sandbox
         to: `whatsapp:${to}`,
-        body: message
+        body: bovinoMessage
       });
 
-      console.log(`[TwilioService] Mensagem enviada com sucesso. SID: ${result.sid}`);
+      console.log(`[BOVINEXT] Mensagem enviada com sucesso. SID: ${result.sid}`);
       return true;
     } catch (error) {
-      console.error('[TwilioService] Erro ao enviar mensagem:', error);
+      console.error('[BOVINEXT] Erro ao enviar mensagem:', error);
       return false;
     }
+  }
+
+  /**
+   * Enviar mensagem via Twilio WhatsApp (método original mantido)
+   */
+  async sendMessage(to: string, message: string): Promise<boolean> {
+    return this.sendBovinoMessage(to, message);
   }
 
   /**

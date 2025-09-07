@@ -9,6 +9,7 @@ import { User } from '../models/User';
 import { ITransacao } from '../models/Transacoes';
 import { Goal } from '../models/Goal';
 import { Investimento } from '../models/Investimento';
+import { Animal } from '../models/Animal';
 import { EventEmitter } from 'events';
 
 // Interface para mensagens de chat
@@ -115,37 +116,35 @@ class IntelligentCache {
 class FastIntentDetector {
   private patterns = {
     // CONSULTA DE DADOS EXISTENTES - NOVA CATEGORIA
-    view_goals: [
-      /(?:ver|mostrar|consultar|visualizar).*(?:meta|objetivo)/i,
-      /(?:minha|minhas).*(?:meta|metas)/i,
-      /(?:qual|quais).*(?:meta|metas)/i,
-      /consegue.*ver.*meta/i,
-      /tem.*meta/i
+    view_animals: [
+      /(?:ver|mostrar|consultar|visualizar).*(?:animal|gado|rebanho|boi)/i,
+      /(?:meu|meus).*(?:animal|animais|gado|rebanho)/i,
+      /(?:quantos|quantas).*(?:animal|cabeça|boi|vaca)/i,
+      /consegue.*ver.*animal/i,
+      /tem.*animal/i
     ],
-    view_transactions: [
-      /(?:ver|mostrar|consultar).*(?:transa|gasto|despesa|receita)/i,
-      /(?:minha|minhas).*(?:transa|gastos)/i,
-      /(?:últimas|ultimas).*(?:transa|gastos)/i,
-      /histórico.*financeiro/i
+    view_managements: [
+      /(?:ver|mostrar|consultar).*(?:manejo|vacinação|pesagem)/i,
+      /(?:minha|minhas).*(?:vacinação|agenda)/i,
+      /(?:últimas|ultimas).*(?:vacinação|manejo)/i,
+      /histórico.*manejo/i
     ],
-    view_investments: [
-      /(?:ver|mostrar|consultar).*(?:investimento|aplicação)/i,
-      /(?:meu|meus).*(?:investimento|portfolio)/i,
-      /carteira.*investimento/i
+    view_sales: [
+      /(?:ver|mostrar|consultar).*(?:venda|vendas|lucro)/i,
+      /(?:minha|minhas).*(?:venda|vendas)/i,
+      /vendas.*mês/i
     ],
     view_summary: [
       /(?:saldo|resumo|situação).*(?:atual|financeira)/i,
       /como.*(?:está|esta).*(?:situação|finanças)/i,
       /balanço.*financeiro/i
     ],
-    create_goal: [
-      /(?:criar|registrar|cadastrar).*(?:meta|objetivo)/i,
-      /(?:quero|vou).*(?:juntar|poupar|economizar)/i,
-      /meta.*(?:de|para)/i,
-      /quero.*juntar|preciso.*juntar|vamos.*juntar/i,
-      /plano.*financeiro|planejamento/i,
-      /natal|aniversário|viagem|casa|carro/i,
-      /até.*\d+\/\d+|prazo.*\d+/i
+    create_animal: [
+      /(?:criar|registrar|cadastrar).*(?:animal|boi|vaca|bezerro)/i,
+      /(?:comprei|chegou|nasceu).*(?:animal|boi|vaca|bezerro)/i,
+      /novo.*(?:animal|boi|vaca|bezerro)/i,
+      /registrar.*(?:nascimento|compra)/i,
+      /brinco.*\d+/i
     ],
     create_investment: [
       /invest[ir]|aplicar|render|cdb|tesouro|ações|selic/i,
@@ -832,43 +831,50 @@ class OptimizedContext {
   private userContexts = new Map<string, any>();
   private externalAPI = new ExternalAPIService();
 
-  // Buscar dados do usuário no banco de dados
-  async getUserFinancialData(userId: string): Promise<any> {
+  // Buscar dados pecuários do usuário
+  async getUserLivestockData(userId: string): Promise<any> {
     try {
       const { Goal } = await import('../models/Goal');
       const { Transacoes } = await import('../models/Transacoes');
       const { Investimento } = await import('../models/Investimento');
+      const { Animal } = await import('../models/Animal');
 
-      // Buscar dados em paralelo
-      const [goals, transactions, investments] = await Promise.all([
-        Goal.find({ userId }).sort({ createdAt: -1 }).limit(5),
-        Transacoes.find({ userId }).sort({ data: -1 }).limit(10),
-        Investimento.find({ userId }).sort({ data: -1 }).limit(5)
+      // Buscar dados em paralelo (adaptado para pecuária)
+      const [metas, manejos, animais] = await Promise.all([
+        Goal.find({ userId }).sort({ createdAt: -1 }).limit(5),        // Metas de produção
+        Transacoes.find({ userId }).sort({ data: -1 }).limit(10),     // Manejos realizados
+        (async () => {
+          try {
+            return await Animal.findByUser(userId, 'ativo');
+          } catch {
+            return [];
+          }
+        })()
       ]);
 
-      // Calcular estatísticas básicas
-      const totalTransactions = transactions.length;
-      const totalGoals = goals.length;
-      const totalInvestments = investments.reduce((sum, inv) => sum + inv.valor, 0);
-      const monthlyExpenses = transactions
-        .filter(t => t.tipo === 'despesa' && new Date(t.data).getMonth() === new Date().getMonth())
-        .reduce((sum, t) => sum + t.valor, 0);
+      // Calcular estatísticas pecuárias
+      const totalAnimais = animais.length;
+      const totalMetas = metas.length;
+      const totalManejos = manejos.length;
+      const custoMensal = manejos
+        .filter(m => m.tipo === 'despesa' && new Date(m.data).getMonth() === new Date().getMonth())
+        .reduce((sum, m) => sum + (m.valor || 0), 0);
 
       return {
-        goals,
-        transactions,
-        investments,
-        stats: {
-          totalTransactions,
-          totalGoals,
-          totalInvestments,
-          monthlyExpenses,
-          hasData: totalTransactions > 0 || totalGoals > 0 || investments.length > 0
-        }
+        animals: animais,
+        managements: manejos,
+        goals: metas,
+        totalAnimais,
+        totalMetas,
+        totalManejos,
+        custoMensal,
+        hasRecentActivity: totalManejos > 0 || animais.length > 0 || metas.length > 0
       };
     } catch (error) {
       console.error('Erro ao buscar dados financeiros do usuário:', error);
       return {
+        animals: [],
+        managements: [],
         goals: [],
         transactions: [],
         investments: [],
@@ -1510,9 +1516,9 @@ Finn:`;
       
       try {
         const records = await this.getExistingRecords(userContext.userId);
-        context += `Transações: ${records.transactions.length}\n`;
-        context += `Metas: ${records.goals.length}\n`;
-        context += `Investimentos: ${records.investments.length}\n`;
+        context += `Animais: ${records.animals?.length || 0}\n`;
+        context += `Manejos: ${records.managements?.length || 0}\n`;
+        context += `Vendas: ${records.sales?.length || 0}\n`;
       } catch (error) {
         console.error('Erro ao buscar contexto:', error);
       }

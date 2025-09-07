@@ -9,6 +9,7 @@ import { Goal } from '../models/Goal';
 import { Transacoes } from '../models/Transacoes';
 import { Investimento } from '../models/Investimento';
 import { Card } from '../models/Card';
+import { Animal } from '../models/Animal';
 import { contextManager } from '../services/ContextManager';
 
 // ===== SISTEMA DE STREAMING PARA SSE =====

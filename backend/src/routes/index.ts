@@ -17,17 +17,17 @@ const router = express.Router();
 // Rotas de autenticação
 router.use('/auth', authRoutes);
 
-// Rotas protegidas
-router.use('/transacoes', transacoesRoutes);
-router.use('/investimentos', investimentoRoutes);
-router.use('/market-data', marketDataRoutes);
-router.use('/goals', goalsRoutes);
-router.use('/chatbot', optimizedChatbotRoutes);
-router.use('/automated-actions', automatedActions);
+// Rotas protegidas (adaptadas para BOVINEXT)
+router.use('/transacoes', transacoesRoutes);        // → Manejos
+router.use('/investimentos', investimentoRoutes);   // → Animais  
+router.use('/market-data', marketDataRoutes);       // → Preços Boi
+router.use('/goals', goalsRoutes);                  // → Metas Produção
+router.use('/chatbot', optimizedChatbotRoutes);     // → Bovino Assistant
+router.use('/automated-actions', automatedActions); // → Ações Pecuárias
 router.use('/subscriptions', subscriptionRoutes);
 router.use('/pluggy', pluggyRoutes);
 router.use('/mileage', mileageRoutes);
 router.use('/cards', cardRoutes);
 router.use('/rpa', rpaRoutes);
 
-export default router; 
+export default router;
