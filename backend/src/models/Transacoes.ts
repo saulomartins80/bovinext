@@ -1,15 +1,22 @@
 import { Schema, model, Document } from "mongoose";
 
-// Interface para os dados da transação
+// Interface para os dados de manejo (adaptado de transação)
 export interface ITransacao {
-  descricao: string;
-  valor: number;
-  data: Date;
-  categoria: string;
-  tipo: "receita" | "despesa" | "transferencia";
-  conta: string;
-  observacao?: string; // Campo opcional para observações
-  userId: string; // Alterado para string para usar UID do Firebase
+  descricao: string;                                           // Descrição do manejo
+  valor: number;                                              // Custo do manejo
+  data: Date;                                                 // Data do manejo
+  categoria: string;                                          // Tipo: vacinacao, pesagem, reproducao
+  tipo: "receita" | "despesa" | "transferencia";            // Mantido para compatibilidade
+  conta: string;                                             // Animal/Lote afetado
+  observacao?: string;                                       // Observações veterinárias
+  userId: string;                                            // ID do fazendeiro
+  // Campos específicos para pecuária
+  animalId?: string;                                         // ID do animal específico
+  lote?: string;                                             // Lote de animais
+  veterinario?: string;                                      // Veterinário responsável
+  produto?: string;                                          // Vacina/remédio usado
+  dosagem?: string;                                          // Dosagem aplicada
+  proximaAplicacao?: Date;                                   // Próxima vacinação
 }
 
 // Interface para o documento do Mongoose
