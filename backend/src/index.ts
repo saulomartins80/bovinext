@@ -1,44 +1,16 @@
 import 'reflect-metadata';
-import './config/env'; 
+import './config/env';
 import express from 'express';
-import 'module-alias/register';
 import cors from 'cors';
 import helmet from 'helmet';
-import mongoose from 'mongoose';
 import rateLimit from 'express-rate-limit';
-import { container } from './core/container';
-import { errorHandler } from './middlewares/errorHandler';
-import { AppError } from './core/errors/AppError';
-import { httpsRedirect, httpsSecurityHeaders } from './middlewares/httpsRedirect';
-
-import { adminAuth } from './config/firebaseAdmin';
-import { Server } from 'http';
 import morgan from 'morgan';
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
-
-// Rotas
-import optimizedChatbotRoutes from './routes/optimizedChatbotRoutes';
-import transacoesRouter from './routes/transacoesRoutes';
-import goalsRouter from './routes/goalsRoutes';
-import investimentoRouter from './routes/investimentoRoutes';
-import subscriptionRoutes from './modules/subscriptions/routes/subscriptionRoutes';
-import authRoutes from './routes/authRoutes'; 
-import marketDataRoutes from './routes/marketDataRoutes'; 
-import protectedRoutes from './routes/protectedRoutes';
-import userRoutes from './modules/users/routes/userRoutes';
-import automatedActionsRoutes from './routes/automatedActions';
-// ✅ CORREÇÃO: Adicionar rotas de milhas e pluggy
-import mileageRoutes from './routes/mileageRoutes';
-import pluggyRoutes from './routes/pluggyRoutes';
-// 🤖 RPA: Adicionar rotas do sistema RPA
-import rpaRoutes from './routes/rpaRoutes';
-import cardRoutes from './routes/cardRoutes';
-// 📱 Twilio: Adicionar rotas do WhatsApp
-import twilioRoutes from './routes/twilioRoutes';
-// 📁 Storage: Adicionar rotas do Firebase Storage
-import storageRoutes from './routes/storageRoutes';
-// Removed RPA routes and initialization
+import { httpsRedirect, httpsSecurityHeaders } from './middlewares/httpsRedirect';
+import router from './routes';
+import { errorHandler } from './middlewares/errorHandler';
+import { Server } from 'http';
 
 interface HealthCheckResponse {
   status: 'OK' | 'PARTIAL' | 'FAIL';
@@ -46,31 +18,10 @@ interface HealthCheckResponse {
   uptime: number;
   environment: string;
   version: string;
-  services: {
-    database: DatabaseHealth;
-    firebase: FirebaseHealth;
-  };
   resources: {
     memory: MemoryUsage;
     cpu?: CpuUsage;
   };
-}
-
-interface DatabaseHealth {
-  status: boolean;
-  type: string;
-  latency: number;
-  details: {
-    host: string;
-    name: string;
-    collections: number;
-  };
-}
-
-interface FirebaseHealth {
-  status: boolean;
-  type: string;
-  latency: number;
 }
 
 interface MemoryUsage {
@@ -108,17 +59,11 @@ app.use(cors({
     if (!origin) return callback(null, true);
     
     const allowedOrigins = [
-      process.env.FRONTEND_URL || 'http://localhost:3000',
-      'http://localhost:3000',
-      'http://192.168.1.67:3000',
+      process.env.FRONTEND_URL || 'http://localhost:3001',
+      'http://localhost:3001',
+      'http://192.168.1.67:3001',
       'http://10.223.119.19:10000',
-      'http://localhost:10000',
-      'https://finnextho-frontend.vercel.app',
-      'https://finnextho-frontend.onrender.com',
-      'https://accounts.google.com',
-      'https://finnextho.com',
-      'https://www.finnextho.com',
-      'https://finnextho.vercel.app'
+      'http://localhost:10000'
     ];
     
     if (allowedOrigins.includes(origin)) {
@@ -180,13 +125,8 @@ app.use((req, res, next) => {
   // Garantir CORS headers em todas as respostas
   const origin = req.headers.origin;
   const allowedOrigins = [
-    'http://localhost:3000',
     'http://localhost:3001',
-    'http://127.0.0.1:3000',
-    'https://finnextho-frontend.onrender.com',
-    'https://finnextho.onrender.com',
-    'https://www.finnextho.com',
-    'https://finnextho.com'
+    'http://127.0.0.1:3001'
   ];
   
   if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
@@ -218,23 +158,6 @@ app.get('/health', (async (req: express.Request, res: express.Response): Promise
     uptime: process.uptime(),
     environment: process.env.NODE_ENV || 'development',
     version: process.env.npm_package_version || '1.0.0',
-    services: {
-      database: {
-        status: false,
-        type: 'MongoDB',
-        latency: -1,
-        details: {
-          host: '',
-          name: '',
-          collections: 0
-        }
-      },
-      firebase: {
-        status: false,
-        type: 'Firebase Admin',
-        latency: -1
-      }
-    },
     resources: {
       memory: {
         rss: '0 MB',
@@ -246,46 +169,6 @@ app.get('/health', (async (req: express.Request, res: express.Response): Promise
   };
 
   try {
-    const mongoStart = Date.now();
-    const mongoStatus = mongoose.connection.readyState === 1;
-    
-    if (mongoStatus && mongoose.connection.db) {
-      try {
-        await mongoose.connection.db.admin().ping();
-        const collections = mongoose.connection.collections;
-        const collectionsCount = Object.keys(collections).length;
-        
-        healthCheck.services.database = {
-          status: true,
-          type: 'MongoDB',
-          latency: Date.now() - mongoStart,
-          details: {
-            host: mongoose.connection.host,
-            name: mongoose.connection.name || '',
-            collections: collectionsCount
-          }
-        };
-      } catch (mongoError) {
-        healthCheck.services.database.status = false;
-        healthCheck.status = 'PARTIAL';
-      }
-    } else {
-      healthCheck.status = 'PARTIAL';
-    }
-
-    const firebaseStart = Date.now();
-    try {
-      await adminAuth.listUsers(1);
-      healthCheck.services.firebase = {
-        status: true,
-        type: 'Firebase Admin',
-        latency: Date.now() - firebaseStart
-      };
-    } catch (firebaseError) {
-      healthCheck.services.firebase.status = false;
-      healthCheck.status = healthCheck.status === 'OK' ? 'PARTIAL' : 'FAIL';
-    }
-
     const memory = process.memoryUsage();
     healthCheck.resources.memory = {
       rss: `${(memory.rss / 1024 / 1024).toFixed(2)} MB`,
@@ -304,14 +187,7 @@ app.get('/health', (async (req: express.Request, res: express.Response): Promise
       };
     }
 
-    if (!healthCheck.services.database.status || !healthCheck.services.firebase.status) {
-      healthCheck.status = 'FAIL';
-    }
-
-    const httpStatus = healthCheck.status === 'OK' ? 200 : 
-                      healthCheck.status === 'PARTIAL' ? 206 : 503;
-    
-    res.status(httpStatus).json(healthCheck);
+    res.status(200).json(healthCheck);
 
   } catch (error) {
     healthCheck.status = 'FAIL';
@@ -319,33 +195,11 @@ app.get('/health', (async (req: express.Request, res: express.Response): Promise
   }
 }) as express.RequestHandler);
 
-// Configuração do middleware para webhooks do Stripe (DEVE vir ANTES do express.json())
-app.use('/api/subscriptions/webhook', express.raw({ type: 'application/json' }));
-
-// Configuração do body-parser para outras rotas
+// Configuração do body-parser
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-app.use('/api/chatbot', optimizedChatbotRoutes);
-app.use('/api/transacoes', transacoesRouter);
-app.use('/api/goals', goalsRouter);
-app.use('/api/investimentos', investimentoRouter);
-app.use('/api/subscriptions', subscriptionRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/market-data', marketDataRoutes);
-app.use('/api/protected', protectedRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/automated-actions', automatedActionsRoutes);
-// ✅ CORREÇÃO: Registrar rotas de milhas e pluggy
-app.use('/api/mileage', mileageRoutes);
-app.use('/api/pluggy', pluggyRoutes);
-app.use('/api/cards', cardRoutes);
-// 🤖 RPA: Registrar rotas do sistema RPA
-app.use('/api/rpa', rpaRoutes);
-// 📱 Twilio: Registrar rotas do WhatsApp
-app.use('/api/twilio', twilioRoutes);
-// 📁 Storage: Registrar rotas do Firebase Storage
-app.use('/api/storage', storageRoutes);
+// Apenas rotas BOVINEXT
+app.use('/', router);
 
 app.use(errorHandler as express.ErrorRequestHandler);
 
@@ -365,50 +219,10 @@ process.on('SIGINT', () => {
 
 let server: Server;
 
-const startServer = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI!, {
-      serverSelectionTimeoutMS: 5000,
-      socketTimeoutMS: 30000,
-      maxPoolSize: 50,
-      retryWrites: true,
-      w: 'majority'
-    });
-
-    console.log("✅ Conectado ao MongoDB");
-
-    // 🤖 Inicializar sistema RPA
-    console.log("🤖 Sistema RPA desabilitado temporariamente para teste");
-    
-    try {
-      console.log("🤖 Iniciando sistema RPA...");
-      // await initializeRpaSystem(); // This line was removed as per the edit hint
-      console.log("🤖 Sistema RPA inicializado com sucesso");
-    } catch (error) {
-      console.error("❌ Erro ao inicializar sistema RPA:", error);
-      console.log("🔄 Continuando inicialização do servidor...");
-      // Não interromper o servidor se o RPA falhar
-    }
-    
-
-    server = app.listen(PORT, () => {
-      console.log(`🚀 Servidor rodando na porta ${PORT}`);
-      console.log(`🔗 Ambiente: ${process.env.NODE_ENV || 'development'}`);
-    });
-
-    setInterval(() => {
-      if (mongoose.connection.readyState !== 1) {
-        console.warn('⚠️ Conexão com MongoDB perdida. Tentando reconectar...');
-      }
-    }, 60000);
-
-  } catch (error) {
-    console.error("❌ Falha na inicialização:", error instanceof Error ? error.message : error);
-    process.exit(1);
-  }
-};
-
-startServer();
+server = app.listen(PORT, () => {
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  console.log(`🔗 Ambiente: ${process.env.NODE_ENV || 'development'}`);
+});
 
 export default app;
 

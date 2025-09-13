@@ -6,6 +6,15 @@ import { dirname } from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+const securityHeaders = [
+  {
+    key: 'Content-Security-Policy',
+    value: `default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https: http:; connect-src 'self' ${apiUrl} https://*.supabase.co wss://*.supabase.co; frame-src 'self'; object-src 'none'; base-uri 'self';`,
+  },
+];
+
 const nextConfig = {
   // ✅ CORREÇÃO: Removido output: 'export' para permitir API routes e middleware
   trailingSlash: true,
@@ -17,12 +26,6 @@ const nextConfig = {
   images: {
     unoptimized: false,
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'firebasestorage.googleapis.com',
-        port: '',
-        pathname: '/**',
-      },
       {
         protocol: 'https',
         hostname: 'lh3.googleusercontent.com',
@@ -50,7 +53,7 @@ const nextConfig = {
       {
         protocol: 'http',
         hostname: 'localhost',
-        port: '3000',
+        port: '3001',
         pathname: '/**',
       },
     ],
@@ -61,11 +64,13 @@ const nextConfig = {
     minimumCacheTTL: 31536000, // 1 ano
   },
   experimental: {
-    optimizeCss: process.env.NODE_ENV === 'production',
+    optimizeCss: true,
     scrollRestoration: true,
-    esmExternals: true,
     forceSwcTransforms: true,
   },
+  
+  // Configurações movidas para fora do experimental no Next.js 15
+  reactStrictMode: false,
   
   // ✅ CORREÇÃO: Configuração otimizada para desenvolvimento
   ...(process.env.NODE_ENV === 'development' && {
@@ -90,7 +95,7 @@ const nextConfig = {
   }),
   
   // ✅ CORREÇÃO: Movido para fora do experimental no Next.js 15
-  serverExternalPackages: ['firebase', '@firebase/app', '@firebase/auth', '@firebase/firestore'],
+  serverExternalPackages: [],
   
   // ✅ CORREÇÃO: Configurações de webpack para melhorar performance mobile
   webpack: (config, { dev, isServer, dir }) => {
@@ -263,32 +268,7 @@ const nextConfig = {
     return [
       {
         source: '/(.*)',
-        headers: [
-          {
-            key: 'X-DNS-Prefetch-Control',
-            value: 'on'
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY'
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin'
-          },
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()'
-          },
-          {
-            key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https: http:; connect-src 'self' http://localhost:5000 https://finnextho-backend.onrender.com https://api.stripe.com https://finnextho-5d86e.firebaseapp.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebase.googleapis.com https://www.google.com https://accounts.google.com https://www.googleapis.com https://oauth2.googleapis.com https://www.google-analytics.com; frame-src 'self' https://js.stripe.com https://accounts.google.com; object-src 'none'; base-uri 'self';"
-          },
-        ],
+        headers: securityHeaders,
       },
       {
         source: '/static/(.*)',

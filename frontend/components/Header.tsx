@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { FiX, FiSun, FiMoon, FiMonitor, FiMenu, FiSettings, FiUser, FiLogOut, FiChevronRight } from 'react-icons/fi';
+import { 
+  FiX,
+  FiSun,
+  FiMoon,
+  FiMonitor,
+  FiMenu,
+  FiSettings,
+  FiUser,
+  FiLogOut,
+  FiChevronRight
+} from 'react-icons/fi';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import Link from 'next/link';
@@ -178,9 +188,9 @@ export default function Header({
                 : 'bg-gray-300 text-gray-700'
               }
             `}>
-              {(user.photoUrl || user.photoURL) ? (
+              {user.avatar_url ? (
                 <Image
-                  src={user.photoUrl || user.photoURL || ''}
+                  src={user.avatar_url || ''}
                   alt="Avatar do usuário"
                   width={32}
                   height={32}

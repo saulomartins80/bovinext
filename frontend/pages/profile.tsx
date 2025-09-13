@@ -1,290 +1,333 @@
 'use client';
-/* eslint-disable no-unused-vars */
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useAuth } from '../context/AuthContext';
-import { useState, useEffect, useMemo } from 'react';
-import { FiEdit, FiCamera, FiCheck, FiX, FiEye, FiEyeOff, FiSettings, FiAlertCircle } from 'react-icons/fi';
-import FileUpload from '../components/FileUpload';
-import { storageService } from '../services/storageService';
-import { toast } from 'react-toastify';
-import Image from 'next/image';
-import api from '../services/api';
-import { getApp } from 'firebase/app';
-import { useRouter } from 'next/navigation';
-import { useTheme } from '../context/ThemeContext';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/router';
+import { User } from '@supabase/supabase-js';
+import { 
+  FiEdit, 
+  FiCamera, 
+  FiCheck, 
+  FiX, 
+  FiEye, 
+  FiEyeOff, 
+  FiAlertCircle,
+  FiSettings,
+  FiCreditCard
+} from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import { CreditCard } from 'lucide-react';
-import { getAuth, signOut } from 'firebase/auth';
+import { supabase } from '../lib/supabaseClient';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import Image from 'next/image';
 
-interface AuthUserData {
-  uid: string;
-  email: string | null;
-  name: string | null;
-  photoUrl?: string | null;
-  photoURL?: string | null;
-  subscription?: { plan?: string; status?: string; expiresAt?: string } | null;
-}
-
-interface ProfileAuthContextType {
-  user: AuthUserData | null;
-  subscription: { plan?: string; status?: string; expiresAt?: string } | null;
-  loadingSubscription: boolean;
-  refreshSubscription: () => Promise<void>;
-  updateUserContextProfile: (_updatedProfileData: Partial<AuthUserData>) => void;
-}
-
-interface UserData {
+interface FormData {
   name: string;
   email: string;
-  subscription?: {
-    status: string | undefined;
-    planName: string;
-  };
+  phone: string;
+  fazenda: string;
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
 }
 
 export default function Profile() {
-  const {
-    user,
-    subscription,
-    loadingSubscription,
-    refreshSubscription: _refreshSubscription,
-    updateUserContextProfile
-  } = useAuth() as ProfileAuthContextType;
-  const { resolvedTheme: _resolvedTheme } = useTheme();
+  const { user: authUser, updateProfile } = useAuth();
   const router = useRouter();
-  const [_userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
+  
+  // Define our custom user metadata type
+  interface CustomUserMetadata {
+    name?: string;
+    avatar_url?: string;
+    [key: string]: any;
+  }
 
+  // Extend the User type to include our custom fields
+  interface ExtendedUser extends Omit<User, 'user_metadata'> {
+    user_metadata: CustomUserMetadata;
+    phone?: string;
+    fazenda?: string;
+    name?: string;
+  }
+  
+  // Safely cast the auth user to our extended type
+  const user = (authUser as unknown) as ExtendedUser;
+  
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [isUploading, setIsUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string>('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
+    phone: '',
+    fazenda: '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleAvatarUpload = async (file: File): Promise<string> => {
-    if (!user) throw new Error('Usuário não autenticado');
-    return await storageService.uploadAvatar(file, user.uid);
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setAvatarFile(null);
+    setAvatarPreview(user?.user_metadata?.avatar_url || '/default-avatar.png');
+    setFormData({
+      name: user?.user_metadata?.name || user?.name || '',
+      email: user?.email || '',
+      phone: user?.phone || '',
+      fazenda: user?.fazenda || '',
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    });
   };
 
+  // Upload de avatar para o storage do Supabase
+  const uploadAvatar = async (file: File): Promise<string> => {
+    if (!user) throw new Error('Usuário não autenticado');
+    
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+    const filePath = `avatars/${fileName}`;
+    
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true
+      });
+      
+    if (uploadError) throw uploadError;
+    
+    // Obter URL pública
+    const { data: { publicUrl } } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(filePath);
+      
+    return publicUrl;
+  };
+
+  // Carrega os dados do perfil do usuário
+  const loadUserProfile = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      setIsLoading(true);
+      
+      // Busca os dados do perfil do usuário
+      const { data: profileData, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+        
+      if (profileError) throw profileError;
+      
+      // Atualiza o estado com os dados do perfil
+      setFormData(prev => ({
+        ...prev,
+        name: profileData?.name || (user.user_metadata as any)?.name || '',
+        email: user.email || '',
+        phone: profileData?.phone || '',
+        fazenda: profileData?.fazenda_nome || ''
+      }));
+      
+      // Define a prévia do avatar
+      if (profileData?.avatar_url) {
+        setAvatarPreview(profileData.avatar_url);
+      } else if ((user.user_metadata as any)?.avatar_url) {
+        setAvatarPreview((user.user_metadata as any).avatar_url);
+      }
+      
+    } catch (error) {
+      console.error('Erro ao carregar perfil:', error);
+      toast.error('Erro ao carregar os dados do perfil');
+    } finally {
+      setLoading(false);
+    }
+  }, [user]); // Removido supabase do array de dependências
+  
+  // Carrega os dados do perfil quando o componente é montado ou o usuário muda
   useEffect(() => {
     if (user) {
-      setFormData({
-        name: user.name || '',
-        email: user.email || '',
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      });
-      setAvatarPreview(user.photoUrl || user.photoURL || '/default-avatar.png');
+      loadUserProfile();
     }
-  }, [user]);
+  }, [user, loadUserProfile]);
 
+  // Redirecionar se não estiver autenticado
   useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        if (!user) {
-          router.replace('/auth/login');
-          return;
-        }
-
-        // Usar dados do contexto de autenticação em vez de fazer chamada separada
-        if (user) {
-          setUserData({
-            name: user.name || '',
-            email: user.email || '',
-            subscription: user.subscription ? {
-              status: user.subscription.status || 'unknown',
-              planName: user.subscription.plan || 'Trial'
-            } : undefined
-          });
-        }
-      } catch (error) {
-        console.error('Erro ao carregar perfil:', error);
-        toast.error('Erro ao carregar dados do perfil');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserData();
+    if (!user) {
+      router.push('/auth/login');
+    }
   }, [user, router]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-      if (!validTypes.includes(file.type)) {
-        toast.error('Tipo de arquivo inválido. Use JPEG, PNG ou WEBP');
-        setAvatarFile(null);
-        setAvatarPreview(user?.photoUrl || user?.photoURL || '/default-avatar.png');
-        return;
-      }
-
-      if (file.size > 2 * 1024 * 1024) { // 2MB
-        toast.error('A imagem deve ter menos de 2MB');
-        setAvatarFile(null);
-        setAvatarPreview(user?.photoUrl || user?.photoURL || '/default-avatar.png');
-        return;
-      }
-
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
-    }
-  };
-
+  // Manipulador de envio do formulário
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-
+    
     try {
-      if (!user?.uid) {
-        throw new Error('Usuário não autenticado ou UID indisponível');
+      // Verificar se as senhas coincidem
+      if (formData.newPassword && formData.newPassword !== formData.confirmPassword) {
+        toast.error('As senhas não coincidem');
+        return;
       }
-
-      const updatePayload: any = {};
-      let finalPhotoUrl = user.photoUrl || user.photoURL;
-
+      
+      // Atualizar perfil
+      const updates = {
+        name: formData.name,
+        phone: formData.phone,
+        fazenda: formData.fazenda,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Se houver um novo avatar para enviar
       if (avatarFile) {
-        setIsUploading(true);
         try {
-          finalPhotoUrl = await handleAvatarUpload(avatarFile);
-          updatePayload.photoUrl = finalPhotoUrl;
+          setIsUploading(true);
+          const avatarUrl = await uploadAvatar(avatarFile);
+          await updateProfile({
+            ...updates,
+            avatar_url: avatarUrl
+          });
+          setAvatarPreview(avatarUrl);
+          toast.success('Perfil atualizado com sucesso!');
         } catch (error) {
-          console.error('Erro no upload da foto:', error);
-          toast.error('Falha ao carregar a nova foto.');
-          setAvatarFile(null);
-          setAvatarPreview(user?.photoUrl || user?.photoURL || '/default-avatar.png');
-          return;
+          console.error('Erro ao fazer upload do avatar:', error);
+          toast.error('Erro ao atualizar o avatar. Tente novamente.');
         } finally {
           setIsUploading(false);
         }
-      }
-
-      const hasProfileChanges = formData.name !== user.name || formData.email !== user.email;
-      const hasPasswordChanges = formData.newPassword !== '';
-
-      if (hasProfileChanges || hasPasswordChanges || updatePayload.photoUrl) {
-        if (formData.name !== user.name && formData.name.trim() !== '') {
-          updatePayload.name = formData.name.trim();
-        }
-
-        if (formData.email !== user.email && formData.email.trim() !== '') {
-          if (!formData.currentPassword) {
-            throw new Error('Forneça sua senha atual para alterar o email');
-          }
-          updatePayload.email = formData.email.trim();
-          updatePayload.currentPassword = formData.currentPassword;
-        }
-
-        if (formData.newPassword) {
-          if (formData.newPassword !== formData.confirmPassword) {
-            throw new Error('As novas senhas não coincidem');
-          }
-          if (!formData.currentPassword) {
-            throw new Error('Forneça sua senha atual para alterar a senha');
-          }
-          updatePayload.newPassword = formData.newPassword;
-          updatePayload.currentPassword = formData.currentPassword;
-        }
-
-        const response = await api.put('/api/user/profile', updatePayload);
-
-        if (!response.data.success) {
-          throw new Error(response.data.message || 'Falha ao atualizar perfil no backend');
-        }
-
-        const updatedUserData = response.data.data;
-        if (updatedUserData) {
-          const profileForContext: Partial<AuthUserData> = {
-            ...user,
-            name: updatedUserData.name !== undefined ? updatedUserData.name : user.name,
-            email: updatedUserData.email !== undefined ? updatedUserData.email : user.email,
-            photoUrl: updatedUserData.photoUrl !== undefined ? updatedUserData.photoUrl : user.photoUrl || user.photoURL,
-            ...(updatedUserData.subscription && updatedUserData.subscription.id
-              ? { subscription: updatedUserData.subscription }
-              : {}),
-          };
-          updateUserContextProfile(profileForContext);
-        } else {
-          console.warn('Backend did not return updated user data.');
-        }
-        toast.success('Perfil atualizado com sucesso!');
       } else {
-        toast.info('Nenhuma mudança para salvar.');
+        // Atualizar apenas os dados do perfil
+        await updateProfile(updates);
+        toast.success('Perfil atualizado com sucesso!');
       }
-
+      
+      // Se houver uma nova senha para atualizar
+      if (formData.newPassword) {
+        const { error: passwordError } = await supabase.auth.updateUser({
+          password: formData.newPassword
+        });
+        
+        if (passwordError) throw passwordError;
+        
+        // Limpar campos de senha
+        setFormData(prev => ({
+          ...prev,
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        }));
+        
+        toast.success('Senha atualizada com sucesso!');
+      }
+      
       setIsEditing(false);
-      setAvatarFile(null);
-      setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmPassword: '' }));
-
     } catch (error: any) {
       console.error('Erro ao atualizar perfil:', error);
-      toast.error(error.message || 'Erro ao atualizar perfil');
+      toast.error(error.message || 'Erro ao atualizar perfil. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleManageSubscription = async () => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Manipula a mudança de avatar
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Valida o tipo do arquivo
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error('Tipo de arquivo inválido. Use JPEG, PNG ou WEBP');
+      return;
+    }
+    
+    // Valida o tamanho do arquivo (máx. 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('A imagem deve ter menos de 2MB');
+      return;
+    }
+    
     try {
-      console.log('[Profile] Iniciando criação de sessão do portal...');
-      const response = await api.post('/api/subscriptions/create-portal-session');
-      console.log('[Profile] Resposta do portal:', response.data);
+      setIsUploading(true);
       
-      // O backend retorna { url: session.url }
-      if (response.data.url) {
-        console.log('[Profile] Redirecionando para:', response.data.url);
-        window.location.href = response.data.url;
-      } else {
-        console.error('[Profile] URL não encontrada na resposta:', response.data);
-        throw new Error('URL do portal não encontrada na resposta');
+      // Faz upload da imagem para o Supabase Storage
+      const avatarUrl = await uploadAvatar(file);
+      
+      // Atualiza a URL do avatar no perfil do usuário
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', user?.id);
+        
+      if (updateError) throw updateError;
+      
+      // Atualiza a visualização do avatar
+      setAvatarPreview(avatarUrl);
+      
+      // Atualiza o contexto de autenticação
+      if (user) {
+        updateProfile({ ...user, avatar_url: avatarUrl });
       }
+      
+      toast.success('Avatar atualizado com sucesso!');
     } catch (error) {
-      console.error('[Profile] Erro ao gerenciar assinatura:', error);
-      toast.error('Não foi possível acessar o portal de assinatura');
+      console.error('Erro ao atualizar o avatar:', error);
+      toast.error('Erro ao atualizar o avatar. Tente novamente.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  const currentAvatarSrc = avatarPreview || user?.photoUrl || user?.photoURL || '/default-avatar.png';
-
+  // Função para lidar com o logout
   const handleLogout = async () => {
     try {
-      const auth = getAuth();
-      await signOut(auth);
-      router.replace('/auth/login');
+      await supabase.auth.signOut();
+      router.push('/auth/login');
     } catch (error) {
       console.error('Erro ao fazer logout:', error);
-      toast.error('Erro ao fazer logout');
+      toast.error('Erro ao fazer logout. Tente novamente.');
     }
   };
 
+  // Redireciona para a página de gerenciamento de assinatura
+  const handleManageSubscription = async () => {
+    toast.info('Gerenciamento de assinatura será implementado em breve.');
+    console.log('[Profile] Iniciando criação de sessão do portal...');
+  };
+
+  const currentAvatarSrc = avatarPreview || (user?.user_metadata as any)?.avatar_url || '/default-avatar.png';
+
+  // Se não houver usuário, redireciona para o login
+  if (!user) {
+    if (typeof window !== 'undefined') {
+      router.push('/auth/login');
+    }
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+      </div>
+    );
+  }
+
+  // Mostra um indicador de carregamento
   if (loading) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="flex items-center justify-center min-h-[400px]"
-      >
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-      </motion.div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+      </div>
     );
   }
 
@@ -311,10 +354,12 @@ export default function Profile() {
                   onClick={() => {
                     setIsEditing(false);
                     setAvatarFile(null);
-                    setAvatarPreview(user?.photoUrl || user?.photoURL || '/default-avatar.png');
+                    setAvatarPreview((user?.user_metadata as any)?.avatar_url || '/default-avatar.png');
                     setFormData({
-                      name: user?.name || '',
+                      name: (user?.user_metadata as any)?.name || user?.name || '',
                       email: user?.email || '',
+                      phone: (user as any)?.phone || '',
+                      fazenda: (user as any)?.fazenda || '',
                       currentPassword: '',
                       newPassword: '',
                       confirmPassword: ''
@@ -325,7 +370,7 @@ export default function Profile() {
                   <FiX className="inline mr-2" /> Cancelar
                 </button>
                 <button
-                  type="submit"
+                  type="button"
                   onClick={handleSubmit}
                   disabled={isLoading || isUploading}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 disabled:opacity-50 transition-colors"
@@ -559,67 +604,44 @@ export default function Profile() {
                     Assinatura
                   </h3>
                   <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-700/50 dark:to-gray-800/60 p-6 rounded-lg border border-blue-100 dark:border-gray-700">
-                    {loadingSubscription ? (
+                    {loading ? ( // Mock loading for BOVINEXT
                       <div className="flex items-center justify-center py-4">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                       </div>
-                    ) : subscription ? (
+                    ) : (
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
                           <div>
                             <p className="text-sm text-gray-600 dark:text-gray-400">Plano Atual</p>
                             <p className="text-lg font-medium text-gray-900 dark:text-white capitalize">
-                              {subscription.plan || 'Gratuito'}
+                              Gratuito
                             </p>
                           </div>
                           <div>
                             <p className="text-sm text-gray-600 dark:text-gray-400">Status</p>
-                            <p className={`text-lg font-medium capitalize ${
-                              subscription.status === 'active' ? 'text-green-600' : 'text-yellow-600'
-                            }`}>
-                              {subscription.status === 'active' ? 'Ativo' : 'Inativo'}
+                            <p className="text-lg font-medium capitalize text-yellow-600">
+                              Inativo
                             </p>
                           </div>
                         </div>
-
-                        {subscription.expiresAt && (
-                          <div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">Próxima Renovação</p>
-                            <p className="text-lg font-medium text-gray-900 dark:text-white">
-                              {new Date(subscription.expiresAt).toLocaleDateString('pt-BR')}
-                            </p>
-                          </div>
-                        )}
 
                         <div className="flex flex-col sm:flex-row gap-3">
                           <button
                             type="button"
                             onClick={handleManageSubscription}
-                            disabled={loadingSubscription || isLoading}
+                            disabled={isLoading}
                             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 disabled:opacity-50 transition-colors"
                           >
-                            {loadingSubscription || isLoading ? 'Carregando...' : 'Gerenciar Assinatura'}
+                            Gerenciar Assinatura
                           </button>
-                          {subscription?.plan !== 'premium' && (
-                            <button
-                              type="button"
-                              onClick={() => router.push('/assinaturas')}
-                              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 transition-colors"
-                            >
-                              Upgrade para Premium
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => router.push('/assinaturas')}
+                            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600 transition-colors"
+                          >
+                            Upgrade para Premium
+                          </button>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="text-center py-4">
-                        <p className="text-gray-600 dark:text-gray-400 mb-4">Você ainda não tem uma assinatura ativa</p>
-                        <button
-                          onClick={() => router.push('/assinaturas')}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
-                        >
-                          Ver Planos
-                        </button>
                       </div>
                     )}
                   </div>
@@ -639,7 +661,7 @@ export default function Profile() {
               onClick={() => router.push('/assinaturas')}
               className="w-full flex items-center p-4 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
-              <CreditCard className="w-5 h-5 text-purple-500 mr-3" />
+              <FiCreditCard className="w-5 h-5 text-purple-500 mr-3" />
               <span className="text-gray-700 dark:text-gray-300">Gerenciar Assinatura</span>
             </button>
 

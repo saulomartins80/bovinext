@@ -10,9 +10,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
-  Gem, // Ícone para Planos/Assinaturas
   HelpCircle, // Ícone para Suporte
-  CreditCard, // Ícone para Cartões
+  Settings, // Ícone para Configurações
   Activity, // Ícone para IA & Analytics
   // Removido: Plane, // Ícone para Milhas (não estava sendo usado)
 } from "lucide-react";
@@ -21,6 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
+import { GiCow } from "react-icons/gi";
 
 interface SidebarProps {
   isMobile: boolean;
@@ -86,52 +86,42 @@ export default function Sidebar({
     {
       path: "/dashboard",
       icon: PieChart,
-      label: "Visão geral",
+      label: "Dashboard",
     },
     {
-      path: "/transacoes",
-      icon: BarChart2,
-      label: "Transações",
-    },
-    {
-      path: "/metas",
-      icon: Target,
-      label: "Metas",
-    },
-    {
-      path: "/investimentos",
-      icon: DollarSign,
-      label: "Investimentos",
-    },
-    {
-      path: "/cartoes",
-      icon: CreditCard,
-      label: "Cartões",
-    },
-    {
-      path: "/sistema",
+      path: "/rebanho",
       icon: Activity,
-      label: "IA & Analytics",
+      label: "Rebanho",
     },
     {
-      path: "/assinaturas",
-      icon: Gem,
-      label: "Planos",
+      path: "/manejo",
+      icon: Target,
+      label: "Manejo",
     },
     {
-      path: "/ebook",
-      icon: BookOpen,
-      label: "E-book",
+      path: "/producao",
+      icon: BarChart2,
+      label: "Produção",
     },
     {
-      path: "/suporte",
-      icon: HelpCircle,
-      label: "Suporte",
+      path: "/leite",
+      icon: BarChart2,
+      label: "Leite",
+    },
+    {
+      path: "/vendas",
+      icon: DollarSign,
+      label: "Vendas",
     },
     {
       path: "/configuracoes",
       icon: Sliders,
       label: "Configurações",
+    },
+    {
+      path: "/suporte",
+      icon: HelpCircle,
+      label: "Suporte",
     },
   ];
 
@@ -148,17 +138,10 @@ export default function Sidebar({
             className="flex items-center space-x-2"
           >
             <div className="w-8 h-8 flex items-center justify-center relative">
-              <Image
-                src="/finnextho.png"
-                alt="Logo Finnextho"
-                width={32}
-                height={32}
-                priority
-                className="object-contain"
-              />
+              <GiCow className="w-7 h-7 text-green-500" />
             </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
-              Fin<span className="text-blue-300">nextho</span>
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
+              BOVINEXT
             </span>
           </Link>
         ) : (
@@ -167,14 +150,7 @@ export default function Sidebar({
             className="flex items-center justify-center"
           >
             <div className="w-8 h-8 flex items-center justify-center relative">
-              <Image
-                src="/finnextho.png"
-                alt="Logo Finnextho"
-                width={32}
-                height={32}
-                priority
-                className="object-contain"
-              />
+              <GiCow className="w-7 h-7 text-green-500" />
             </div>
           </Link>
         )}

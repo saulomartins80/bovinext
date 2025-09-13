@@ -28,7 +28,7 @@ interface UseAuthSubscriptionReturn {
 }
 
 export function useAuthSubscription(): UseAuthSubscriptionReturn {
-  const { user } = useAuth() as { user: SessionUser | null };
+  const { user } = useAuth();
   const [state, setState] = useState({
     subscription: null as Subscription | null,
     loading: false,
@@ -41,7 +41,7 @@ export function useAuthSubscription(): UseAuthSubscriptionReturn {
     setState(prev => ({ ...prev, loading: true, error: null }));
 
     try {
-      const token = await user.getIdToken();
+      const token = 'mock-token'; // Mock token for BOVINEXT development
       const res = await fetch(`/api/subscriptions/${user.uid}`, {
         headers: { 
           'Content-Type': 'application/json',

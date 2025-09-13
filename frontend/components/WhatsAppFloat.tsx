@@ -2,16 +2,19 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 import { 
-  FaWhatsapp, 
-  FaTimes, 
-  FaUser, 
-  FaHeadset, 
+  FiSend, 
+  FiMinimize2 
+} from 'react-icons/fi';
+import Image from 'next/image';
+import { 
+  FaWhatsapp,
+  FaTimes,
+  FaUser,
+  FaHeadset,
   FaShoppingCart,
   FaClock,
   FaCheckDouble
 } from 'react-icons/fa';
-import { FiSend, FiMinimize2 } from 'react-icons/fi';
-import Image from 'next/image';
 
 interface ContactOption {
   id: string;
@@ -34,9 +37,9 @@ interface WhatsAppFloatProps {
 
 const WhatsAppFloat = ({ 
   phoneNumber = '5511999999999',
-  // message = 'Olá! Gostaria de saber mais sobre o Finnextho.',
+  // message = 'Olá! Gostaria de saber mais sobre o BOVINEXT.',
   position = 'bottom-right',
-  companyName = 'Finnextho',
+  companyName = 'BOVINEXT',
   // brandColor = '#10B981'
 }: WhatsAppFloatProps) => {
   const { resolvedTheme } = useTheme();
@@ -57,7 +60,7 @@ const WhatsAppFloat = ({
       role: 'Vendas e Consultoria',
       avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=80&h=80&fit=crop&crop=face',
       phone: phoneNumber,
-      message: 'Olá! Somos a equipe comercial da Finnextho. Como podemos ajudá-lo com nossos serviços financeiros?',
+      message: 'Olá! Somos a equipe BOVINEXT. Como podemos ajudar você com gestão pecuária?',
       icon: <FaShoppingCart className="w-4 h-4" />,
       status: 'online'
     },
@@ -77,7 +80,7 @@ const WhatsAppFloat = ({
       role: 'Informações Gerais',
       avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=80&h=80&fit=crop&crop=face',
       phone: phoneNumber,
-      message: 'Olá! Como posso ajudá-lo com informações sobre a Finnextho?',
+      message: 'Olá! Como posso ajudá-lo com informações sobre a BOVINEXT?',
       icon: <FaUser className="w-4 h-4" />,
       status: 'online'
     }
@@ -447,4 +450,3 @@ const WhatsAppFloat = ({
 };
 
 export default WhatsAppFloat;
-

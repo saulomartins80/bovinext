@@ -61,7 +61,7 @@ export default function Arquivos() {
 
       const response = await fetch('/api/storage/stats', {
         headers: {
-          'Authorization': `Bearer ${await user.getIdToken()}`
+          'Authorization': `Bearer mock-token`
         }
       });
 
@@ -103,7 +103,7 @@ export default function Arquivos() {
       const response = await fetch(`/api/storage/files/${encodeURIComponent(fileName)}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${await user.getIdToken()}`
+          'Authorization': `Bearer mock-token`
         }
       });
 
@@ -140,7 +140,7 @@ export default function Arquivos() {
       const response = await fetch('/api/storage/backup', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${await user.getIdToken()}`
+          'Authorization': `Bearer mock-token`
         }
       });
 
@@ -169,7 +169,7 @@ export default function Arquivos() {
       const response = await fetch('/api/storage/cleanup', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${await user.getIdToken()}`
+          'Authorization': `Bearer mock-token`
         }
       });
 

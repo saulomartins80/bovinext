@@ -1,111 +1,137 @@
-# Finnextho
+# 🐂 BOVINEXT - REVOLUÇÃO DIGITAL NA PECUÁRIA
 
-Este é o repositório do projeto Finnextho, uma aplicação completa de finanças pessoais com recursos avançados de IA e integração com APIs financeiras.
+![BOVINEXT Logo](https://img.shields.io/badge/BOVINEXT-2D5016?style=for-the-badge&logo=cow&logoColor=white)
 
-## 🚀 Sobre o Projeto
+**BOVINEXT** é a plataforma mais avançada de gestão pecuária com IA especializada, revolucionando o agronegócio brasileiro.
 
-Finnextho é uma plataforma financeira moderna que oferece:
-- **Gestão de finanças pessoais** com interface intuitiva
-- **IA integrada** para análise e sugestões financeiras
-- **Integração com APIs** (Stripe, Pluggy, Yahoo Finance)
-- **Sistema de assinaturas** com pagamentos seguros
-- **Dashboard interativo** com gráficos e relatórios
-- **Autenticação segura** com Firebase Auth
+## 🎯 Visão Geral
 
-## 📁 Estrutura do Projeto
+- **Nome**: BOVINEXT (Bovino + Next Generation)
+- **Tagline**: "A Inteligência que Revoluciona sua Pecuária"
+- **Foco**: Gestão completa do rebanho com IA conversacional
+- **Tecnologia**: IA especializada + WhatsApp + Análise Preditiva
+
+## 🏗️ Arquitetura
 
 ```
-finnextho/
-├── backend/          # Servidor Node.js/TypeScript
-│   ├── src/         # Código fonte do backend
-│   ├── scripts/     # Scripts utilitários
-│   └── docs/        # Documentação técnica
-├── frontend/        # Aplicação Next.js/React
-│   ├── components/  # Componentes React
-│   ├── pages/       # Páginas da aplicação
-│   └── services/    # Serviços e APIs
-└── docs/           # Documentação geral
+bovinext/
+├── backend/          # Node.js + TypeScript + Supabase + IA Especializada
+├── frontend/         # Next.js + Tailwind CSS (Verde Campo #2D5016)
+├── ai-models/        # IA treinada em zootecnia e mercado
+├── docs/            # Documentação técnica
+└── scripts/         # Automações e deploy
 ```
 
-## 🛠️ Tecnologias Utilizadas
-
-### Backend
-- **Node.js** com TypeScript
-- **Express.js** para API REST
-- **MongoDB** como banco de dados
-- **Firebase Admin** para autenticação
-- **Stripe** para pagamentos
-- **Redis** para cache
-
-### Frontend
-- **Next.js** com React
-- **TypeScript** para type safety
-- **Tailwind CSS** para estilização
-- **Firebase Auth** para autenticação
-- **Chart.js** para gráficos
-
-## 🚀 Instalação
+## 🚀 Quick Start
 
 ### Pré-requisitos
 - Node.js 18+
-- MongoDB
-- Redis (opcional)
-- Contas nas APIs (Stripe, Firebase, etc.)
+- Supabase Account
+- WhatsApp Business API
+- Git
 
-### Backend
+### Instalação
 ```bash
-cd backend
-npm install
-cp .env.example .env
-# Configure as variáveis de ambiente
+# Clone o repositório
+git clone https://github.com/saulomartins80/bovinext.git
+cd bovinext
+
+# Backend
+cd backend && npm install
+
+# Frontend  
+cd ../frontend && npm install
+
+# Iniciar desenvolvimento
 npm run dev
 ```
 
-### Frontend
-```bash
-cd frontend
-npm install
-cp .env.example .env.local
-# Configure as variáveis de ambiente
-npm run dev
-```
+## 🐂 Funcionalidades Principais
 
-## 🔧 Configuração
+### **GESTÃO DE REBANHO**
+- Cadastro completo de animais
+- Controle por brinco/categoria
+- Histórico genealógico
+- Movimentação entre lotes
 
-### Variáveis de Ambiente
+### **MANEJO INTELIGENTE**
+- Calendário sanitário automatizado
+- Protocolos de vacinação
+- Controle de custos por atividade
+- Alertas proativos
 
-Crie arquivos `.env` baseados nos exemplos:
-- `backend/.env.example`
-- `frontend/.env.example`
+### **ANÁLISE DE PRODUÇÃO**
+- Ganho médio diário (GMD)
+- Conversão alimentar
+- Custos de produção
+- Margem por categoria
 
-### APIs Necessárias
-- **Firebase**: Para autenticação e banco de dados
-- **Stripe**: Para processamento de pagamentos
-- **Pluggy**: Para integração bancária
-- **OpenAI**: Para funcionalidades de IA
+### **MERCADO E VENDAS**
+- Preços em tempo real (Cepea/B3)
+- Análise preditiva de mercado
+- Integração com frigoríficos
+- Simulador de vendas
 
-## 📚 Documentação
+### **IA CONVERSACIONAL**
+- Comando por voz via WhatsApp
+- Relatórios instantâneos
+- Alertas inteligentes
+- Consultoria 24/7
 
-- [Guia de Implementação](./FINN_IMPLEMENTATION_GUIDE.md)
-- [Configuração de Segurança](./SECURITY_IMPLEMENTATION.md)
-- [Deploy no Render](./RENDER_DEPLOYMENT.md)
+## 💰 Modelo de Negócio
+
+### **FAZENDEIRO** - R$ 89/mês
+- Até 500 cabeças
+- IA básica
+- Relatórios essenciais
+
+### **PECUARISTA** - R$ 189/mês
+- Até 2.000 cabeças
+- IA avançada
+- Análise preditiva
+- Integração frigoríficos
+
+### **AGROPECUÁRIA** - R$ 389/mês
+- Rebanho ilimitado
+- IA especializada
+- Consultoria técnica
+- API personalizada
+
+## 🔧 Tecnologias
+
+- **Backend**: Node.js, TypeScript, Express
+- **Frontend**: Next.js 14, Tailwind CSS, Framer Motion
+- **Database**: Supabase (PostgreSQL)
+- **IA**: OpenAI GPT-4 + Modelos Especializados
+- **Integração**: WhatsApp Business API
+- **DevOps**: Vercel, Supabase Edge Functions
+
+## 📈 Roadmap
+
+- [x] **Q1 2024**: MVP e Testes Piloto
+- [ ] **Q2 2024**: Lançamento Comercial
+- [ ] **Q3 2024**: Integração Frigoríficos
+- [ ] **Q4 2024**: Expansão Nacional
 
 ## 🤝 Contribuição
 
-1. Faça um fork do projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
+1. Fork o projeto
+2. Crie sua feature branch (`git checkout -b feature/NovaFuncionalidade`)
+3. Commit suas mudanças (`git commit -m 'Add: Nova funcionalidade'`)
+4. Push para a branch (`git push origin feature/NovaFuncionalidade`)
 5. Abra um Pull Request
 
 ## 📄 Licença
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para detalhes.
 
-## 📞 Suporte
+## 📞 Contato
 
-Para suporte, envie um email para suporte@finnextho.com ou abra uma issue no GitHub.
+- **Website**: https://bovinext.com.br
+- **WhatsApp**: +55 11 99999-9999
+- **Email**: contato@bovinext.com.br
+- **LinkedIn**: [BOVINEXT Oficial](https://linkedin.com/company/bovinext)
 
 ---
 
-**Finnextho** - Transformando a gestão financeira pessoal com tecnologia avançada. 
+**🐂 Revolucionando a pecuária brasileira, um animal por vez.**

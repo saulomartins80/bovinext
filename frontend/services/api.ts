@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { getAuth, getIdToken } from 'firebase/auth';
+// import { createClient } from '@supabase/supabase-js'; // Removido temporariamente
+import { supabase } from '../lib/supabaseClient';
 import {
   Transacao,
   NovaTransacaoPayload,
@@ -8,6 +9,11 @@ import {
   Meta
 } from "../types";
 import { MarketData } from '../types/market';
+
+// Supabase client for BOVINEXT
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// const supabase = createClient(supabaseUrl, supabaseAnonKey); // Removido temporariamente
 
 // Chat types
 interface ChatMessage {
@@ -125,38 +131,42 @@ const api = axios.create({
   },
 });
 
-// Interceptor para autenticação com logs detalhados e suporte mobile
+// Interceptor para autenticação BOVINEXT com Supabase
 api.interceptors.request.use(async (config) => {
-  console.log(`[api.ts] 🚀 Iniciando requisição para: ${config.method?.toUpperCase()} ${config.url}`);
+  console.log(`[api.ts] 🚀 Iniciando requisição BOVINEXT: ${config.method?.toUpperCase()} ${config.url}`);
   
   // Detectar mobile
   const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   
-  const auth = getAuth();
-  const user = auth.currentUser;
+  // Obter sessão do Supabase
+  let session = null as Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session'] | null;
+  try {
+    const { data } = await supabase.auth.getSession();
+    session = data.session;
+  } catch (e) {
+    console.warn('[api.ts] Não foi possível obter sessão do Supabase:', e);
+  }
 
-  console.log(`[api.ts] 👤 Estado do usuário:`, {
-    userExists: !!user,
-    uid: user?.uid,
-    email: user?.email,
-    emailVerified: user?.emailVerified,
-    isMobile
+  console.log(`[api.ts] 👤 Estado do usuário Supabase:`, {
+    sessionExists: !!session,
+    userId: session?.user?.id,
+    email: session?.user?.email,
+    emailVerified: session?.user?.email_confirmed_at,
+    isMobile,
+    // error: error?.message // removed: no local error here
   });
 
-  if (user) {
-    console.log(`[api.ts] 🔑 Usuário encontrado (UID: ${user.uid}). Obtendo ID token para: ${config.url}`);
+  if (session?.user) {
+    console.log(`[api.ts] 🔑 Usuário Supabase encontrado (ID: ${session.user.id}). Obtendo token para: ${config.url}`);
     try {
-      // Configurações específicas para mobile
-      const tokenOptions = {
-        forceRefresh: isMobile ? false : true // Mobile: evitar refresh forçado
-      };
+      // Obter token de acesso do Supabase
+      const accessToken = session.access_token;
       
-      const token = await getIdToken(user, tokenOptions.forceRefresh);
-      console.log(`[api.ts] ✅ Token obtido com sucesso para: ${config.url} (mobile: ${isMobile})`);
-      console.log(`[api.ts] 🔑 Token (primeiros 20 chars): ${token.substring(0, 20)}...`);
-      console.log(`[api.ts] 📏 Tamanho do token: ${token.length}`);
+      console.log(`[api.ts] ✅ Token Supabase obtido com sucesso para: ${config.url} (mobile: ${isMobile})`);
+      console.log(`[api.ts] 🔑 Token (primeiros 20 chars): ${accessToken.substring(0, 20)}...`);
+      console.log(`[api.ts] 📏 Tamanho do token: ${accessToken.length}`);
       
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${accessToken}`;
       
       // Headers específicos para mobile
       if (isMobile) {
@@ -166,7 +176,7 @@ api.interceptors.request.use(async (config) => {
       
       console.log(`[api.ts] ✅ Header Authorization configurado para: ${config.url}`);
     } catch (error) {
-      console.error(`[api.ts] ❌ Erro ao obter ID token para: ${config.url} (mobile: ${isMobile})`, error);
+      console.error(`[api.ts] ❌ Erro ao obter token Supabase para: ${config.url} (mobile: ${isMobile})`, error);
       
       // Tratamento específico para mobile
       if (isMobile && error instanceof Error) {
@@ -305,14 +315,16 @@ export const chatbotAPI = {
   },
   openStream: async ({ message, chatId }: { message: string; chatId: string }): Promise<EventSource> => {
     try {
-      const auth = getAuth();
+      // Mock auth for BOVINEXT development
+      const auth = null;
       const user = auth.currentUser;
       
       // Detectar mobile
       const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       
       // Configurações de token específicas para mobile
-      const token = user ? await getIdToken(user, !isMobile) : ''; // Mobile: não forçar refresh
+      // Mock token for BOVINEXT development
+      const token = '';
 
       const base = (api.defaults.baseURL || '').replace(/\/$/, '');
       const url = `${base}/api/chatbot/stream?message=${encodeURIComponent(message)}&chatId=${encodeURIComponent(chatId)}&token=${encodeURIComponent(token)}&mobile=${isMobile}`;
@@ -441,170 +453,13 @@ export const chatbotAPI = {
 };
 
 // --- SUBSCRIPTION API ---
-export const subscriptionAPI = {
-  getPlans: async () => {
-    const response = await api.get('/api/subscriptions/plans');
-    return response.data;
-  },
-  createCheckoutSession: async (priceId: string, planName: string) => {
-    try {
-      console.log('[subscriptionAPI] Criando sessão de checkout:', { priceId, planName });
-      const response = await api.post('/api/subscriptions/create-checkout-session', {
-        priceId,
-        planName
-      });
-      console.log('[subscriptionAPI] Sessão criada com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[subscriptionAPI] Erro ao criar sessão de checkout:', error);
-      throw error;
-    }
-  },
-  verifySession: async (sessionId: string) => {
-    try {
-      const response = await api.post('/api/subscriptions/verify-session', { sessionId });
-      return response.data;
-    } catch (error) {
-      console.error('Erro ao verificar sessão:', error);
-      throw error;
-    }
-  },
-  cancelSubscription: async (subscriptionId: string) => {
-    try {
-      const response = await api.post('/api/subscriptions/cancel', {
-        subscriptionId,
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Erro ao cancelar assinatura:', error);
-      throw error;
-    }
-  },
-  getSubscriptionStatus: async () => {
-    try {
-      const response = await api.get('/api/subscriptions/status');
-      return response.data;
-    } catch (error) {
-      console.error('Erro ao obter status da assinatura:', error);
-      throw error;
-    }
-  },
-};
+// removed
 
 // API para Investimentos com logs
-export const investimentoAPI = {
-  getAll: async (options?: { page?: number; limit?: number; tipo?: string }): Promise<Investimento[]> => {
-    console.log('[investimentoAPI] Fetching investments with options:', options);
-    try {
-      const params = new URLSearchParams();
-      if (options?.page) params.append('page', options.page.toString());
-      if (options?.limit) params.append('limit', options.limit.toString());
-      if (options?.tipo) params.append('tipo', options.tipo);
-      
-      const url = params.toString() ? `/api/investimentos?${params.toString()}` : "/api/investimentos";
-      const response = await api.get(url);
-      
-      console.log('[investimentoAPI] Successfully fetched investments', {
-        count: response.data?.length || 0,
-        options
-      });
-      return Array.isArray(response.data) ? response.data : [];
-    } catch (error) {
-      console.error('[investimentoAPI] Error fetching investments:', error);
-      throw error;
-    }
-  },
-  create: async (investimento: Omit<Investimento, '_id'>): Promise<Investimento> => {
-    console.log('[investimentoAPI] Creating new investment:', investimento);
-    try {
-      const response = await api.post("/api/investimentos", investimento);
-      console.log('[investimentoAPI] Investment created successfully:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[investimentoAPI] Error creating investment:', error);
-      throw error;
-    }
-  },
-  update: async (id: string, investimento: Partial<Investimento>): Promise<Investimento> => {
-    console.log(`[investimentoAPI] Updating investment ${id}:`, investimento);
-    try {
-      const response = await api.put(`/api/investimentos/${id}`, investimento);
-      console.log(`[investimentoAPI] Investment ${id} updated successfully:`, response.data);
-      return response.data;
-    } catch (error) {
-      console.error(`[investimentoAPI] Error updating investment ${id}:`, error);
-      throw error;
-    }
-  },
-  delete: async (id: string): Promise<void> => {
-    console.log(`[investimentoAPI] Deleting investment ${id}`);
-    try {
-      await api.delete(`/api/investimentos/${id}`);
-      console.log(`[investimentoAPI] Investment ${id} deleted successfully`);
-    } catch (error) {
-      console.error(`[investimentoAPI] Error deleting investment ${id}:`, error);
-      throw error;
-    }
-  }
-};
+// removed
 
 // API para Transações com logs
-export const transacaoAPI = {
-  getAll: async (options?: { page?: number; limit?: number; startDate?: string; endDate?: string }): Promise<Transacao[]> => {
-    console.log('[transacaoAPI] Fetching transactions with options:', options);
-    try {
-      const params = new URLSearchParams();
-      if (options?.page) params.append('page', options.page.toString());
-      if (options?.limit) params.append('limit', options.limit.toString());
-      if (options?.startDate) params.append('startDate', options.startDate);
-      if (options?.endDate) params.append('endDate', options.endDate);
-      
-      const url = params.toString() ? `/api/transacoes?${params.toString()}` : "/api/transacoes";
-      const response = await api.get(url);
-      
-      console.log('[transacaoAPI] Successfully fetched transactions', {
-        count: response.data?.length || 0,
-        options
-      });
-      return Array.isArray(response.data) ? response.data : [];
-    } catch (error) {
-      console.error('[transacaoAPI] Error fetching transactions:', error);
-      throw error;
-    }
-  },
-  create: async (transacao: NovaTransacaoPayload): Promise<Transacao> => {
-    console.log('[transacaoAPI] Creating new transaction:', transacao);
-    try {
-      const response = await api.post("/api/transacoes", transacao);
-      console.log('[transacaoAPI] Transaction created successfully:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[transacaoAPI] Error creating transaction:', error);
-      throw error;
-    }
-  },
-  update: async (id: string, transacao: AtualizarTransacaoPayload): Promise<Transacao> => {
-    console.log(`[transacaoAPI] Updating transaction ${id}:`, transacao);
-    try {
-      const response = await api.put(`/api/transacoes/${id}`, transacao);
-      console.log(`[transacaoAPI] Transaction ${id} updated successfully:`, response.data);
-      return response.data;
-    } catch (error) {
-      console.error(`[transacaoAPI] Error updating transaction ${id}:`, error);
-      throw error;
-    }
-  },
-  delete: async (id: string): Promise<void> => {
-    console.log(`[transacaoAPI] Deleting transaction ${id}`);
-    try {
-      await api.delete(`/api/transacoes/${id}`);
-      console.log(`[transacaoAPI] Transaction ${id} deleted successfully`);
-    } catch (error) {
-      console.error(`[transacaoAPI] Error deleting transaction ${id}:`, error);
-      throw error;
-    }
-  },
-};
+// removed
 
 // API para Metas com logs
 export const metaAPI = {
@@ -688,380 +543,9 @@ export const dashboardAPI = {
 };
 
 // API para Sistema de Cartões, Milhas e Faturas
-export const cardAPI = {
-  // CARTÕES
-  getCards: async () => {
-    console.log('[cardAPI] Buscando cartões');
-    try {
-      const response = await api.get('/api/cards/cards');
-      console.log('[cardAPI] Cartões obtidos com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[cardAPI] Erro ao buscar cartões:', error);
-      throw error;
-    }
-  },
-
-  createCard: async (cardData: Omit<CreditCard, 'id'>) => {
-    console.log('[cardAPI] Criando cartão:', cardData);
-    try {
-      const response = await api.post('/api/cards/cards', cardData);
-      console.log('[cardAPI] Cartão criado com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[cardAPI] Erro ao criar cartão:', error);
-      throw error;
-    }
-  },
-
-  updateCard: async (cardId: string, cardData: Partial<CreditCard>) => {
-    console.log('[cardAPI] Atualizando cartão:', cardId, cardData);
-    try {
-      const response = await api.put(`/api/cards/cards/${cardId}`, cardData);
-      console.log('[cardAPI] Cartão atualizado com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[cardAPI] Erro ao atualizar cartão:', error);
-      throw error;
-    }
-  },
-
-  deleteCard: async (cardId: string) => {
-    console.log('[cardAPI] Removendo cartão:', cardId);
-    try {
-      await api.delete(`/api/cards/cards/${cardId}`);
-      console.log('[cardAPI] Cartão removido com sucesso');
-    } catch (error) {
-      console.error('[cardAPI] Erro ao remover cartão:', error);
-      throw error;
-    }
-  },
-
-  // FATURAS
-  getInvoices: async (filters?: { cardId?: string; status?: string }) => {
-    console.log('[cardAPI] Buscando faturas:', filters);
-    try {
-      const response = await api.get('/api/cards/invoices', { params: filters });
-      console.log('[cardAPI] Faturas obtidas com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[cardAPI] Erro ao buscar faturas:', error);
-      throw error;
-    }
-  },
-
-  createInvoice: async (invoiceData: {
-    cardId: string;
-    amount: number;
-    dueDate: string;
-    closingDate: string;
-    description?: string;
-    transactions?: Array<{
-      date: string;
-      description: string;
-      amount: number;
-      category?: string;
-      points?: number;
-    }>;
-  }) => {
-    console.log('[cardAPI] Criando fatura:', invoiceData);
-    try {
-      const response = await api.post('/api/cards/invoices', invoiceData);
-      console.log('[cardAPI] Fatura criada com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[cardAPI] Erro ao criar fatura:', error);
-      throw error;
-    }
-  },
-
-  updateInvoice: async (invoiceId: string, invoiceData: {
-    amount?: number;
-    dueDate?: string;
-    closingDate?: string;
-    status?: 'paid' | 'pending' | 'overdue';
-    description?: string;
-    paymentMethod?: string;
-  }) => {
-    console.log('[cardAPI] Atualizando fatura:', invoiceId, invoiceData);
-    try {
-      const response = await api.put(`/api/cards/invoices/${invoiceId}`, invoiceData);
-      console.log('[cardAPI] Fatura atualizada com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[cardAPI] Erro ao atualizar fatura:', error);
-      throw error;
-    }
-  },
-
-  payInvoice: async (invoiceId: string, paymentData: { paymentMethod: string; amount: number }) => {
-    console.log('[cardAPI] Pagando fatura:', invoiceId, paymentData);
-    try {
-      const response = await api.post(`/api/cards/invoices/${invoiceId}/pay`, paymentData);
-      console.log('[cardAPI] Fatura paga com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[cardAPI] Erro ao pagar fatura:', error);
-      throw error;
-    }
-  },
-
-  // PROGRAMAS DE MILHAS
-  getMileagePrograms: async () => {
-    console.log('[cardAPI] Buscando programas de milhas');
-    try {
-      const response = await api.get('/api/cards/programs');
-      console.log('[cardAPI] Programas obtidos com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[cardAPI] Erro ao buscar programas:', error);
-      throw error;
-    }
-  },
-
-  createMileageProgram: async (programData: Omit<MileageProgram, 'id'>) => {
-    console.log('[cardAPI] Criando programa de milhas:', programData);
-    try {
-      const response = await api.post('/api/cards/programs', programData);
-      console.log('[cardAPI] Programa criado com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[cardAPI] Erro ao criar programa:', error);
-      throw error;
-    }
-  },
-
-  updateMileageProgram: async (programId: string, programData: Partial<MileageProgram>) => {
-    console.log('[cardAPI] Atualizando programa:', programId, programData);
-    try {
-      const response = await api.put(`/api/cards/programs/${programId}`, programData);
-      console.log('[cardAPI] Programa atualizado com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[cardAPI] Erro ao atualizar programa:', error);
-      throw error;
-    }
-  },
-
-  deleteMileageProgram: async (programId: string) => {
-    console.log('[cardAPI] Removendo programa:', programId);
-    try {
-      await api.delete(`/api/cards/programs/${programId}`);
-      console.log('[cardAPI] Programa removido com sucesso');
-    } catch (error) {
-      console.error('[cardAPI] Erro ao remover programa:', error);
-      throw error;
-    }
-  },
-
-  // ANALYTICS
-  getAnalytics: async () => {
-    console.log('[cardAPI] Buscando analytics');
-    try {
-      const response = await api.get('/api/cards/analytics');
-      console.log('[cardAPI] Analytics obtidos com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[cardAPI] Erro ao buscar analytics:', error);
-      throw error;
-    }
-  }
-};
+// removed
 
 // API para Sistema de Milhas (mantida para compatibilidade)
-export const mileageAPI = {
-  // Pluggy Integration
-  getConnectToken: async () => {
-    console.log('[mileageAPI] Obtendo token de conexão Pluggy');
-    try {
-      const response = await api.get('/api/pluggy/connect-token');
-      console.log('[mileageAPI] Token de conexão obtido com sucesso');
-      return response.data;
-    } catch (error) {
-      console.error('[mileageAPI] Erro ao obter token de conexão:', error);
-      throw error;
-    }
-  },
-
-  getMileageSummary: async () => {
-    console.log('[mileageAPI] Obtendo resumo de milhas');
-    try {
-      const response = await api.get('/api/pluggy/mileage-summary');
-      console.log('[mileageAPI] Resumo de milhas obtido com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[mileageAPI] Erro ao obter resumo de milhas:', error);
-      throw error;
-    }
-  },
-
-  // Mileage Programs
-  getMileagePrograms: async () => {
-    console.log('[mileageAPI] Buscando programas de milhas');
-    try {
-      const response = await api.get('/api/mileage/programs');
-      console.log('[mileageAPI] Programas de milhas obtidos com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[mileageAPI] Erro ao buscar programas de milhas:', error);
-      throw error;
-    }
-  },
-
-  updateMileageProgram: async (programId: string, data: Partial<MileageProgram>) => {
-    console.log('[mileageAPI] Atualizando programa de milhas:', programId, data);
-    try {
-      const response = await api.put(`/api/mileage/programs/${programId}`, data);
-      console.log('[mileageAPI] Programa de milhas atualizado com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[mileageAPI] Erro ao atualizar programa de milhas:', error);
-      throw error;
-    }
-  },
-
-  // Mileage Cards
-  getMileageCards: async () => {
-    console.log('[mileageAPI] Buscando cartões de milhas');
-    try {
-      const response = await api.get('/api/mileage/cards');
-      console.log('[mileageAPI] Cartões de milhas obtidos com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[mileageAPI] Erro ao buscar cartões de milhas:', error);
-      throw error;
-    }
-  },
-
-  addMileageCard: async (cardData: Omit<MileageCard, 'id'>) => {
-    console.log('[mileageAPI] Adicionando cartão de milhas:', cardData);
-    try {
-      const response = await api.post('/api/mileage/cards', cardData);
-      console.log('[mileageAPI] Cartão de milhas adicionado com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[mileageAPI] Erro ao adicionar cartão de milhas:', error);
-      throw error;
-    }
-  },
-
-  updateMileageCard: async (cardId: string, cardData: Partial<MileageCard>) => {
-    console.log('[mileageAPI] Atualizando cartão de milhas:', cardId, cardData);
-    try {
-      const response = await api.put(`/api/mileage/cards/${cardId}`, cardData);
-      console.log('[mileageAPI] Cartão de milhas atualizado com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[mileageAPI] Erro ao atualizar cartão de milhas:', error);
-      throw error;
-    }
-  },
-
-  deleteMileageCard: async (cardId: string) => {
-    console.log('[mileageAPI] Removendo cartão de milhas:', cardId);
-    try {
-      await api.delete(`/api/mileage/cards/${cardId}`);
-      console.log('[mileageAPI] Cartão de milhas removido com sucesso');
-    } catch (error) {
-      console.error('[mileageAPI] Erro ao remover cartão de milhas:', error);
-      throw error;
-    }
-  },
-
-  // Mileage Transactions
-  getMileageTransactions: async (filters?: { programId?: string; startDate?: string; endDate?: string; type?: 'credit' | 'debit' }) => {
-    console.log('[mileageAPI] Buscando transações de milhas:', filters);
-    try {
-      const response = await api.get('/api/mileage/transactions', { params: filters });
-      console.log('[mileageAPI] Transações de milhas obtidas com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[mileageAPI] Erro ao buscar transações de milhas:', error);
-      throw error;
-    }
-  },
-
-  addMileageTransaction: async (transactionData: Omit<MileageTransaction, 'id'>) => {
-    console.log('[mileageAPI] Adicionando transação de milhas:', transactionData);
-    try {
-      const response = await api.post('/api/mileage/transactions', transactionData);
-      console.log('[mileageAPI] Transação de milhas adicionada com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[mileageAPI] Erro ao adicionar transação de milhas:', error);
-      throw error;
-    }
-  },
-
-  // Mileage Analytics
-  getMileageAnalytics: async (period: string = 'month') => {
-    console.log('[mileageAPI] Buscando análises de milhas:', period);
-    try {
-      const response = await api.get(`/api/mileage/analytics?period=${period}`, {
-        timeout: 90000 // 90 segundos para análises
-      });
-      console.log('[mileageAPI] Análises de milhas obtidas com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[mileageAPI] Erro ao buscar análises de milhas:', error);
-      throw error;
-    }
-  },
-
-  // Mileage Recommendations
-  getCardRecommendations: async (monthlySpending: number, preferredPrograms?: string[]) => {
-    console.log('[mileageAPI] Buscando recomendações de cartões:', { monthlySpending, preferredPrograms });
-    try {
-      const response = await api.post('/api/mileage/recommendations', {
-        monthlySpending,
-        preferredPrograms
-      });
-      console.log('[mileageAPI] Recomendações obtidas com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[mileageAPI] Erro ao buscar recomendações:', error);
-      throw error;
-    }
-  },
-
-  // Mileage Calculator
-  calculateMiles: async (params: MileageCalculatorParams) => {
-    console.log('[mileageAPI] Calculando milhas:', params);
-    try {
-      const response = await api.post('/api/mileage/calculate', params);
-      console.log('[mileageAPI] Cálculo de milhas realizado com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[mileageAPI] Erro ao calcular milhas:', error);
-      throw error;
-    }
-  },
-
-  // Pluggy Connections
-  getPluggyConnections: async () => {
-    console.log('[mileageAPI] Buscando conexões Pluggy');
-    try {
-      const response = await api.get('/api/pluggy/connections', {
-        timeout: 90000 // 90 segundos para conexões Pluggy
-      });
-      console.log('[mileageAPI] Conexões Pluggy obtidas com sucesso:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('[mileageAPI] Erro ao buscar conexões Pluggy:', error);
-      throw error;
-    }
-  },
-
-  disconnectPluggyConnection: async (connectionId: string) => {
-    console.log('[mileageAPI] Desconectando conexão Pluggy:', connectionId);
-    try {
-      await api.delete(`/api/pluggy/connections/${connectionId}`);
-      console.log('[mileageAPI] Conexão Pluggy desconectada com sucesso');
-    } catch (error) {
-      console.error('[mileageAPI] Erro ao desconectar Pluggy:', error);
-      throw error;
-    }
-  }
-};
+// removed
 
 export default api;

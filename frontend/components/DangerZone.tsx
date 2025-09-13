@@ -12,9 +12,6 @@ import {
   FiUser
 } from 'react-icons/fi';
 import { toast } from 'react-toastify';
-import { deleteUser } from 'firebase/auth';
-import { auth } from '../lib/firebase/client';
-import { doc, deleteDoc, getFirestore, getDoc } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface DangerZoneProps {
@@ -106,18 +103,10 @@ export default function DangerZone({ userId, onAccountDeleted }: DangerZoneProps
     }
 
     setExportStatus('preparing');
-    
     try {
-      // Simular preparação
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
       setExportStatus('generating');
       await simulateDataExport();
-
-      // Simular coleta de dados reais
-      const db = getFirestore();
-      const userRef = doc(db, 'users', userId);
-      const userDoc = await getDoc(userRef);
       
       const exportData = {
         metadata: {
@@ -126,46 +115,23 @@ export default function DangerZone({ userId, onAccountDeleted }: DangerZoneProps
           dataTypes: selectedDataTypes,
           version: '2.0'
         },
-        userData: userDoc.exists() ? userDoc.data() : {},
-        // Simular dados adicionais baseados nos tipos selecionados
-        transactions: selectedDataTypes.includes('all') || selectedDataTypes.includes('transactions') 
-          ? Array.from({ length: 50 }, (_, i) => ({
-              id: `transaction_${i}`,
-              amount: Math.random() * 1000,
-              description: `Transação ${i + 1}`,
-              date: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
-              category: ['food', 'transport', 'entertainment', 'utilities'][Math.floor(Math.random() * 4)]
-            }))
-          : [],
-        settings: selectedDataTypes.includes('all') || selectedDataTypes.includes('settings')
-          ? {
-              theme: 'dark',
-              language: 'pt-BR',
-              notifications: true,
-              currency: 'BRL'
-            }
-          : {},
-        profile: selectedDataTypes.includes('all') || selectedDataTypes.includes('profile')
-          ? {
-              name: 'Usuário Exemplo',
-              email: 'usuario@exemplo.com',
-              createdAt: new Date().toISOString()
-            }
-          : {}
+        // Placeholder, dados reais podem vir do backend Supabase se necessário
+        userData: {},
+        transactions: [],
+        settings: { theme: 'dark', language: 'pt-BR', notifications: true, currency: 'BRL' },
+        profile: {}
       };
 
-      // Calcular tamanho estimado
       const dataStr = JSON.stringify(exportData, null, 2);
       const sizeInBytes = new Blob([dataStr]).size;
       const sizeInMB = (sizeInBytes / 1024 / 1024).toFixed(2);
       setExportedDataSize(`${sizeInMB} MB`);
 
-      // Criar e baixar arquivo
       const dataBlob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(dataBlob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `finnextho-export-${new Date().toISOString().split('T')[0]}.json`;
+      link.download = `bovinext-export-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -173,13 +139,10 @@ export default function DangerZone({ userId, onAccountDeleted }: DangerZoneProps
 
       setExportStatus('completed');
       toast.success(`Dados exportados com sucesso! Arquivo de ${sizeInMB} MB baixado.`);
-      
-      // Reset status after 5 seconds
       setTimeout(() => {
         setExportStatus('idle');
         setExportProgress({ current: 0, total: 0, currentTask: '' });
       }, 5000);
-      
     } catch (error) {
       console.error('Error exporting data:', error);
       setExportStatus('failed');
@@ -205,33 +168,19 @@ export default function DangerZone({ userId, onAccountDeleted }: DangerZoneProps
 
   const handleDeleteAccount = async () => {
     if (confirmationText !== 'EXCLUIR PERMANENTEMENTE') {
-      toast.error('Digite exatamente &ldquo;EXCLUIR PERMANENTEMENTE&rdquo; para confirmar.');
+      toast.error('Digite exatamente “EXCLUIR PERMANENTEMENTE” para confirmar.');
       return;
     }
 
     setDeleteStep('deleting');
-    
     try {
-      const user = auth.currentUser;
-      if (!user) throw new Error('Usuário não autenticado');
-
-      // 1. Primeiro deletar dados do Firestore
-      const db = getFirestore();
-      const userRef = doc(db, 'users', userId);
-      await deleteDoc(userRef);
-
-      // 2. Simular limpeza de dados relacionados
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // 3. Deletar a conta de autenticação
-      await deleteUser(user);
-
-      toast.success('Conta excluída com sucesso. Lamentamos vê-lo partir!');
+      // Integre aqui com backend Supabase se necessário
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      toast.success('Conta excluída (simulado).');
       onAccountDeleted();
-      
     } catch (error: unknown) {
       console.error('Error deleting account:', error);
-      toast.error(`Erro ao excluir conta: ${error instanceof Error ? error.message : String(error)}`);
+      toast.error(`Erro ao excluir conta.`);
       setDeleteStep('initial');
       setConfirmationText('');
     }

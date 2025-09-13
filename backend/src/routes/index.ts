@@ -1,33 +1,20 @@
 import express from 'express';
-import authRoutes from './authRoutes';
-import transacoesRoutes from './transacoesRoutes';
-import investimentoRoutes from './investimentoRoutes';
-import marketDataRoutes from './marketDataRoutes';
-import goalsRoutes from './goalsRoutes';
-import optimizedChatbotRoutes from './optimizedChatbotRoutes';
-import automatedActions from './automatedActions';
-import subscriptionRoutes from './subscriptionRoutes';
-import pluggyRoutes from './pluggyRoutes';
-import mileageRoutes from './mileageRoutes';
-import cardRoutes from './cardRoutes';
-import rpaRoutes from './rpaRoutes';
+import bovinextRoutes from './bovinextRoutes';
+import { authRoutes } from './authRoutes';
+import { authenticateToken } from '../middlewares/auth';
 
 const router = express.Router();
 
-// Rotas de autenticação
-router.use('/auth', authRoutes);
+// ==================== ROTAS PÚBLICAS ====================
+router.use('/api/auth', authRoutes);
 
-// Rotas protegidas (adaptadas para BOVINEXT)
-router.use('/transacoes', transacoesRoutes);        // → Manejos
-router.use('/investimentos', investimentoRoutes);   // → Animais  
-router.use('/market-data', marketDataRoutes);       // → Preços Boi
-router.use('/goals', goalsRoutes);                  // → Metas Produção
-router.use('/chatbot', optimizedChatbotRoutes);     // → Bovino Assistant
-router.use('/automated-actions', automatedActions); // → Ações Pecuárias
-router.use('/subscriptions', subscriptionRoutes);
-router.use('/pluggy', pluggyRoutes);
-router.use('/mileage', mileageRoutes);
-router.use('/cards', cardRoutes);
-router.use('/rpa', rpaRoutes);
+// Health check público para clientes (não requer auth)
+router.get('/api/chatbot/health', (_req, res) => {
+  res.status(200).json({ status: 'OK', service: 'chatbot', timestamp: new Date().toISOString() });
+});
+
+// ==================== ROTAS PROTEGIDAS ====================
+// Todas as rotas abaixo deste middleware requerem autenticação
+router.use('/api', authenticateToken, bovinextRoutes);
 
 export default router;

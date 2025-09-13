@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
-import DashboardContent from '../components/DashboardContent';
+import BovinextDashboardContent from '../components/BovinextDashboardContent';
 import styles from './Dashboard.module.css';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -48,7 +48,7 @@ export default function DashboardPage() {
           </p>
           <button
             onClick={() => router.push('/auth/login')}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors"
           >
             Fazer Login
           </button>
@@ -81,31 +81,31 @@ export default function DashboardPage() {
               </div>
               
               <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">
-                Bem-vindo ao Finnextho!
+                Bem-vindo ao BOVINEXT!
               </h2>
               
               <p className="mb-6 text-gray-600 dark:text-gray-300">
-                Sua conta foi criada com sucesso. Agora você pode começar a gerenciar suas finanças de forma profissional e inteligente.
+                Sua conta foi criada com sucesso. Agora você pode começar a gerenciar sua pecuária de forma inteligente e revolucionária.
               </p>
               
               <div className="space-y-3 mb-6 text-left">
                 <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                   <FiCheck className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Dashboard personalizado configurado</span>
+                  <span>Dashboard pecuário configurado</span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                   <FiCheck className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Sistema de armazenamento ativado</span>
+                  <span>IA FINN Bovino ativada</span>
                 </div>
                 <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                   <FiCheck className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
-                  <span>Perfil pronto para personalização</span>
+                  <span>WhatsApp Business conectado</span>
                 </div>
               </div>
               
               <button
                 onClick={() => setShowWelcome(false)}
-                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 px-6 rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all duration-200 font-medium"
+                className="w-full bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 px-6 rounded-lg hover:from-green-700 hover:to-blue-700 transition-all duration-200 font-medium"
               >
                 Começar a usar
               </button>
@@ -122,7 +122,7 @@ export default function DashboardPage() {
       </AnimatePresence>
 
       <DashboardLayout>
-        <DashboardContent />
+        <BovinextDashboardContent />
       </DashboardLayout>
     </>
   );

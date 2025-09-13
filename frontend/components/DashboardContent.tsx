@@ -2,7 +2,6 @@
 import React, { useEffect } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
-import { useFinance } from "../context/FinanceContext";
 import { useDashboard } from "../context/DashboardContext";
 import { useTheme } from "../context/ThemeContext"; // Import useTheme
 import Graficos from "../components/Graficos";
@@ -32,15 +31,7 @@ const DashboardContent: React.FC = () => {
   const { resolvedTheme } = useTheme();
   const { user, loading } = useAuth();
   const router = useRouter();
-  const { transactions, investimentos, loading: financeLoading, error, fetchData } = useFinance();
 
-  // Force refresh data when component mounts or when returning to dashboard
-  useEffect(() => {
-    if (user && !financeLoading && typeof fetchData === 'function') {
-      console.log('[DashboardContent] Forcing data refresh on mount/user change');
-      fetchData();
-    }
-  }, [user, fetchData, financeLoading]);
   const {
     marketData,
     loadingMarketData,
@@ -71,72 +62,15 @@ const DashboardContent: React.FC = () => {
     }
   }, [user, loading, router, refreshMarketData]);
 
-  // Listen for dashboard refresh events from chatbot
-  useEffect(() => {
-    const handleDashboardRefresh = (event: CustomEvent) => {
-      console.log('🔄 [DashboardContent] Received refresh event:', event.detail);
-      if (typeof fetchData === 'function') {
-        fetchData();
-      }
-    };
-
-    window.addEventListener('dashboard-refresh', handleDashboardRefresh as EventListener);
-    
-    return () => {
-      window.removeEventListener('dashboard-refresh', handleDashboardRefresh as EventListener);
-    };
-  }, [fetchData]);
-
   // Funções auxiliares
-  const getSafeId = (idObj: string | { $oid: string }): string => {
-    return typeof idObj === 'string' ? idObj : idObj.$oid;
-  };
-
-  const mappedTransactions = Array.isArray(transactions)
-    ? transactions.map((t) => ({
-        id: getSafeId(t._id),
-        tipo: t.tipo,
-        valor: Number(t.valor) || 0,
-      }))
-    : [];
-
-  const mappedInvestments = Array.isArray(investimentos)
-    ? investimentos.map((inv) => ({
-        id: getSafeId(inv._id),
-        valor: Number(inv.valor) || 0,
-        tipo: inv.tipo as 'Renda Fixa' | 'Ações' | 'Fundos Imobiliários' | 'Criptomoedas'
-      }))
-    : [];
-
-  console.log('[DashboardContent] Current data state:', {
-    transactions: Array.isArray(transactions) ? transactions.length : 0,
-    investimentos: Array.isArray(investimentos) ? investimentos.length : 0,
-    mappedTransactions: mappedTransactions.length,
-    mappedInvestments: mappedInvestments.length,
-    totalReceitas: mappedTransactions.filter(t => t.tipo === "receita").reduce((acc, t) => acc + t.valor, 0),
-    totalDespesas: mappedTransactions.filter(t => t.tipo === "despesa").reduce((acc, t) => acc + t.valor, 0),
-    totalInvestimentos: mappedInvestments.reduce((acc, inv) => acc + inv.valor, 0),
-    rawTransactions: transactions,
-    rawInvestimentos: investimentos,
-    financeLoading,
-    error
-  });
-
-  const totalReceitas = mappedTransactions
-    .filter((t) => t.tipo === "receita")
-    .reduce((acc, t) => acc + t.valor, 0);
-
-  const totalDespesas = mappedTransactions
-    .filter((t) => t.tipo === "despesa")
-    .reduce((acc, t) => acc + t.valor, 0);
-
+  const totalReceitas = 0;
+  const totalDespesas = 0;
   const saldoAtual = totalReceitas - totalDespesas;
-  const totalInvestimentos = mappedInvestments.reduce((acc, inv) => acc + inv.valor, 0);
-
-  const variacaoSaldo = (saldoAtual / (Math.abs(totalReceitas) + Math.abs(totalDespesas) || 1)) * 100 || 0;
-  const variacaoReceitas = 15;
-  const variacaoDespesas = -10;
-  const variacaoInvestimentos = 8;
+  const totalInvestimentos = 0;
+  const variacaoSaldo = 0;
+  const variacaoReceitas = 0;
+  const variacaoDespesas = 0;
+  const variacaoInvestimentos = 0;
 
   // Renderização condicional
   if (loading) {
@@ -151,7 +85,7 @@ const DashboardContent: React.FC = () => {
     return null;
   }
 
-  if (financeLoading || loadingMarketData) {
+  if (loadingMarketData) {
     return (
       <div className={`flex items-center justify-center h-screen ${resolvedTheme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
         <LoadingSpinner />
@@ -159,15 +93,15 @@ const DashboardContent: React.FC = () => {
     );
   }
 
-  if (error || marketError) {
+  if (marketError) {
     return (
       <div className={`flex items-center justify-center h-screen ${resolvedTheme === 'dark' ? 'bg-gray-900' : 'bg-gray-50'}`}>
         <div className={`p-4 rounded-lg max-w-md text-center ${resolvedTheme === 'dark' ? 'bg-red-900/20 text-red-300 border border-red-700' : 'bg-red-50 text-red-700 border border-red-200'}`}>
           <h3 className="font-bold mb-2">Ops! Algo deu errado</h3>
-          <p>Não conseguimos carregar seus dados financeiros. Tente novamente em alguns instantes.</p>
-           {typeof fetchData === 'function' && (
+          <p>Não conseguimos carregar seus dados. Tente novamente em alguns instantes.</p>
+          {refreshMarketData && (
              <button
-               onClick={() => {fetchData(); refreshMarketData && refreshMarketData();}}
+              onClick={() => { refreshMarketData(); }}
                className={`mt-4 px-4 py-2 rounded ${resolvedTheme === 'dark' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'}`}
              >
                Tentar novamente
@@ -217,12 +151,12 @@ const DashboardContent: React.FC = () => {
              <p className={`text-2xl font-bold mt-1 ${
                title === 'Saldo Atual'
                  ? (saldoAtual >= 0 ? (resolvedTheme === 'dark' ? 'text-green-400' : 'text-green-600') : (resolvedTheme === 'dark' ? 'text-red-400' : 'text-red-600'))
-                 : (title === 'Receitas' ? (resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600') : (title === 'Despesas' ? (resolvedTheme === 'dark' ? 'text-rose-400' : 'text-rose-600') : (resolvedTheme === 'dark' ? 'text-purple-400' : 'text-purple-600'))) // Cor base do card para Investimentos
+                 : (title === 'Receitas' ? (resolvedTheme === 'dark' ? 'text-blue-400' : 'text-blue-600') : (title === 'Despesas' ? (resolvedTheme === 'dark' ? 'text-rose-400' : 'text-rose-600') : (resolvedTheme === 'dark' ? 'text-purple-400' : 'text-purple-600')))
              }`}>
               {formatCurrency(value)}
             </p>
           </div>
-          <div className={`p-3 rounded-lg ${iconBgColor} ${iconColor}`}> {/* Aplicada cor do ícone */}
+          <div className={`p-3 rounded-lg ${iconBgColor} ${iconColor}`}>
             {icon}
           </div>
         </div>
@@ -271,8 +205,8 @@ const DashboardContent: React.FC = () => {
                   })}
                 </span>!
               </h1>
-              <p className={`text-sm ${resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}> {/* Cor ajustada para o subtítulo */}
-                Aqui está o seu resumo financeiro.
+              <p className={`text-sm ${resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+                Aqui está o seu resumo.
               </p>
             </div>
           </div>
@@ -284,46 +218,42 @@ const DashboardContent: React.FC = () => {
           <SummaryCard
              title="Saldo Atual"
              value={saldoAtual}
-             variation={variacaoSaldo} // Usando variação simulada ou real se disponível
+             variation={variacaoSaldo}
              icon={<Wallet size={24} />}
-             color={saldoAtual >= 0 ? 'green' : 'rose'} // Cor base para o ícone e fundo dele
+             color={saldoAtual >= 0 ? 'green' : 'rose'}
           />
 
           {/* Card de Receitas */}
           <SummaryCard
              title="Receitas"
              value={totalReceitas}
-             variation={variacaoReceitas} // Usando variação simulada ou real
+             variation={variacaoReceitas}
              icon={<TrendingUp size={24} />}
-             color="blue" // Cor base para o ícone e fundo dele
+             color="blue"
           />
 
           {/* Card de Despesas */}
           <SummaryCard
              title="Despesas"
              value={totalDespesas}
-             variation={variacaoDespesas} // Usando variação simulada ou real
+             variation={variacaoDespesas}
              icon={<TrendingDown size={24} />}
-             color="rose" // Cor base para o ícone e fundo dele
+             color="rose"
           />
 
           {/* Card de Investimentos */}
            <SummaryCard
              title="Investimentos"
              value={totalInvestimentos}
-             variation={variacaoInvestimentos} // Usando variação simulada ou real
+             variation={variacaoInvestimentos}
              icon={<DollarSign size={24} />}
-             color="purple" // Cor base para o ícone e fundo dele
+             color="purple"
           />
 
         </div>
 
         {/* Seção de Mercado Financeiro */}
         <div className="mb-8">
-          {/* O componente FinanceMarket deve aplicar seus próprios estilos de fundo/bordas com base no resolvedTheme */}
-           {/* Certifique-se de que o FinanceMarket receba o resolvedTheme ou o theme corretamente,
-               ou que use useTheme() internamente para aplicar estilos.
-               Pelo código anterior, ele já usa resolvedTheme. */}
           <FinanceMarket
             marketData={marketData}
             loadingMarketData={loadingMarketData}
@@ -335,16 +265,12 @@ const DashboardContent: React.FC = () => {
             setSelectedStocks={setSelectedStocks}
             setSelectedCryptos={setSelectedCryptos}
             setSelectedCommodities={setSelectedCommodities}
-             // customIndices é passado para o FinanceMarket, que usa useDashboard para obtê-lo
-             // Não precisa passar explicitamente aqui a menos que o FinanceMarket não use useDashboard
           />
         </div>
 
         {/* Seção de Gráficos */}
-        {/* O componente Graficos deve aplicar seus próprios estilos de fundo/bordas com base no resolvedTheme */}
-        {/* Verifique o código de Graficos.tsx para garantir que use useTheme() para estilos internos. */}
         <div className={`rounded-xl shadow mb-8 ${
-          resolvedTheme === "dark" ? "bg-gray-800 border border-gray-700" : "bg-white border border-gray-200" // Aplicando tema aqui também
+          resolvedTheme === "dark" ? "bg-gray-800 border border-gray-700" : "bg-white border border-gray-200"
         }`}>
           <div className="p-6">
             <Graficos />

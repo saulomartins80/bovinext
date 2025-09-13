@@ -13,14 +13,14 @@ interface SEOHeadProps {
 export default function SEOHead({
   title,
   description,
-  keywords = 'finnextho, finanças pessoais, gestão financeira, investimentos, controle financeiro, planejamento financeiro',
+  keywords = 'bovinext, gestão pecuária, inteligência artificial, rebanho bovino, pecuária de precisão, automação rural',
   canonical,
-  ogImage = 'https://finnextho.com/og-image.jpg',
+  ogImage = 'https://bovinext.com/og-image.jpg',
   ogType = 'website',
   noindex = false
 }: SEOHeadProps) {
-  const fullTitle = `${title} | FinNEXTHO - Gestão Financeira Inteligente`;
-  const url = canonical ? `https://finnextho.com${canonical}` : 'https://finnextho.com';
+  const fullTitle = `${title} | BOVINEXT - Gestão Pecuária com IA`;
+  const url = canonical ? `https://bovinext.com${canonical}` : 'https://bovinext.com';
 
   return (
     <Head>
@@ -42,7 +42,7 @@ export default function SEOHead({
       <meta property="og:type" content={ogType} />
       <meta property="og:url" content={url} />
       <meta property="og:image" content={ogImage} />
-      <meta property="og:site_name" content="FinNEXTHO" />
+      <meta property="og:site_name" content="BOVINEXT" />
       <meta property="og:locale" content="pt_BR" />
       
       {/* Twitter Card */}
@@ -63,11 +63,11 @@ export default function SEOHead({
             "url": url,
             "publisher": {
               "@type": "Organization",
-              "name": "FinNEXTHO",
-              "url": "https://finnextho.com",
+              "name": "BOVINEXT",
+              "url": "https://bovinext.com",
               "logo": {
                 "@type": "ImageObject",
-                "url": "https://finnextho.com/logo.png"
+                "url": "https://bovinext.com/bovinext.png"
               }
             }
           })

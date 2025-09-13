@@ -7,11 +7,7 @@ import Sidebar from './Sidebar';
 import OptimizedChatbot from './OptimizedChatbot';
 import MobileNavigation from './MobileNavigation';
 import { ProtectedRoute } from './ProtectedRoute';
-import { Elements } from '@stripe/react-stripe-js';
-import { loadStripe } from '@stripe/stripe-js';
-
-// Inicializa o Stripe
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUB_KEY!);
+// Stripe removido para evitar erros em ambientes sem chave pública
 
 const debounce = <T extends (...args: unknown[]) => unknown>(func: T, wait: number): (...args: Parameters<T>) => void => {
   let timeout: ReturnType<typeof setTimeout>;
@@ -62,6 +58,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     switch (path) {
       case '/dashboard':
         return 'Dashboard';
+      case '/rebanho':
+        return 'Rebanho';
+      case '/manejo':
+        return 'Manejo';
+      case '/producao':
+        return 'Produção';
+      case '/leite':
+        return 'Leite';
+      case '/vendas':
+        return 'Vendas';
       case '/transacoes':
         return 'Transações';
       case '/investimentos':
@@ -75,7 +81,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       case '/configuracoes':
         return 'Configurações';
       default:
-        return 'FinNext';
+        return 'BOVINEXT';
     }
   };
 
@@ -222,7 +228,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <LayoutContext.Provider value={layoutContext}>
       <ProtectedRoute>
-        <Elements stripe={stripePromise}>
           <div className="flex h-screen bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
             {/* Sidebar para desktop */}
             {!isMobileView && (
@@ -293,7 +298,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               onToggle={toggleChat}
             />
           </div>
-        </Elements>
       </ProtectedRoute>
     </LayoutContext.Provider>
   );

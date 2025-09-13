@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { useAuthWithRegistration } from '../../src/hooks/useAuthWithRegistration';
-import { completeUserRegistration } from '../../lib/firebase/autoRegistration';
 import { FiUser, FiPhone, FiCalendar, FiCreditCard, FiLoader, FiArrowRight } from 'react-icons/fi';
 import { motion } from 'framer-motion';
+import { supabase } from '../../lib/supabaseClient';
 
 const CompleteRegistration: React.FC = () => {
   const router = useRouter();
@@ -24,7 +24,7 @@ const CompleteRegistration: React.FC = () => {
     if (user) {
       setFormData(prev => ({
         ...prev,
-        displayName: user.displayName || ''
+        displayName: (user as any).name || ''
       }));
     }
   }, [user, loading, router]);
@@ -44,13 +44,20 @@ const CompleteRegistration: React.FC = () => {
 
     try {
       setSubmitting(true);
-      
-      await completeUserRegistration(user.uid, {
-        displayName: formData.displayName,
-        phoneNumber: formData.phoneNumber,
-        dateOfBirth: formData.dateOfBirth,
-        cpf: formData.cpf
-      });
+
+      // Atualiza perfil no Supabase (tabela 'users')
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          name: formData.displayName,
+          telefone: formData.phoneNumber,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.uid);
+
+      if (updateError) {
+        throw updateError;
+      }
 
       console.log('Cadastro completo, redirecionando para dashboard...');
       await router.push('/dashboard');

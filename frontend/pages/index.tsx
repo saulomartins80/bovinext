@@ -1,25 +1,45 @@
-// pages/index.tsx - VERSÃO REVOLUCIONÁRIA
+// pages/index.tsx - BOVINEXT HOMEPAGE REVOLUCIONÁRIA
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Head from 'next/head';
 import Image from 'next/image'; 
-import { Tabs, TabList, Tab, TabPanel } from 'react-tabs';
-import { Splide, SplideSlide } from '@splidejs/react-splide';
 import CountUp from 'react-countup';
-import { 
-  FiArrowRight, FiCheck, FiPlay, FiStar, FiTrendingUp, 
-  FiX, FiLinkedin, FiFacebook, FiInstagram, FiYoutube,
-  FiMenu, FiSun, FiMoon, FiGlobe, FiShield,
-  FiUsers, FiAward, FiBarChart,
-  FiSmartphone, FiMonitor, FiTablet
+import { FaRocket, FaMagic } from 'react-icons/fa';
+import {
+  FiArrowRight,
+  FiCheck,
+  FiPlay,
+  FiStar,
+  FiTrendingUp,
+  FiX,
+  FiLinkedin,
+  FiFacebook,
+  FiInstagram,
+  FiYoutube,
+  FiMenu,
+  FiSun,
+  FiMoon,
+  FiGlobe,
+  FiShield,
+  FiUsers,
+  FiAward,
+  FiBarChart,
+  FiSmartphone,
+  FiMonitor,
+  FiTablet
 } from 'react-icons/fi';
-import { FaBitcoin, FaChartLine, FaShieldAlt, FaRocket, FaMagic } from 'react-icons/fa';
+import { 
+  GiCow,
+  GiHeartBeats,
+  GiDna2,
+  GiChart,
+  GiArtificialIntelligence
+} from 'react-icons/gi';
 import { useAuth } from '../context/AuthContext';
 import Link from 'next/link';
 import { useTheme } from '../context/ThemeContext';
-import WhatsAppFloat from '../components/WhatsAppFloat';
-// importações removidas
+// Componentes específicos do BOVINEXT
 
   // Estilos
 
@@ -170,97 +190,52 @@ export default function HomePage() {
     );
   }
 
-  const splideOptions = {
-    type: 'loop',
-    perPage: 3,
-    perMove: 1,
-    gap: '2rem',
-    pagination: false,
-    breakpoints: {
-      1024: { perPage: 2 },
-      640: { perPage: 1 }
-    }
-  };
 
-  // Métricas dinâmicas mais impactantes
+  // Métricas dinâmicas da pecuária
   const metrics = [
-    { value: 1.1, suffix: 'K+', label: 'Usuários ativos', icon: <FiUsers className="w-6 h-6" />, color: 'text-blue-500' },
-    { value: 95, suffix: '%', label: 'Satisfação', icon: <FiStar className="w-6 h-6" />, color: 'text-yellow-500' },
+    { value: 2.5, suffix: 'K+', label: 'Pecuaristas ativos', icon: <GiCow className="w-6 h-6" />, color: 'text-green-500' },
+    { value: 98, suffix: '%', label: 'Satisfação', icon: <FiStar className="w-6 h-6" />, color: 'text-yellow-500' },
     { value: 4.9, suffix: '/5', label: 'Avaliação', icon: <FiAward className="w-6 h-6" />, color: 'text-green-500' },
-    { value: 24, suffix: '/7', label: 'Suporte', icon: <FiShield className="w-6 h-6" />, color: 'text-purple-500' }
+    { value: 24, suffix: '/7', label: 'Suporte Técnico', icon: <FiShield className="w-6 h-6" />, color: 'text-blue-500' }
   ];
 
-  // Dados em tempo real simulados
+  // Dados em tempo real da pecuária
   const liveMetrics = {
-    activeUsers: Math.floor(1850 + Math.sin(Date.now() / 10000) * 100),
-    transactionsToday: Math.floor(15000 + Math.sin(Date.now() / 5000) * 500),
-    totalVolume: '1.8B+',
+    activeUsers: Math.floor(2850 + Math.sin(Date.now() / 10000) * 100),
+    transactionsToday: Math.floor(8500 + Math.sin(Date.now() / 5000) * 200),
+    totalVolume: '850K+',
     uptime: '99.9%'
   };
 
-  // Features com design 3D e interatividade avançada
+  // Features da pecuária inteligente
   const features = [
     {
-      icon: <FaChartLine className="w-8 h-8" />,
-      title: "Analytics com IA",
-      description: "Relatórios em tempo real com machine learning para prever tendências e otimizar investimentos",
-      gradient: "from-blue-500 to-cyan-500",
-      preview: "📊 Dashboard interativo com gráficos em tempo real"
+      icon: <GiChart className="w-8 h-8" />,
+      title: "Analytics Pecuário com IA",
+      description: "Relatórios em tempo real com machine learning para prever tendências produtivas e otimizar manejo",
+      gradient: "from-green-500 to-blue-500",
+      preview: "📈 Dashboard com métricas de rebanho em tempo real"
     },
     {
-      icon: <FaBitcoin className="w-8 h-8" />,
-      title: "Cripto Integrado",
-      description: "Gerencie Bitcoin, Ethereum e 50+ criptomoedas junto com investimentos tradicionais",
-      gradient: "from-orange-500 to-yellow-500",
-      preview: "₿ Portfolio unificado cripto + tradicional"
-    },
-    {
-      icon: <FaRocket className="w-8 h-8" />,
-      title: "Automação Inteligente",
-      description: "Sistema automático que identifica oportunidades e executa operações por você",
+      icon: <GiDna2 className="w-8 h-8" />,
+      title: "Genética Integrada",
+      description: "Gerencie genealogia, melhoramento genético e seleção de reprodutores com IA",
       gradient: "from-purple-500 to-pink-500",
-      preview: "🤖 IA que investe automaticamente"
+      preview: "🧬 Análise genética + seleção inteligente"
     },
     {
-      icon: <FaShieldAlt className="w-8 h-8" />,
-      title: "Segurança Bancária",
-      description: "Criptografia AES-256, autenticação biométrica e conformidade bancária total",
-      gradient: "from-green-500 to-emerald-500",
-      preview: "🔒 Segurança nivel bancário certificada"
-    }
-  ];
-
-  // Depoimentos mais impactantes com vídeos
-  const _featuredTestimonials = [
-    {
-      name: "Carlos Eduardo Silva",
-      role: "CEO, TechStart Investimentos",
-      company: "TechStart",
-      image: "/api/placeholder/64/64",
-      rating: 5,
-      text: "O Finnextho revolucionou nossa gestão financeira. Em 6 meses, aumentamos nosso ROI em 340% com as sugestões da IA.",
-      results: "ROI +340% em 6 meses",
-      videoUrl: "/videos/testimonial-carlos.mp4"
+      icon: <GiArtificialIntelligence className="w-8 h-8" />,
+      title: "Automação Rural",
+      description: "Sistema automático que identifica problemas sanitários e otimiza protocolos por você",
+      gradient: "from-blue-500 to-cyan-500",
+      preview: "🤖 IA que gerencia seu rebanho automaticamente"
     },
     {
-      name: "Marina Santos",
-      role: "Diretora Financeira",
-      company: "InnovaCorp",
-      image: "/api/placeholder/64/64",
-      rating: 5,
-      text: "A automação inteligente nos poupou 15 horas semanais e eliminou 95% dos erros manuais. Incrível!",
-      results: "95% menos erros, 15h/semana economizadas",
-      videoUrl: "/videos/testimonial-marina.mp4"
-    },
-    {
-      name: "Roberto Mendes",
-      role: "Investidor Individual",
-      company: "Autônomo",
-      image: "/api/placeholder/64/64",
-      rating: 5,
-      text: "Como pessoa física, consegui diversificar meu portfólio e ter retornos que só grandes investidores tinham acesso.",
-      results: "Portfólio diversificado, +180% retorno",
-      videoUrl: "/videos/testimonial-roberto.mp4"
+      icon: <GiHeartBeats className="w-8 h-8" />,
+      title: "Saúde Animal",
+      description: "Monitoramento contínuo de saúde, alertas preventivos e protocolos sanitários inteligentes",
+      gradient: "from-red-500 to-orange-500",
+      preview: "🐅 Monitoramento de saúde 24/7"
     }
   ];
 
@@ -275,9 +250,9 @@ export default function HomePage() {
   const menuItems = [
     { name: 'Recursos', path: '/recursos' },
     { name: 'Soluções', path: '/solucoes' },
-    { name: 'Comunidade', path: '/comunidade' },
+    { name: 'Pecuaristas', path: '/pecuaristas' },
     { name: 'Preços', path: '/precos' },
-    { name: 'Clientes', path: '/clientes' },
+    { name: 'Cases', path: '/cases' },
     { name: 'Contato', path: '/contato' }
   ];
 
@@ -287,30 +262,52 @@ export default function HomePage() {
   // Filtra o menu removendo a página atual
   const filteredMenuItems = menuItems.filter(item => item.path !== currentPath);
 
+  // Dados dos depoimentos
+  const testimonials = [
+    {
+      name: "Carlos Silva",
+      role: "Pecuarista - Fazenda Santa Rosa",
+      text: "Com o BOVINEXT, aumentei minha produtividade em 45% em apenas 6 meses. O controle do rebanho ficou muito mais eficiente.",
+      rating: 5
+    },
+    {
+      name: "Maria Santos",
+      role: "Produtora Rural - Sítio Esperança",
+      text: "A plataforma revolucionou minha gestão. Agora tenho controle total sobre cada animal e os resultados são impressionantes.",
+      rating: 5
+    },
+    {
+      name: "João Oliveira",
+      role: "Fazendeiro - Fazenda Progresso",
+      text: "Recomendo o BOVINEXT para todos os pecuaristas. É uma ferramenta indispensável para quem quer crescer no agronegócio.",
+      rating: 5
+    }
+  ];
+
   return (
     <div className={`min-h-screen ${resolvedTheme === 'dark' ? 'dark' : ''}`}>
       <Head>
-        <title>finnextho - Revolução Financeira com Inteligência Artificial</title>
-        <meta name="description" content="Transforme sua vida financeira com IA avançada. Investimentos inteligentes, automação total e segurança bancária. Junte-se a 2.5K+ usuários que já aumentaram seu ROI em 340%." />
-        <meta name="keywords" content="finnextho, gestão financeira, inteligência artificial, investimentos, IA, finanças pessoais, automação financeira" />
+        <title>BOVINEXT - Revolução na Gestão Pecuária com Inteligência Artificial</title>
+        <meta name="description" content="Transforme sua pecuária com IA avançada. Gestão inteligente de rebanho, controle sanitário, análise genética e otimização produtiva. Junte-se a 2.5K+ pecuaristas que já aumentaram sua produtividade em 340%." />
+        <meta name="keywords" content="bovinext, gestão pecuária, inteligência artificial, rebanho bovino, IA, pecuária de precisão, automação rural, gado" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
         <meta name="theme-color" content={resolvedTheme === 'dark' ? '#1f2937' : '#ffffff'} />        
         
         {/* Open Graph / Facebook */}
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="finnextho - Revolução Financeira com IA" />
-        <meta property="og:description" content="Plataforma de gestão financeira com IA que já ajudou milhares de usuários a aumentar seu ROI em até 340%" />
-        <meta property="og:image" content="https://finnextho.com/og-image.jpg" />
-        <meta property="og:url" content="https://finnextho.com" />
-        <meta property="og:site_name" content="finnextho" />
+        <meta property="og:title" content="BOVINEXT - Revolução na Pecuária com IA" />
+        <meta property="og:description" content="Plataforma de gestão pecuária com IA que já ajudou milhares de produtores a aumentar sua produtividade em até 340%" />
+        <meta property="og:image" content="https://bovinext.com/og-image.jpg" />
+        <meta property="og:url" content="https://bovinext.com" />
+        <meta property="og:site_name" content="BOVINEXT" />
         <meta property="og:locale" content="pt_BR" />
         
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="finnextho - Revolução Financeira com IA" />
-        <meta name="twitter:description" content="Plataforma de gestão financeira com IA que já ajudou milhares de usuários a aumentar seu ROI em até 340%" />
-        <meta name="twitter:image" content="https://finnextho.com/og-image.jpg" />
-        <meta name="twitter:site" content="@finnextho" />
+        <meta name="twitter:title" content="BOVINEXT - Revolução na Pecuária com IA" />
+        <meta name="twitter:description" content="Plataforma de gestão pecuária com IA que já ajudou milhares de produtores a aumentar sua produtividade em até 340%" />
+        <meta name="twitter:image" content="https://bovinext.com/og-image.jpg" />
+        <meta name="twitter:site" content="@bovinext" />
         
         {/* Estrutured Data */}
         <script
@@ -319,20 +316,20 @@ export default function HomePage() {
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "Organization",
-              "name": "finnextho",
-              "url": "https://finnextho.com",
-              "logo": "https://finnextho.com/finnextho.png",
-              "description": "Plataforma de gestão financeira com inteligência artificial",
+              "name": "BOVINEXT",
+              "url": "https://bovinext.com",
+              "logo": "https://bovinext.com/bovinext.png",
+              "description": "Plataforma de gestão pecuária com inteligência artificial",
               "contactPoint": {
                 "@type": "ContactPoint",
                 "telephone": "+55-62-99966-7963",
                 "contactType": "customer service",
-                "email": "suporte@finnextho.com"
+                "email": "suporte@bovinext.com"
               },
               "sameAs": [
-                "https://twitter.com/finnextho",
-                "https://linkedin.com/company/finnextho",
-                "https://instagram.com/finnextho"
+                "https://twitter.com/bovinext",
+                "https://linkedin.com/company/bovinext",
+                "https://instagram.com/bovinext"
               ]
             })
           }}
@@ -358,17 +355,9 @@ export default function HomePage() {
       >  
         <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center space-x-3">
-            <Image 
-              src="/finnextho.png" 
-              alt="Logo Finnextho" 
-              width={40} 
-              height={40}
-              priority
-              quality={85}
-              sizes="40px"
-            />
-            <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
-              fin<span className="text-blue-300">nextho</span>
+            <GiCow className="w-10 h-10 text-green-500" />
+            <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
+              BOVIN<span className="text-green-300">EXT</span>
             </span>
           </Link>
 
@@ -535,9 +524,9 @@ export default function HomePage() {
 
               <div className="mt-6 pt-6 border-t border-gray-800 flex justify-center space-x-4">
                 {[
-                  { icon: <FiX className="w-5 h-5" />, name: 'X', url: 'https://x.com/finnextho' },
-                  { icon: <FiLinkedin className="w-5 h-5" />, name: 'LinkedIn', url: 'https://linkedin.com/company/finnextho' },
-                  { icon: <FiInstagram className="w-5 h-5" />, name: 'Instagram', url: 'https://instagram.com/finnextho' },
+                  { icon: <FiX className="w-5 h-5" />, name: 'X', url: 'https://x.com/bovinext' },
+                  { icon: <FiLinkedin className="w-5 h-5" />, name: 'LinkedIn', url: 'https://linkedin.com/company/bovinext' },
+                  { icon: <FiInstagram className="w-5 h-5" />, name: 'Instagram', url: 'https://instagram.com/bovinext' },
                 ].map((social) => (
                   <a
                     key={social.name}
@@ -598,8 +587,8 @@ export default function HomePage() {
                 ? 'bg-gray-800/50 border border-gray-700' 
                 : 'bg-blue-50 border border-blue-200'
             } mb-6`}>
-              <span className="text-xs font-semibold tracking-wider text-blue-600 uppercase">
-                Versão PRO Lançada
+              <span className="text-xs font-semibold tracking-wider text-green-600 uppercase">
+                Pecuária 4.0 Lançada
               </span>
             </div>
 
@@ -607,11 +596,11 @@ export default function HomePage() {
               resolvedTheme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
               <TypingEffect 
-                text="Transforme suas finanças com IA"
-                className="bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400 block"
+                text="Transforme sua pecuária com IA"
+                className="bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-400 block"
               />
               <span className={resolvedTheme === 'dark' ? 'text-white' : 'text-gray-900'}>
-                e alcance a liberdade financeira
+                e alcance a excelência produtiva
               </span>
             </h1>
 
@@ -623,8 +612,8 @@ export default function HomePage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 3, duration: 0.8 }}
             >
-              A primeira plataforma que combina gestão financeira pessoal com inteligência artificial preditiva. 
-              <strong className="text-blue-400">Junte-se a {liveMetrics.activeUsers.toLocaleString()}+ usuários ativos!</strong>
+              A primeira plataforma que combina gestão pecuária com inteligência artificial preditiva para bovinos. 
+              <strong className="text-green-400">Junte-se a {liveMetrics.activeUsers.toLocaleString()}+ pecuaristas ativos!</strong>
             </motion.p>
             
             {/* Métricas em Tempo Real */}
@@ -641,7 +630,7 @@ export default function HomePage() {
                 <span className={`text-sm font-medium ${
                   resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-700'
                 }`}>
-                  {liveMetrics.transactionsToday.toLocaleString()} transações hoje
+                  {liveMetrics.transactionsToday.toLocaleString()} manejos hoje
                 </span>
               </div>
               <div className={`flex items-center space-x-2 px-4 py-2 rounded-full ${
@@ -651,7 +640,7 @@ export default function HomePage() {
                 <span className={`text-sm font-medium ${
                   resolvedTheme === 'dark' ? 'text-gray-300' : 'text-gray-700'
                 }`}>
-                  R$ {liveMetrics.totalVolume} gerenciados
+                  {liveMetrics.totalVolume} cabeças gerenciadas
                 </span>
               </div>
               <div className={`flex items-center space-x-2 px-4 py-2 rounded-full ${
@@ -736,13 +725,13 @@ export default function HomePage() {
                 <FiShield className="w-5 h-5 text-green-500" />
                 <span className={`text-sm ${
                   resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>Segurança Bancária</span>
+                }`}>Segurança de Dados</span>
               </div>
               <div className="flex items-center space-x-2">
                 <FiUsers className="w-5 h-5 text-blue-500" />
                 <span className={`text-sm ${
                   resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                }`}>1.1K+ Usuários Ativos</span>
+                }`}>1.1K+ Pecuaristas Ativos</span>
               </div>
               <div className="flex items-center space-x-2">
                 <FiAward className="w-5 h-5 text-yellow-500" />
@@ -1083,28 +1072,30 @@ export default function HomePage() {
 
           {/* Seção de Demonstração Interativa - REMOVIDA */}
 
-          <Tabs selectedIndex={activeTab} onSelect={(index) => setActiveTab(index)}>
-            <TabList className="flex flex-wrap justify-center gap-2 mb-16">
-              {['Dashboard', 'Investimentos', 'Economia', 'Segurança'].map((tab, index) => (
-                <Tab
-                  key={index}
-                  className={`px-6 py-3 rounded-full cursor-pointer font-medium transition-colors ${
-                    activeTab === index
-                      ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                      : resolvedTheme === 'dark'
-                        ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  }`}
-                  onClick={() => handleClick(`tab_${tab.toLowerCase()}`)}
-                >
-                  {tab}
-                </Tab>
-              ))}
-            </TabList>
+          <div className="flex flex-wrap justify-center gap-2 mb-16">
+            {['Dashboard', 'Investimentos', 'Economia', 'Segurança'].map((tab, index) => (
+              <button
+                key={index}
+                className={`px-6 py-3 rounded-full cursor-pointer font-medium transition-colors ${
+                  activeTab === index
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                    : resolvedTheme === 'dark'
+                      ? 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+                onClick={() => {
+                  setActiveTab(index);
+                  handleClick(`tab_${tab.toLowerCase()}`);
+                }}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
 
             <div className="relative">
               {[0, 1, 2, 3].map((index) => (
-                <TabPanel key={index}>
+                <div key={index} className={activeTab === index ? 'block' : 'hidden'}>
                   <motion.div
                     initial={{ opacity: 0, x: index % 2 ? 50 : -50 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -1159,10 +1150,9 @@ export default function HomePage() {
                       </div>
                     </div>
                   </motion.div>
-                </TabPanel>
+                </div>
               ))}
             </div>
-          </Tabs>
         </div>
       </section>
 
@@ -1182,67 +1172,57 @@ export default function HomePage() {
             }`}>
               Veja como estamos transformando vidas financeiras
             </p>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                className={`${
+                  resolvedTheme === 'dark' 
+                    ? 'bg-gray-800 border-gray-700/50 hover:border-purple-500/30' 
+                    : 'bg-white border-gray-200/50 hover:border-purple-500/30 shadow-lg'
+                } rounded-2xl p-8 h-full border transition-all`}
+              >
+                <div className="flex mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <FiStar 
+                      key={`star-${index}-${i}`} 
+                      className={`w-5 h-5 ${i < testimonial.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`} 
+                    />
+                  ))}
+                </div>
+                <p
+                  className={
+                    resolvedTheme === 'dark'
+                      ? 'mb-8 italic text-lg text-gray-300'
+                      : 'mb-8 italic text-lg text-gray-700'
+                  }
+                >
+                  &quot;{testimonial.text}&quot;
+                </p>
+                <div className="flex items-center">
+                  <Image
+                    src={`/testimonials/client${index + 1}.jpg`}
+                    alt={testimonial.name}
+                    width={48}
+                    height={48}
+                    className="w-12 h-12 rounded-full mr-4"
+                    loading="lazy"
+                  />
+                  <div>
+                    <h3 className={`font-bold ${
+                      resolvedTheme === 'dark' ? 'text-white' : 'text-gray-900'
+                    }`}>{testimonial.name}</h3>
+                    <p className={`text-sm ${
+                      resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'
+                    }`}>{testimonial.role}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </div>
-
-          <div>
-            <Splide 
-              options={{
-                ...splideOptions,
-                ariaLabel: 'Depoimentos de clientes'
-              }} 
-              aria-label="Depoimentos de clientes"
-            >
-              {_featuredTestimonials.map((testimonial, index) => (
-                <SplideSlide key={index} aria-label={`Depoimento ${index + 1} de ${_featuredTestimonials.length}`}>
-                  <motion.div
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                    className={`${
-                      resolvedTheme === 'dark' 
-                        ? 'bg-gray-800 border-gray-700/50 hover:border-purple-500/30' 
-                        : 'bg-white border-gray-200/50 hover:border-purple-500/30 shadow-lg'
-                    } rounded-2xl p-8 h-full border transition-all`}
-                  >
-                    <div className="flex mb-4">
-                      {[...Array(5)].map((_, i) => (
-                        <FiStar 
-                          key={i} 
-                          className={`w-5 h-5 ${i < testimonial.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-600'}`} 
-                        />
-                      ))}
-                    </div>
-                    <p
-                      className={
-                        resolvedTheme === 'dark'
-                          ? 'mb-8 italic text-lg text-gray-300'
-                          : 'mb-8 italic text-lg text-gray-700'
-                      }
-                    >
-                      &quot;{testimonial.text}&quot;
-                    </p>
-                    <div className="flex items-center">
-                      <Image
-                        src={`/testimonials/client${index + 1}.jpg`}
-                        alt={testimonial.name}
-                        width={48}
-                        height={48}
-                        className="w-12 h-12 rounded-full mr-4"
-                        loading="lazy"
-                      />
-                      <div>
-                        <h3 className={`font-bold ${
-                          resolvedTheme === 'dark' ? 'text-white' : 'text-gray-900'
-                        }`}>{testimonial.name}</h3>
-                        <p className={`text-sm ${
-                          resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'
-                        }`}>{testimonial.role}</p>
-                      </div>
-                    </div>
-                  </motion.div>
-                </SplideSlide>
-              ))}
-            </Splide>
           </div>
         </div>
       </section>
@@ -1331,18 +1311,9 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
             <div className="lg:col-span-2">
               <Link href="/" className="flex items-center space-x-3 mb-6">
-                <Image 
-                  src="/finnextho.png" 
-                  alt="Logo Finnextho" 
-                  width={40} 
-                  height={40}
-                  quality={85}
-                  sizes="40px"
-                />
-                <span className={`text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500 ${
-                  resolvedTheme === 'dark' ? '' : 'text-gray-900'
-                }`}>
-                  fin<span className={resolvedTheme === 'dark' ? 'text-blue-300' : 'text-blue-700'}>nextho</span>
+                <GiCow className="w-8 h-8 text-green-500" />
+                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
+                  BOVINEXT
                 </span>
               </Link>
               <p className={`mb-6 ${
@@ -1352,11 +1323,9 @@ export default function HomePage() {
               </p>
               <div className="flex space-x-4">
                 {[
-                  { icon: <FiX className="w-5 h-5" />, name: 'X', url: 'https://x.com/finnextho' },
-                  { icon: <FiLinkedin className="w-5 h-5" />, name: 'LinkedIn', url: 'https://linkedin.com/company/finnextho' },
-                  { icon: <FiFacebook className="w-5 h-5" />, name: 'Facebook', url: 'https://facebook.com/finnextho' },
-                  { icon: <FiInstagram className="w-5 h-5" />, name: 'Instagram', url: 'https://instagram.com/finnextho' },
-                  { icon: <FiYoutube className="w-5 h-5" />, name: 'YouTube', url: 'https://youtube.com/finnextho' },                  
+                  { icon: <FiX className="w-5 h-5" />, name: 'X', url: 'https://x.com/bovinext' },
+                  { icon: <FiLinkedin className="w-5 h-5" />, name: 'LinkedIn', url: 'https://linkedin.com/company/bovinext' },
+                  { icon: <FiInstagram className="w-5 h-5" />, name: 'Instagram', url: 'https://instagram.com/bovinext' },
                 ].map((social) => (
                   <a
                     key={social.name}
@@ -1459,7 +1428,7 @@ export default function HomePage() {
             resolvedTheme === 'dark' ? 'border-gray-800' : 'border-gray-300'
           }`}>
             <p className={resolvedTheme === 'dark' ? 'text-gray-400' : 'text-gray-600'}>
-              &copy; {new Date().getFullYear()} finnextho. Todos os direitos reservados.
+              &copy; {new Date().getFullYear()} BOVINEXT. Todos os direitos reservados.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <Link 
@@ -1486,13 +1455,7 @@ export default function HomePage() {
       </footer>
       
       {/* WhatsApp Float Button - apenas para usuários não logados */}
-      {!loading && !user && (
-        <WhatsAppFloat 
-          phoneNumber="5562999667963" 
-          message="Olá! Gostaria de saber mais sobre o finnextho e como ele pode me ajudar com minhas finanças."
-          position="bottom-right"
-        />
-      )}
+      {/* WhatsApp Float component removed - add back when component is available */}
     </div>
   );
 }

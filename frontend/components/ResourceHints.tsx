@@ -17,16 +17,9 @@ export default function ResourceHints() {
       }
     }
 
-    // Critical preconnects for Firebase
-    addResourceHint('https://firebase.googleapis.com', 'preconnect')
-    addResourceHint('https://firestore.googleapis.com', 'preconnect')
-    addResourceHint('https://identitytoolkit.googleapis.com', 'preconnect')
-    addResourceHint('https://securetoken.googleapis.com', 'preconnect')
-    
-    // Stripe preconnects
-    addResourceHint('https://js.stripe.com', 'preconnect')
-    addResourceHint('https://m.stripe.network', 'dns-prefetch')
-    addResourceHint('https://q.stripe.com', 'dns-prefetch')
+    // Supabase preconnects (Auth/DB/Realtime)
+    addResourceHint('https://*.supabase.co', 'preconnect')
+    addResourceHint('wss://*.supabase.co', 'preconnect')
     
     // Google Analytics
     addResourceHint('https://www.google-analytics.com', 'preconnect')
@@ -41,14 +34,12 @@ export default function ResourceHints() {
     
     if (currentPath === '/' || currentPath === '/home') {
       // Preload critical homepage resources
-      const logoImage = new Image()
-      logoImage.src = '/finnextho.png'
-      logoImage.loading = 'eager'
+      // No synchronous image preload needed
     }
     
     if (currentPath.includes('/dashboard')) {
       // Preload dashboard critical resources
-      addResourceHint('https://api.finnextho.com', 'preconnect')
+      // No external API preconnect needed beyond configured services
     }
 
   }, [])
@@ -68,14 +59,6 @@ export function useResourceOptimization() {
         
         // Load non-critical resources after first interaction
         const loadNonCritical = () => {
-          // Preload Stripe if not already loaded
-          if (!window.Stripe) {
-            const stripeScript = document.createElement('script')
-            stripeScript.src = 'https://js.stripe.com/v3/'
-            stripeScript.async = true
-            document.head.appendChild(stripeScript)
-          }
-          
           // Preload other non-critical resources
           const link = document.createElement('link')
           link.rel = 'prefetch'

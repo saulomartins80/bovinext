@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect, useCallback } from 'react';
-import { IAAnalyticsService } from '../../services/iaAnalyticsService';
 import { useAuth } from '../../context/AuthContext';
 
 export interface IAMetrics {
@@ -9,11 +8,7 @@ export interface IAMetrics {
     models: { active: number; total: number };
     requests: { today: number; total: number; limit: number };
     performance: { latency: number; throughput: number; accuracy: number };
-    usage: {
-      daily: number[];
-      weekly: number[];
-      monthly: number[];
-    };
+    usage: { daily: number[]; weekly: number[]; monthly: number[] };
   };
   chatbot: {
     status: string;
@@ -46,48 +41,10 @@ export interface IAMetrics {
   };
 }
 
-export function useIAAnalytics() {
-  const { user } = useAuth();
-  const [metrics, setMetrics] = useState<IAMetrics | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
-  // Carregar métricas iniciais
-  const loadMetrics = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Buscar métricas do backend
-      const realMetrics = await IAAnalyticsService.getIAMetrics();
-      
-      // Se usuário estiver logado, buscar progresso personalizado
-      let finalMetrics = realMetrics;
-      if (user?.uid) {
-        try {
-          const userProgress = await IAAnalyticsService.getUserProgress(user.uid);
-          if (userProgress) {
-            finalMetrics = {
-              ...realMetrics,
-              userProgress: userProgress as any
-            } as IAMetrics;
-          }
-        } catch (progressError) {
-          console.warn('Erro ao carregar progresso do usuário:', progressError);
-          // Não falha se não conseguir carregar progresso
-        }
-      }
-      
-      setMetrics(finalMetrics);
-      setLastUpdated(new Date());
-      
-    } catch (err) {
-      console.error('Erro ao carregar métricas de IA:', err);
-      setError('Erro ao carregar métricas de IA. Tente novamente.');
-      
-      // Fallback para dados mockados
-      setMetrics({
+// Local stub for IA analytics
+const IAAnalyticsStub = {
+  async getIAMetrics(): Promise<IAMetrics> {
+    return {
         ai: {
           status: 'online',
           models: { active: 3, total: 5 },
@@ -125,84 +82,90 @@ export function useIAAnalytics() {
           goals: { completed: 10, total: 20 },
           investments: { active: 5, totalValue: 12000 }
         }
-      });
+    } as IAMetrics;
+  },
+  async getUserProgress(_userId: string) {
+    return {
+      progress: 70,
+      status: 'in-progress',
+      currentStep: 'Refinar metas',
+      completedSteps: ['Cadastro', 'Configurações iniciais'],
+      remainingSteps: ['Conectar dados', 'Explorar IA'],
+      guidanceLevel: 'medium'
+    };
+  },
+  async processInteraction(_type: string, _data: any, _userId: string) { return true; },
+  async executeGuidanceAction(_action: any, _userId: string) { return true; },
+  getPlanLimits() { return { daily: 2000, monthly: 100000 }; }
+};
+
+export function useIAAnalytics() {
+  const { user } = useAuth();
+  const [metrics, setMetrics] = useState<IAMetrics | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const loadMetrics = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      let realMetrics = await IAAnalyticsStub.getIAMetrics();
+      if (user?.uid) {
+        try {
+          const userProgress = await IAAnalyticsStub.getUserProgress(user.uid);
+          realMetrics = { ...realMetrics, userProgress } as IAMetrics;
+        } catch (progressError) {
+          console.warn('Erro ao carregar progresso do usuário:', progressError);
+        }
+      }
+      setMetrics(realMetrics);
+      setLastUpdated(new Date());
+    } catch (err) {
+      console.error('Erro ao carregar métricas de IA:', err);
+      setError('Erro ao carregar métricas de IA. Tente novamente.');
+      setMetrics(await IAAnalyticsStub.getIAMetrics());
     } finally {
       setIsLoading(false);
     }
   }, [user?.uid]);
 
-  // Atualizar métricas
   const refreshMetrics = useCallback(async () => {
     await loadMetrics();
   }, [loadMetrics]);
 
-  // Processar interação do usuário
   const processInteraction = useCallback(async (type: string, data: any) => {
     if (!user?.uid) return;
-    
     try {
-      await IAAnalyticsService.processInteraction(type, data, user.uid);
-      // Recarregar métricas após interação
+      await IAAnalyticsStub.processInteraction(type, data, user.uid);
       await loadMetrics();
     } catch (err) {
       console.error('Erro ao processar interação:', err);
     }
   }, [user?.uid, loadMetrics]);
 
-  // Executar ação de orientação
   const executeGuidanceAction = useCallback(async (action: any) => {
     if (!user?.uid) return;
-    
     try {
-      await IAAnalyticsService.executeGuidanceAction(action, user.uid);
-      // Recarregar métricas após ação
+      await IAAnalyticsStub.executeGuidanceAction(action, user.uid);
       await loadMetrics();
     } catch (err) {
       console.error('Erro ao executar ação de orientação:', err);
     }
   }, [user?.uid, loadMetrics]);
 
-  // Carregar métricas iniciais
   useEffect(() => {
     loadMetrics();
   }, [loadMetrics]);
 
-  // Atualização automática a cada 5 minutos
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (!isLoading) {
-        loadMetrics();
-      }
-    }, 5 * 60 * 1000); // 5 minutos
-
+    const interval = setInterval(() => { if (!isLoading) loadMetrics(); }, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, [loadMetrics, isLoading]);
 
-  // Obter limites do plano atual
-  const getPlanLimits = useCallback(() => {
-    return IAAnalyticsService.getPlanLimits();
-  }, []);
+  const getPlanLimits = useCallback(() => IAAnalyticsStub.getPlanLimits(), []);
+  const getUsagePercentage = useCallback((current: number, limit: number) => Math.min(100, (current / limit) * 100), []);
+  const isNearLimit = useCallback((current: number, limit: number, threshold: number = 0.8) => (current / limit) > threshold, []);
 
-  // Calcular uso percentual
-  const getUsagePercentage = useCallback((current: number, limit: number) => {
-    return Math.min(100, (current / limit) * 100);
-  }, []);
-
-  // Verificar se está próximo do limite
-  const isNearLimit = useCallback((current: number, limit: number, threshold: number = 0.8) => {
-    return (current / limit) > threshold;
-  }, []);
-
-  return {
-    metrics,
-    isLoading,
-    error,
-    lastUpdated,
-    refreshMetrics,
-    processInteraction,
-    executeGuidanceAction,
-    getPlanLimits,
-    getUsagePercentage,
-    isNearLimit
-  };
+  return { metrics, isLoading, error, lastUpdated, refreshMetrics, processInteraction, executeGuidanceAction, getPlanLimits, getUsagePercentage, isNearLimit };
 } 

@@ -145,7 +145,7 @@ export const validateMessageSize = (req: Request, res: Response, next: NextFunct
 export const validateOrigin = (req: Request, res: Response, next: NextFunction): void => {
   const allowedOrigins = [
     process.env.FRONTEND_URL,
-    'http://localhost:3000',
+    'http://localhost:3001',
     'https://finnextho.com',
     'https://www.finnextho.com'
   ].filter(Boolean);

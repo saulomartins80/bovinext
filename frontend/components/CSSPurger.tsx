@@ -93,10 +93,11 @@ export const useCSSPurging = () => {
     // Gera CSS otimizado com apenas as classes utilizadas
     const generateOptimizedCSS = (usedClasses: Set<string>): string => {
       const commonUtilities = Array.from(usedClasses).filter(cls => {
-        return cls.match(/^(m|p|w|h|text|bg|border|flex|grid|space|gap)-/) ||
-               cls.match(/^(rounded|shadow|opacity|transform|transition)-/) ||
-               cls.match(/^(absolute|relative|fixed|sticky|static)$/) ||
-               cls.match(/^(block|inline|hidden|flex|grid)$/);
+        const c = typeof cls === 'string' ? cls : '';
+        return c.match(/^(m|p|w|h|text|bg|border|flex|grid|space|gap)-/) ||
+               c.match(/^(rounded|shadow|opacity|transform|transition)-/) ||
+               c.match(/^(absolute|relative|fixed|sticky|static)$/) ||
+               c.match(/^(block|inline|hidden|flex|grid)$/);
       });
 
       if (commonUtilities.length === 0) return '';

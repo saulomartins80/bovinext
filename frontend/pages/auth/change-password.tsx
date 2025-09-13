@@ -2,10 +2,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useRouter } from 'next/router';
-import { updatePassword } from 'firebase/auth';
-import { auth } from '../../lib/firebase/client'; // Firebase auth instance
 import Layout from '../../components/Layout';
 import { FiLock, FiAlertCircle, FiCheckCircle } from 'react-icons/fi';
+import { supabase } from '../../lib/supabaseClient';
 
 export default function ChangePasswordPage() {
   const { user, loading: authLoading, authChecked } = useAuth();
@@ -32,38 +31,24 @@ export default function ChangePasswordPage() {
       setError('As novas senhas não coincidem.');
       return;
     }
-    if (newPassword.length < 6) {
-      setError('A nova senha deve ter pelo menos 6 caracteres.');
+    if (newPassword.length < 8) {
+      setError('A nova senha deve ter pelo menos 8 caracteres.');
       return;
     }
 
     setIsLoading(true);
 
-    if (auth.currentUser) {
-      try {
-        // Idealmente, reautenticar o usuário antes de mudar a senha se for uma operação sensível
-        // Por simplicidade, vamos chamar updatePassword diretamente
-        // Para reautenticação: 
-        // const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
-        // await reauthenticateWithCredential(auth.currentUser, credential);
-        await updatePassword(auth.currentUser, newPassword);
+    try {
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateError) throw updateError;
+
         setSuccess('Senha alterada com sucesso!');
         setNewPassword('');
         setConfirmPassword('');
-        // setCurrentPassword(''); // Limpar se estiver usando
       } catch (err: unknown) {
         console.error('Erro ao alterar senha:', err);
-        if ((err as { code?: string }).code === 'auth/requires-recent-login') {
-          setError('Esta operação é sensível e requer login recente. Por favor, faça login novamente e tente de novo.');
-          // Opcionalmente, redirecionar para login aqui ou pedir a senha atual para reautenticar.
-        } else if ((err as { code?: string }).code === 'auth/weak-password') {
-          setError('A nova senha é muito fraca.');
-        } else {
-          setError('Ocorreu um erro ao alterar a senha. Tente novamente.');
-        }
-      }
-    } else {
-      setError('Usuário não encontrado. Por favor, faça login.');
+      const message = err instanceof Error ? err.message : 'Erro ao alterar senha. Tente novamente.';
+      setError(message);
     }
     setIsLoading(false);
   };
@@ -79,8 +64,6 @@ export default function ChangePasswordPage() {
   }
   
   if (!user) {
-      // Se o useEffect acima ainda não redirecionou, não renderiza o formulário.
-      // Isso evita um flash de conteúdo não autenticado.
       return null; 
   }
 

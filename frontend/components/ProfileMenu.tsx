@@ -109,7 +109,7 @@ export default function ProfileMenu() {
       divider: true,
       external: true,
       action: () => { 
-        window.open('mailto:suporte@finnextho.com', '_blank');
+        window.open('mailto:suporte@bovinext.com', '_blank');
         setIsOpen(false); // Close menu after action
         return;
       }
@@ -119,7 +119,7 @@ export default function ProfileMenu() {
       label: 'Documentação',
       external: true,
       action: () => { 
-        window.open('https://docs.finnextho.com', '_blank');
+        window.open('https://docs.bovinext.com', '_blank');
         setIsOpen(false); // Close menu after action
         return;
       }
@@ -132,9 +132,9 @@ export default function ProfileMenu() {
     },
   ];
 
-  // Use user.name (from MongoDB via AuthContext) if available, then try displayName, then email
-  const userName = user?.name || user?.displayName || user?.email?.split('@')[0] || 'Amigo';
-  const userPhoto = user?.photoUrl || user?.photoURL; // Prioritize photoUrl from MongoDB via AuthContext
+  // Use user.name (from MongoDB via AuthContext) if available, then email
+  const userName = user?.name || user?.nome || user?.email?.split('@')[0] || 'Amigo';
+  const userPhoto = user?.avatar_url; // Use avatar_url from Supabase
 
   return (
     <div className="relative" ref={dropdownRef}>

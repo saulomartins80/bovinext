@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { FiArrowLeft, FiUser, FiMail, FiLock, FiCheck, FiAlertCircle, FiLoader, FiArrowRight } from 'react-icons/fi';
+import { FiArrowLeft, FiUser, FiMail, FiLock, FiCheck, FiAlertCircle, FiLoader, FiArrowRight, FiHome } from 'react-icons/fi';
 import { motion } from 'framer-motion';
+import { useAuth } from '../../context/AuthContext';
 
 export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [fazenda, setFazenda] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -15,24 +17,27 @@ export default function RegisterPage() {
   const [emailValid, setEmailValid] = useState(true);
   const [passwordMatch, setPasswordMatch] = useState(true);
   const [passwordFocus, setPasswordFocus] = useState(false);
+  const [formValid, setFormValid] = useState(false);
 
   const router = useRouter();
+  const { register } = useAuth();
   
+  // Validação do formulário
   useEffect(() => {
-    if (email === '') {
-      setEmailValid(true);
-    } else {
-      setEmailValid(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
-    }
-  }, [email]);
+    const isEmailValid = email === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const isPasswordValid = password.length >= 8;
+    const doPasswordsMatch = password === confirmPassword;
+    const isFormValid = 
+      name.trim() !== '' && 
+      isEmailValid && 
+      fazenda.trim() !== '' &&
+      isPasswordValid && 
+      doPasswordsMatch;
 
-  useEffect(() => {
-    if (confirmPassword === '') {
-      setPasswordMatch(true);
-    } else {
-      setPasswordMatch(password === confirmPassword);
-    }
-  }, [password, confirmPassword]);
+    setEmailValid(isEmailValid);
+    setPasswordMatch(doPasswordsMatch);
+    setFormValid(isFormValid);
+  }, [name, email, password, confirmPassword, fazenda]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,48 +66,30 @@ export default function RegisterPage() {
         return;
       }
 
-      // 1. Registrar usuário chamando a API do backend
-      const registerResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
-        credentials: 'include'
-      });
-
-      if (registerResponse.ok) {
-        setSuccess(true); // Define sucesso para mostrar a mensagem
-
-        // Redirecionar para dashboard após sucesso
-        setTimeout(() => {
-          router.push('/dashboard?welcome=true');
-        }, 1500); // Redireciona após 1.5 segundos para dar tempo de ver a mensagem
-
-        // Removida lógica de login imediato e syncSessionWithBackend
+      // Registrar usuário usando Supabase Auth
+      await register(email, password, name, fazenda);
+      
+      setSuccess(true);
+      
+      // Redirecionar para login com sucesso
+      setTimeout(() => {
+        router.push('/auth/login?registration=success');
+      }, 2000);
+    } catch (err: unknown) {
+      console.error('Erro no cadastro:', err);
+      
+      // Tratamento de erros do Supabase
+      const supabaseError = err as { message?: string };
+      
+      if (supabaseError.message?.includes('User already registered')) {
+        setError('Este e-mail já está cadastrado. Tente fazer login.');
+      } else if (supabaseError.message?.includes('Password should be at least 6 characters')) {
+        setError('A senha deve ter pelo menos 6 caracteres.');
+      } else if (supabaseError.message?.includes('Invalid email')) {
+        setError('Formato de email inválido.');
       } else {
-        let errorMessage = 'Erro ao cadastrar. Tente novamente.';
-        try {
-          const data = await registerResponse.json();
-          if (data && data.message) {
-            errorMessage = data.message;
-          }
-        } catch (parseError) {
-          console.error("Failed to parse error response from register API:", parseError);
-        }
-        setError(errorMessage);
+        setError('Erro ao criar conta. Tente novamente ou entre em contato com o suporte.');
       }
-    } catch (err) {
-      console.error('Erro no cadastro (handleSubmit):', err);
-      let errorMessage = 'Erro ao cadastrar. Tente novamente.';
-      if (err instanceof Error) {
-        if (err.message.includes('Email já está em uso') || err.message.includes('auth/email-already-in-use')) {
-          errorMessage = 'Este e-mail já está cadastrado';
-        } else if (err.message.includes('auth/weak-password')) {
-          errorMessage = 'A senha é muito fraca. Use pelo menos 8 caracteres e os critérios abaixo.';
-        } else {
-          errorMessage = err.message;
-        }
-      }
-      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -199,24 +186,24 @@ export default function RegisterPage() {
           <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 mb-6">
             <FiCheck className="h-8 w-8 text-green-600 dark:text-green-400" />
           </div>
-          <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">Cadastro concluído!</h2>
-          <p className="mb-6 text-gray-600 dark:text-gray-300">Sua conta foi criada com sucesso. Você será redirecionado em breve.</p>
+          <h2 className="text-2xl font-bold mb-2 text-gray-900 dark:text-white">🐄 Bem-vindo ao BOVINEXT!</h2>
+          <p className="mb-6 text-gray-600 dark:text-gray-300">Sua conta foi criada com sucesso. Confirme seu email e faça login para começar.</p>
           
           <div className="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <motion.div 
               initial={{ width: '0%' }}
               animate={{ width: '100%' }}
               transition={{ duration: 1.5 }} 
-              className="h-full bg-gradient-to-r from-blue-500 to-purple-600"
+              className="h-full bg-gradient-to-r from-green-600 to-blue-600"
             />
           </div>
           
           <div className="mt-6">
             <p className="text-xs text-gray-500 dark:text-gray-400">
-              Aguarde o redirecionamento ou 
+              Redirecionando para login ou 
               <Link
                 href="/auth/login"
-                className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
+                className="font-medium text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300"
               >
                  clique aqui
               </Link>.
@@ -235,10 +222,10 @@ export default function RegisterPage() {
         className="w-full max-w-md"
       >
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden border border-gray-200 dark:border-gray-700">
-          <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-center">
-            <h1 className="text-3xl font-bold text-white">Crie sua conta</h1>
-            <p className="text-blue-100 mt-2">
-              Comece a gerenciar suas finanças como um profissional
+          <div className="bg-gradient-to-r from-green-600 to-blue-600 p-6 text-center">
+            <h1 className="text-3xl font-bold text-white">Criar Conta BOVINEXT</h1>
+            <p className="text-green-100 mt-2">
+              Junte-se à revolução da pecuária inteligente
             </p>
           </div>
           <div className="p-8">
@@ -253,133 +240,173 @@ export default function RegisterPage() {
               </motion.div>
             )}
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="name" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Nome completo
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FiUser className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Nome Completo
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FiUser className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      id="name"
+                      name="name"
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="Seu nome completo"
+                    />
                   </div>
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    autoComplete="name"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm"
-                    placeholder="Seu nome completo"
-                  />
+                </div>
+
+                <div>
+                  <label htmlFor="fazenda" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Nome da Fazenda
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FiHome className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      id="fazenda"
+                      name="fazenda"
+                      type="text"
+                      required
+                      value={fazenda}
+                      onChange={(e) => setFazenda(e.target.value)}
+                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="Nome da sua fazenda"
+                    />
+                  </div>
                 </div>
               </div>
-              <div>
-                <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Email
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FiMail className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                  </div>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={`block w-full pl-10 pr-10 py-3 rounded-lg border ${!emailValid && email.length > 0 ? 'border-red-500 dark:border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500'} dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm`}
-                    placeholder="seu@email.com"
-                  />
-                  {emailValid && email.length > 0 && (
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                      <FiCheck className="h-5 w-5 text-green-500" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Email
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FiMail className="h-5 w-5 text-gray-400" />
                     </div>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      autoComplete="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className={`block w-full pl-10 pr-3 py-2 border ${
+                        emailValid ? 'border-gray-300 dark:border-gray-600' : 'border-red-500'
+                      } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white`}
+                      placeholder="seu@email.com"
+                    />
+                    {!emailValid && email.length > 0 && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                        Por favor, insira um email válido
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Senha
+                    </label>
+                  </div>
+                  <div className="mt-1 relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FiLock className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      minLength={8}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onFocus={() => setPasswordFocus(true)}
+                      onBlur={() => setPasswordFocus(false)}
+                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                  {passwordFocus && password.length > 0 && (
+                    <PasswordStrength password={password} />
+                  )}
+                  {password.length > 0 && password.length < 8 && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      A senha deve ter no mínimo 8 caracteres
+                    </p>
                   )}
                 </div>
-                {!emailValid && email.length > 0 && (
-                  <p className="mt-1 text-xs text-red-500 dark:text-red-400">Digite um e-mail válido.</p>
-                )}
-              </div>
-              <div>
-                <label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Senha
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FiLock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                  </div>
-                  <input
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    onFocus={() => setPasswordFocus(true)}
-                    onBlur={() => setPasswordFocus(false)}
-                    className="block w-full pl-10 pr-3 py-3 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm"
-                    placeholder="••••••••"
-                  />
-                </div>
-                <PasswordStrength password={password} />
-                <PasswordCriteria password={password} />
-              </div>
-              <div>
-                <label htmlFor="confirm-password" className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Confirmar senha
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <FiLock className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                  </div>
-                  <input
-                    id="confirm-password"
-                    name="confirmPassword"
-                    type="password"
-                    autoComplete="new-password"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className={`block w-full pl-10 pr-10 py-3 rounded-lg border ${!passwordMatch && confirmPassword.length > 0 ? 'border-red-500 dark:border-red-500 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 focus:border-blue-500'} dark:bg-gray-700 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 text-sm`}
-                    placeholder="••••••••"
-                  />
-                  {passwordMatch && confirmPassword.length > 0 && password.length > 0 && (
-                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                      <FiCheck className="h-5 w-5 text-green-500" />
+
+                <div>
+                  <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Confirmar Senha
+                  </label>
+                  <div className="mt-1 relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FiLock className="h-5 w-5 text-gray-400" />
                     </div>
-                  )}
+                    <input
+                      id="confirm-password"
+                      name="confirm-password"
+                      type="password"
+                      autoComplete="new-password"
+                      required
+                      minLength={8}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className={`block w-full pl-10 pr-3 py-2 border ${
+                        passwordMatch ? 'border-gray-300 dark:border-gray-600' : 'border-red-500'
+                      } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white`}
+                      placeholder="••••••••"
+                    />
+                    {!passwordMatch && confirmPassword.length > 0 && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                        As senhas não coincidem
+                      </p>
+                    )}
+                  </div>
                 </div>
-                {!passwordMatch && confirmPassword.length > 0 && (
-                  <p className="mt-1 text-xs text-red-500 dark:text-red-400">As senhas não coincidem.</p>
-                )}
               </div>
-              <motion.button
-                type="submit"
-                disabled={loading || !emailValid || !passwordMatch || !name || password.length < 8}
-                whileHover={!(loading || !emailValid || !passwordMatch || !name || password.length < 8) ? { scale: 1.02 } : {}}
-                whileTap={!(loading || !emailValid || !passwordMatch || !name || password.length < 8) ? { scale: 0.98 } : {}}
-                className={`w-full py-3 px-4 rounded-lg flex items-center justify-center gap-2 font-medium shadow-lg transition-all duration-150 ease-in-out ${
-                  loading || !emailValid || !passwordMatch || !name || password.length < 8
-                    ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed text-gray-500 dark:text-gray-400'
-                    : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white'
-                }`}
-              >
-                {loading ? (
-                  <>
-                    <FiLoader className="animate-spin h-5 w-5" />
-                    Criando conta...
-                  </>
-                ) : (
-                  <>
-                    Criar minha conta
-                    <FiArrowRight className="h-5 w-5" />
-                  </>
-                )}
-              </motion.button>
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={!formValid || loading}
+                  className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                    formValid ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'
+                  } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50`}
+                >
+                  {loading ? (
+                    <>
+                      <FiLoader className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" />
+                      Criando conta...
+                    </>
+                  ) : (
+                    <>
+                      Criar conta
+                      <FiArrowRight className="ml-2 h-5 w-5" />
+                    </>
+                  )}
+                </button>
+                
+                <p className="mt-3 text-center text-sm text-gray-600 dark:text-gray-400">
+                  Já tem uma conta?{' '}
+                  <Link href="/auth/login" className="font-medium text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300">
+                    Fazer login
+                  </Link>
+                </p>
+              </div>
             </form>
             <div className="my-6">
               <div className="relative">

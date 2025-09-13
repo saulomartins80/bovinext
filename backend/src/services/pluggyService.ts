@@ -57,13 +57,16 @@ class PluggyService {
 
   constructor() {
     this.config = {
-      clientId: process.env.PLUGGY_CLIENT_ID!,
-      apiKey: process.env.PLUGGY_API_KEY!,
+      clientId: process.env.PLUGGY_CLIENT_ID,
+      apiKey: process.env.PLUGGY_API_KEY,
       baseUrl: 'https://api.pluggy.ai'
     };
 
     if (!this.config.clientId || !this.config.apiKey) {
-      throw new Error('Credenciais do Pluggy não configuradas');
+      console.warn('[BOVINEXT] Pluggy não configurado - funcionalidade desabilitada para desenvolvimento');
+      // Mock config for development
+      this.config.clientId = 'mock_client_id';
+      this.config.apiKey = 'mock_api_key';
     }
   }
 
@@ -75,7 +78,7 @@ class PluggyService {
       const response = await axios.post(`${this.config.baseUrl}/connect_token`, {
         clientId: this.config.clientId,
         clientSecret: this.config.apiKey,
-        redirectUrl: redirectUrl || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/connect`
+        redirectUrl: redirectUrl || `${process.env.FRONTEND_URL || 'http://localhost:3001'}/connect`
       }, {
         headers: {
           'X-API-Key': this.config.apiKey,

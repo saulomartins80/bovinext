@@ -1,27 +1,12 @@
-//frontend/services/authservices.ts
-import { auth, loginWithGoogle } from '../lib/firebase/client';
+//frontend/services/authservices.ts - Firebase disabled, using Supabase
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import api from './api';
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 
 export const authService = {
   async loginWithGoogle() {
     try {
-      const result = await loginWithGoogle();
-      const user = result.user;
-      const token = await user.getIdToken();
-
-      const response = await api.post('/api/auth/google', {
-        idToken: token,
-        email: user.email,
-        name: user.displayName,
-        photoUrl: user.photoURL,
-      });
-
-      // Configura os cookies de sessão
-      document.cookie = `token=${response.data.token}; path=/; secure; samesite=lax`;
-
-      return response.data.user;
+      // Firebase disabled - redirect to Supabase auth
+      throw new Error('Firebase disabled - use Supabase authentication');
     } catch (error) {
       console.error('Google login error:', error);
       throw error;
@@ -29,21 +14,13 @@ export const authService = {
   },
 
   async login(email: string, password: string) {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    const token = await userCredential.user.getIdToken();
-
-    const response = await api.post('/auth/login', {
-      email,
-      password,
-      firebaseToken: token,
-    });
-
-    return response.data;
+    // Firebase disabled - redirect to Supabase auth
+    throw new Error('Firebase disabled - use Supabase authentication');
   },
 
   async logout() {
-    await signOut(auth);
-    await api.post('/auth/logout');
+    // Firebase disabled - redirect to Supabase auth
+    throw new Error('Firebase disabled - use Supabase authentication');
   },
 
   async getSession() {

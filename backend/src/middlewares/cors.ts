@@ -5,7 +5,7 @@ export const corsMiddleware = (req: Request, res: Response, next: NextFunction):
   // Lista de origens permitidas
   const allowedOrigins = [
     process.env.FRONTEND_URL,
-    'http://localhost:3000',
+    'http://localhost:3001',
     'https://finnextho-frontend.onrender.com',
     'https://finnextho.com',
     'https://www.finnextho.com',

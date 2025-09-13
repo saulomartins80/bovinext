@@ -6,7 +6,12 @@
 // Routes that require authentication (financial features and user dashboard)
 export const PROTECTED_ROUTES = [
   '/dashboard',
-  '/transacoes',
+  '/rebanho',
+  '/manejo',
+  '/producao',
+  '/vendas',
+  '/leite',
+  '/transacoes', 
   '/investimentos', 
   '/metas',
   '/milhas',
@@ -15,7 +20,6 @@ export const PROTECTED_ROUTES = [
   '/profile',
   '/relatorios',
   '/assinaturas',
-  '/sistema',
   '/payment',
   '/ebook',
   '/suporte',

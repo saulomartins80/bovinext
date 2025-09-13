@@ -35,7 +35,7 @@ export default function CriticalImageOptimizer() {
       elementsWithBg.forEach((el, index) => {
         if (index < 2 && el instanceof HTMLElement) {
           // Preload critical background images
-          const bgImage = el.style.backgroundImage
+          const bgImage = String(el.style.backgroundImage || '')
           const urlMatch = bgImage.match(/url\(['"]?([^'")]+)['"]?\)/)
           
           if (urlMatch && urlMatch[1]) {

@@ -13,7 +13,6 @@ import {
   FiSun,
   FiMonitor,
   FiShield,
-  FiTrash2,
   FiKey,
   FiDatabase,
   FiPlusCircle,
@@ -23,13 +22,10 @@ import {
   FiAlertTriangle
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
-import { doc, setDoc, getFirestore, getDoc } from 'firebase/firestore';
 import { toast } from 'react-toastify';
 import { useTheme, Theme } from '../context/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import DangerZone from '../components/DangerZone';
 import Modal from "../components/Modal";
-import PasswordChangeForm from "../components/PasswordChangeForm";
 import TwoFactorAuthSetup from "../components/TwoFactorAuthSetup";
 import { useRouter } from 'next/router';
 import Notifications, { NotificationItem } from '../components/Notifications';
@@ -49,7 +45,7 @@ interface Settings {
 }
 
 type BackupStatus = 'idle' | 'in-progress' | 'completed' | 'failed';
-type TabId = 'account' | 'notifications' | 'privacy' | 'security' | 'danger';
+type TabId = 'account' | 'notifications' | 'privacy' | 'security';
 
 interface SettingOption {
   value: string | number | Theme;
@@ -116,12 +112,11 @@ const TABS = [
   { id: 'account', label: 'Conta', icon: <FiUser className="mr-3" />, color: 'blue' },
   { id: 'notifications', label: 'Notificações', icon: <FiBell className="mr-3" />, color: 'green' },
   { id: 'privacy', label: 'Privacidade', icon: <FiDatabase className="mr-3" />, color: 'purple' },
-  { id: 'security', label: 'Segurança', icon: <FiShield className="mr-3" />, color: 'orange' },
-  { id: 'danger', label: 'Zona de Risco', icon: <FiTrash2 className="mr-3" />, color: 'red' }
+  { id: 'security', label: 'Segurança', icon: <FiShield className="mr-3" />, color: 'orange' }
 ] as const;
 
 export default function ConfiguracoesPage() {
-  const { user, updateUserContextProfile } = useAuth();
+  const { user } = useAuth();
   const { theme, setTheme, resolvedTheme } = useTheme();
   const router = useRouter();
 
@@ -140,26 +135,21 @@ export default function ConfiguracoesPage() {
 
   // Carregamento inicial otimizado
   const loadInitialData = useCallback(async () => {
-    if (!user?.uid) return;
-    
     setIsLoading(true);
     try {
-      const db = getFirestore();
-      const userRef = doc(db, 'users', user.uid);
-      const docSnap = await getDoc(userRef);
-      
-      if (docSnap.exists() && docSnap.data().settings) {
-        const userSettings = { ...DEFAULT_SETTINGS, ...docSnap.data().settings };
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('bovinext_user_settings') : null;
+      if (saved) {
+        const parsed = JSON.parse(saved) as Settings;
+        const userSettings = { ...DEFAULT_SETTINGS, ...parsed };
         setSettings(userSettings);
         setOriginalSettings(userSettings);
       }
     } catch (error) {
-      console.error('[ConfiguracoesPage] Error loading initial data:', error);
-      toast.error('Erro ao carregar dados da página.');
+      console.error('[ConfiguracoesPage] Error loading initial data (localStorage):', error);
     } finally {
       setIsLoading(false);
     }
-  }, [user?.uid]);
+  }, []);
 
   useEffect(() => {
     loadInitialData();
@@ -183,24 +173,21 @@ export default function ConfiguracoesPage() {
   }, [setTheme]);
 
   const saveSettings = useCallback(async () => {
-    if (!user?.uid) return;
-    
     setIsSaving(true);
     try {
-      const db = getFirestore();
-      const userRef = doc(db, 'users', user.uid);
-      await setDoc(userRef, { settings }, { merge: true });
-      
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('bovinext_user_settings', JSON.stringify(settings));
+      }
       setOriginalSettings(settings);
       setHasUnsavedChanges(false);
-      toast.success('Configurações salvas com sucesso!');
+      toast.success('Configurações salvas localmente.');
     } catch (error) {
-      console.error('[ConfiguracoesPage] Error saving settings:', error);
+      console.error('[ConfiguracoesPage] Error saving settings (localStorage):', error);
       toast.error('Erro ao salvar configurações.');
     } finally {
       setIsSaving(false);
     }
-  }, [user?.uid, settings]);
+  }, [settings]);
 
   const handleBackupData = useCallback(async () => {
     if (!user?.uid) return;
@@ -309,7 +296,7 @@ export default function ConfiguracoesPage() {
       label: 'Alterar Senha',
       description: 'Atualize sua senha de acesso',
       type: 'action',
-      action: () => setShowPasswordModal(true),
+      action: () => router.push('/auth/change-password'),
       icon: <FiLock className="w-5 h-5" />,
       category: 'Segurança'
     },
@@ -326,7 +313,7 @@ export default function ConfiguracoesPage() {
       isLoading: backupStatus === 'in-progress',
       category: 'Dados'
     }
-  ], [settings, theme, handleSettingChange, handleThemeChange, handleBackupData, backupStatus]);
+  ], [settings, theme, handleSettingChange, handleThemeChange, handleBackupData, backupStatus, router]);
 
   const notificationSettings: AccountSetting[] = useMemo(() => [
     {
@@ -597,19 +584,6 @@ export default function ConfiguracoesPage() {
     }`}>
       {/* Modals */}
       <AnimatePresence>
-        {showPasswordModal && (
-          <Modal
-            isOpen={showPasswordModal}
-            onClose={() => setShowPasswordModal(false)}
-            title="Alterar Senha"
-          >
-            <PasswordChangeForm
-              onSuccess={handlePasswordChangeSuccess}
-              onCancel={() => setShowPasswordModal(false)}
-            />
-          </Modal>
-        )}
-
         {show2FAModal && (
           <Modal
             isOpen={show2FAModal}
@@ -688,9 +662,9 @@ export default function ConfiguracoesPage() {
                 >
                   <button
                     onClick={() => addSampleNotification('info', `Notificação de Exemplo ${notificationCounter + 1}`)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors ${
+                    className={`${
                       resolvedTheme === 'dark' ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-blue-500 hover:bg-blue-600 text-white'
-                    }`}
+                    } flex items-center gap-2 px-3 py-1.5 rounded-md text-sm transition-colors`}
                   >
                     <FiPlusCircle size={16} /> Adicionar Exemplo
                   </button>
@@ -711,52 +685,6 @@ export default function ConfiguracoesPage() {
                   title="Configurações de Segurança" 
                   settings={securitySettings} 
                 />
-              )}
-
-              {activeTab === 'danger' && (
-                <motion.div
-                  key="danger"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-red-200 dark:border-red-800"
-                >
-                  <div className="p-6">
-                    <div className="flex items-center mb-6">
-                      <div className="p-2 rounded-lg mr-3 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400">
-                        <FiTrash2 className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h2 className="text-xl font-semibold text-red-600 dark:text-red-400">Zona de Risco</h2>
-                        <p className="text-red-500 dark:text-red-300 text-sm">
-                          Ações nesta seção são irreversíveis. Por favor, proceda com cautela.
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
-                      <div className="flex items-start">
-                        <FiAlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5 mr-3 flex-shrink-0" />
-                        <div>
-                          <h3 className="text-sm font-medium text-red-800 dark:text-red-200">
-                            Aviso Importante
-                          </h3>
-                          <p className="text-sm text-red-700 dark:text-red-300 mt-1">
-                            As ações abaixo não podem ser desfeitas. Certifique-se de que você realmente deseja continuar antes de prosseguir.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <DangerZone
-                      userId={user?.uid || ''}
-                      onAccountDeleted={() => {
-                        if (updateUserContextProfile) updateUserContextProfile({});
-                        router.push('/');
-                      }}
-                    />
-                  </div>
-                </motion.div>
               )}
             </AnimatePresence>
           </div>

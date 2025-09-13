@@ -3,8 +3,6 @@ import { useRouter } from 'next/router'
 import type { AppProps } from 'next/app'
 
 // Lazy load heavy components
-const LazyFirebase = lazy(() => import('./LazyFirebase'))
-const LazyStripe = lazy(() => import('./OptimizedStripe'))
 const LazyGoogleAnalytics = lazy(() => import('./GoogleAnalytics'))
 
 // Critical components loaded immediately
@@ -74,8 +72,8 @@ export default function MobileOptimizedApp({ Component, pageProps, hasInteracted
         <CriticalStyles />
         <div className="hero-section">
           <div>
-            <h1 className="hero-title">Finnextho</h1>
-            <p className="hero-subtitle">Transforme suas finanças com IA</p>
+            <h1 className="hero-title">Bovinext</h1>
+            <p className="hero-subtitle">Gestão Pecuária com IA</p>
           </div>
         </div>
       </>
@@ -99,11 +97,7 @@ export default function MobileOptimizedApp({ Component, pageProps, hasInteracted
       <ThemeProvider>
         <AuthProvider>
           <Suspense fallback={<LoadingFallback />}>
-            <LazyFirebase triggerOnMount={true}>
-              <LazyStripe>
-                <Component {...pageProps} />
-              </LazyStripe>
-            </LazyFirebase>
+            <Component {...pageProps} />
           </Suspense>
           {shouldLoadHeavyComponents && (
             <Suspense fallback={null}>
@@ -121,13 +115,9 @@ export default function MobileOptimizedApp({ Component, pageProps, hasInteracted
       <AuthProvider>
         <CriticalStyles />
         <Component {...pageProps} />
-        
-        {/* Load heavy components only after interaction */}
         {shouldLoadHeavyComponents && (
           <Suspense fallback={null}>
-            <LazyFirebase triggerOnMount={false}>
-              <LazyGoogleAnalytics />
-            </LazyFirebase>
+            <LazyGoogleAnalytics />
           </Suspense>
         )}
       </AuthProvider>

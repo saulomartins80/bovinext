@@ -2,13 +2,14 @@ import { useAuth } from "../context/AuthContext";
 import { FaGoogle } from "react-icons/fa";
 
 export default function GoogleLoginButton() {
-  const { loginWithGoogle, loading, error } = useAuth();
+  const { loading } = useAuth();
 
   const handleLogin = async () => {
     try {
-      await loginWithGoogle();
+      // Google login removido conforme especificação BOVINEXT
+      console.log("Google login não disponível no BOVINEXT");
     } catch (error) {
-      console.error("Erro ao fazer login com Google:", error);
+      console.error("Erro:", error);
     }
   };
 
@@ -16,15 +17,13 @@ export default function GoogleLoginButton() {
     <div>
       <button
         onClick={handleLogin}
-        disabled={loading}
-        className="flex items-center justify-center gap-2 bg-white text-gray-800 font-medium py-2 px-4 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={true}
+        className="flex items-center justify-center gap-2 bg-gray-300 text-gray-500 font-medium py-2 px-4 rounded-lg border border-gray-300 cursor-not-allowed opacity-50"
       >
-        <FaGoogle className="text-red-500" />
-        {loading ? "Carregando..." : "Continuar com Google"}
+        <FaGoogle className="text-gray-400" />
+        Google Login Desabilitado
       </button>
-      {error && (
-        <p className="text-red-500 text-sm mt-2">{error}</p>
-      )}
+      <p className="text-gray-500 text-xs mt-1">Funcionalidade removida do BOVINEXT</p>
     </div>
   );
 }

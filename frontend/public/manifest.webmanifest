@@ -1,7 +1,7 @@
 {
-  "name": "finnextho - Gestão Financeira Inteligente",
-  "short_name": "finnextho",
-  "description": "Plataforma completa de gestão financeira pessoal e empresarial",
+  "name": "BOVINEXT - Gestão Pecuária Inteligente",
+  "short_name": "BOVINEXT",
+  "description": "Plataforma completa de gestão pecuária com IA",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -9,13 +9,13 @@
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "pt-BR",
-  "categories": ["finance", "business", "productivity"],
+  "categories": ["agriculture", "business", "productivity"],
   "icons": [
     {
-      "src": "/finnextho.png",
-      "type": "image/png",
-      "sizes": "192x192",
-      "purpose": "maskable any"
+      "src": "/favicon.ico",
+      "type": "image/x-icon",
+      "sizes": "32x32 48x48 64x64",
+      "purpose": "any"
     },
     {
       "src": "/favicon-simple.svg",
@@ -28,23 +28,23 @@
     {
       "name": "Dashboard",
       "short_name": "Dashboard",
-      "description": "Visão geral das finanças",
+      "description": "Visão geral da fazenda",
       "url": "/dashboard",
-      "icons": [{ "src": "/finnextho.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/favicon-simple.svg", "sizes": "any" }]
     },
     {
       "name": "Nova Transação",
       "short_name": "Transação",
-      "description": "Adicionar nova transação",
+      "description": "Adicionar novo manejo",
       "url": "/transacoes?action=new",
-      "icons": [{ "src": "/finnextho.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/favicon-simple.svg", "sizes": "any" }]
     },
     {
       "name": "Nova Meta",
       "short_name": "Meta",
-      "description": "Criar nova meta financeira",
+      "description": "Criar nova meta",
       "url": "/metas?action=new",
-      "icons": [{ "src": "/finnextho.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/favicon-simple.svg", "sizes": "any" }]
     }
   ],
   "screenshots": [

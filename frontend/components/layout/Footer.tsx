@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/router';
 import { FiGithub, FiTwitter, FiLinkedin, FiInstagram } from 'react-icons/fi';
+import { GiCow } from 'react-icons/gi';
 
 export const Footer: React.FC = () => {
   const router = useRouter();
@@ -33,10 +34,10 @@ export const Footer: React.FC = () => {
   const filteredProdutoLinks = footerLinks.produto.filter(link => link.href !== currentPath);
 
   const socialLinks = [
-    { icon: FiGithub, href: 'https://github.com/fin' },
-    { icon: FiTwitter, href: 'https://twitter.com/finnextho' },
-    { icon: FiLinkedin, href: 'https://linkedin.com/company/finnextho' },
-    { icon: FiInstagram, href: 'https://instagram.com/finnextho' },
+    { icon: FiGithub, href: 'https://github.com/bovinext' },
+    { icon: FiTwitter, href: 'https://twitter.com/bovinext' },
+    { icon: FiLinkedin, href: 'https://linkedin.com/company/bovinext' },
+    { icon: FiInstagram, href: 'https://instagram.com/bovinext' },
   ];
 
   return (
@@ -45,13 +46,13 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="space-y-4">
             <Link href="/" className="flex items-center space-x-3">
-              <Image src="/finnextho.png" alt="Finnextho" width={40} height={40} />
-              <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
-                fin<span className="text-blue-300">nextho</span>
+              <GiCow className="w-8 h-8 text-green-500" />
+              <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-500">
+                BOVINEXT
               </span>
             </Link>
             <p className="text-gray-600 dark:text-gray-400 text-sm">
-              A plataforma financeira mais avançada do mercado, com tecnologia de ponta para transformar sua relação com o dinheiro.
+              Plataforma completa de gestão pecuária com IA.
             </p>
             <div className="flex space-x-4">
               {socialLinks.map((social) => (
@@ -125,7 +126,7 @@ export const Footer: React.FC = () => {
 
         <div className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
           <p className="text-base text-gray-500 dark:text-gray-400 text-center">
-            &copy; {currentYear} finnextho. Todos os direitos reservados.
+            &copy; {currentYear} BOVINEXT. Todos os direitos reservados.
           </p>
         </div>
       </div>

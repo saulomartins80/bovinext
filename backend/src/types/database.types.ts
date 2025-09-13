@@ -303,6 +303,61 @@ export interface Database {
         }
       }
 
+      // METAS DE PRODUÇÃO
+      metas: {
+        Row: {
+          id: string
+          user_id: string
+          nome_da_meta: string
+          descricao: string | null
+          valor_total: number
+          valor_atual: number
+          data_conclusao: string
+          categoria: 'producao' | 'reproducao' | 'ganho_peso' | 'vendas' | 'expansao' | 'melhoramento'
+          prioridade: 'baixa' | 'media' | 'alta'
+          unidade: 'kg' | 'litros' | 'animais' | 'hectares' | 'reais'
+          tipo_animal: 'bovino' | 'suino' | 'ovino' | 'caprino' | 'aves' | 'todos'
+          lote_alvo: string | null
+          concluida: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          nome_da_meta: string
+          descricao?: string | null
+          valor_total: number
+          valor_atual?: number
+          data_conclusao: string
+          categoria?: 'producao' | 'reproducao' | 'ganho_peso' | 'vendas' | 'expansao' | 'melhoramento'
+          prioridade?: 'baixa' | 'media' | 'alta'
+          unidade?: 'kg' | 'litros' | 'animais' | 'hectares' | 'reais'
+          tipo_animal?: 'bovino' | 'suino' | 'ovino' | 'caprino' | 'aves' | 'todos'
+          lote_alvo?: string | null
+          concluida?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          nome_da_meta?: string
+          descricao?: string | null
+          valor_total?: number
+          valor_atual?: number
+          data_conclusao?: string
+          categoria?: 'producao' | 'reproducao' | 'ganho_peso' | 'vendas' | 'expansao' | 'melhoramento'
+          prioridade?: 'baixa' | 'media' | 'alta'
+          unidade?: 'kg' | 'litros' | 'animais' | 'hectares' | 'reais'
+          tipo_animal?: 'bovino' | 'suino' | 'ovino' | 'caprino' | 'aves' | 'todos'
+          lote_alvo?: string | null
+          concluida?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+
       // CHAT MESSAGES
       chat_messages: {
         Row: {

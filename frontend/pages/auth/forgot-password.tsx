@@ -1,12 +1,11 @@
 // pages/auth/forgot-password.tsx
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { sendPasswordResetEmail } from 'firebase/auth';
-import { auth } from '../../lib/firebase/client';
-import Layout from '../../components/Layout';
-import { FiMail, FiAlertCircle, FiCheckCircle, FiArrowLeft, FiLoader } from 'react-icons/fi';
+import { supabase } from '../../lib/supabaseClient';
+import { FiMail, FiAlertCircle, FiCheckCircle, FiArrowLeft, FiLoader, FiArrowRight } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
+// Layout removido para evitar import inexistente
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -16,6 +15,7 @@ export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
+  const { redirect } = router.query;
 
   // Validação básica de e-mail em tempo real
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -39,18 +39,22 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      await sendPasswordResetEmail(auth, email);
-      setSuccess(`Enviamos um link profissional de redefinição para ${email}. Por favor, verifique sua caixa de entrada e também a pasta de spam. O link é válido por 1 hora.`);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/update-password`,
+      });
+
+      if (error) throw error;
+      
+      setSuccess(`Enviamos um link de redefinição para ${email}. Verifique sua caixa de entrada e a pasta de spam. O link é válido por 24 horas.`);
       setEmailSent(true);
       setCountdown(30); // 30 segundos para reenvio
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        console.error('Erro ao enviar e-mail:', err);
-        setError(err.message === 'auth/user-not-found' 
+    } catch (err: any) {
+      console.error('Erro ao enviar e-mail de redefinição:', err);
+      setError(
+        err.message.includes('not found') 
           ? 'E-mail não cadastrado.' 
-          : 'Erro ao enviar e-mail. Tente novamente.'
-        );
-      }
+          : 'Erro ao enviar e-mail de redefinição. Tente novamente.'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -67,22 +71,31 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <Layout>
-      <Head>
-        <title>Redefinir Senha | Seu App</title>
-      </Head>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 sm:px-6 lg:px-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="w-full max-w-md space-y-8 bg-white dark:bg-gray-800 rounded-xl shadow-xl overflow-hidden"
+      >
+        <Head>
+          <title>Redefinir Senha | Seu App</title>
+        </Head>
 
-      <div className="container mx-auto px-4 py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="max-w-md mx-auto bg-white dark:bg-gray-800 shadow-xl rounded-xl overflow-hidden"
-        >
+        {/* Header */}
+        <div className="bg-gradient-to-r from-green-600 to-blue-600 p-6 text-center">
+          <h1 className="text-2xl font-bold text-white">Redefinir Senha</h1>
+          <p className="text-green-100 mt-2">
+            {emailSent 
+              ? "Verifique seu e-mail" 
+              : "Digite seu e-mail para receber o link de redefinição"
+            }
+          </p>
+        </div>
           {/* Header */}
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 text-center">
+          <div className="bg-gradient-to-r from-green-600 to-blue-600 p-6 text-center">
             <h1 className="text-2xl font-bold text-white">Redefinir Senha</h1>
-            <p className="text-indigo-100 mt-2">
+            <p className="text-green-100 mt-2">
               {emailSent 
                 ? "Verifique seu e-mail" 
                 : "Digite seu e-mail para receber o link de redefinição"
@@ -91,15 +104,15 @@ export default function ForgotPasswordPage() {
           </div>
 
           {/* Form */}
-          <div className="p-6">
+          <div className="p-8">
             {error && (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg mb-4"
+                className="flex items-start gap-2 p-4 mb-6 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800"
               >
-                <FiAlertCircle className="mr-2 flex-shrink-0" />
-                <span>{error}</span>
+                <FiAlertCircle className="flex-shrink-0 mt-0.5 h-5 w-5" />
+                <span className="text-sm">{error}</span>
               </motion.div>
             )}
 
@@ -107,94 +120,113 @@ export default function ForgotPasswordPage() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-center bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg mb-4"
+                className="flex items-start gap-2 p-4 mb-6 rounded-lg bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800"
               >
-                <FiCheckCircle className="mr-2 flex-shrink-0" />
-                <span>{success}</span>
+                <FiCheckCircle className="flex-shrink-0 mt-0.5 h-5 w-5" />
+                <span className="text-sm">{success}</span>
               </motion.div>
             )}
 
             {!emailSent ? (
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    E-mail
+                    Email
                   </label>
-                  <div className={`flex items-center border rounded-lg overflow-hidden 
-                                  bg-white focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500
-                                  dark:bg-gray-700 dark:focus-within:border-indigo-500
-                                  ${isEmailValid ? 'border-gray-300 dark:border-gray-600' : 'border-red-500 dark:border-red-500'}`}>
-                    <span className="pl-3 pr-2 text-gray-400 dark:text-gray-400">
-                      <FiMail />
-                    </span>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FiMail className="h-5 w-5 text-gray-400" />
+                    </div>
                     <input
                       id="email"
                       name="email"
                       type="email"
+                      autoComplete="email"
+                      required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full py-2 px-1 outline-none bg-transparent text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                      className={`block w-full pl-10 pr-3 py-2 border ${
+                        email.length > 0 && !isEmailValid ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
+                      } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 dark:bg-gray-700 dark:text-white`}
                       placeholder="seu@email.com"
-                      autoComplete="email"
-                      autoFocus
-                      required 
                     />
                   </div>
+                  {email.length > 0 && !isEmailValid && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      Por favor, insira um email válido
+                    </p>
+                  )}
                 </div>
 
-                <motion.button
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  disabled={!isEmailValid || isLoading}
-                  className={`w-full py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white ${!isEmailValid || isLoading ? 'bg-indigo-400 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'} focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors`}
-                >
-                  {isLoading ? (
-                    <span className="flex items-center justify-center">
-                      <FiLoader className="animate-spin mr-2" />
-                      Enviando...
-                    </span>
-                  ) : 'Enviar Link'}
-                </motion.button>
+                <div>
+                  <button
+                    type="submit"
+                    disabled={!isEmailValid || isLoading}
+                    className={`w-full flex justify-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
+                      isEmailValid && !isLoading 
+                        ? 'bg-green-600 hover:bg-green-700' 
+                        : 'bg-gray-400 cursor-not-allowed'
+                    } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-150`}
+                  >
+                    {isLoading ? (
+                      <>
+                        <FiLoader className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" />
+                        Enviando...
+                      </>
+                    ) : (
+                      <>
+                        Enviar link de redefinição
+                        <FiArrowRight className="ml-2 h-5 w-5" />
+                      </>
+                    )}
+                  </button>
+                </div>
               </form>
             ) : (
-              <div className="text-center">
-                <motion.div
-                  initial={{ scale: 0.9 }}
-                  animate={{ scale: 1 }}
-                  className="inline-flex items-center justify-center w-16 h-16 bg-green-100 dark:bg-green-900/20 rounded-full mb-4"
-                >
-                  <FiCheckCircle className="text-green-600 dark:text-green-400 text-2xl" />
-                </motion.div>
+              <div className="space-y-6">
+                <div className="flex flex-col items-center">
+                  <div className="flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/50 mb-4">
+                    <FiCheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Verifique seu e-mail</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 text-center">
+                    Enviamos um link de redefinição para <span className="font-medium text-gray-900 dark:text-white">{email}</span>.
+                    O link expirará em 24 horas.
+                  </p>
+                </div>
 
-                <p className="text-gray-600 dark:text-gray-300 mb-6">
-                  Enviamos um e-mail profissional com instruções detalhadas para redefinir sua senha. Se não receber em alguns minutos, verifique sua pasta de spam ou lixo eletrônico.
-                </p>
-
-                <button
-                  onClick={handleResendEmail}
-                  disabled={countdown > 0}
-                  className={`text-sm ${countdown > 0 ? 'text-gray-400' : 'text-indigo-600 dark:text-indigo-400 hover:underline'}`}
-                >
-                  {countdown > 0 
-                    ? `Reenviar em ${countdown}s` 
-                    : 'Reenviar e-mail'
-                  }
-                </button>
+                <div className="text-sm text-center">
+                  <p className="text-gray-500 dark:text-gray-400">
+                    Não recebeu o e-mail? Verifique sua pasta de spam ou{' '}
+                    <button
+                      type="button"
+                      onClick={handleResendEmail}
+                      disabled={countdown > 0 || isLoading}
+                      className={`font-medium ${
+                        countdown > 0 || isLoading
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : 'text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300'
+                      }`}
+                    >
+                      {countdown > 0 ? `Reenviar (${countdown}s)` : 'reenviar o link'}
+                    </button>
+                  </p>
+                </div>
               </div>
             )}
 
-            <div className="mt-4 text-center">
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
               <button
-                onClick={() => router.push('/auth/login')}
-                className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline flex items-center justify-center mx-auto"
+                type="button"
+                onClick={() => router.push('/auth/login' + (redirect ? `?redirect=${encodeURIComponent(redirect as string)}` : ''))}
+                className="w-full flex items-center justify-center text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
               >
-                <FiArrowLeft className="mr-1" />
+                <FiArrowLeft className="mr-2 h-4 w-4" />
                 Voltar para o login
               </button>
             </div>
           </div>
         </motion.div>
       </div>
-    </Layout>
   );
 }

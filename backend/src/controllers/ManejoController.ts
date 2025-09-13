@@ -1,188 +1,262 @@
+// =====================================================
+// BOVINEXT - CONTROLLER DE MANEJO
+// Gestão sanitária e produtiva com Supabase
+// =====================================================
+
 import { Request, Response } from 'express';
-import { supabaseService } from '../services/SupabaseService';
+import { bovinextSupabaseService } from '../services/BovinextSupabaseService';
+import { IManejoCreate } from '../types/bovinext-supabase.types';
 import logger from '../utils/logger';
 
 export class ManejoController {
-  // Criar novo manejo
-  static async create(req: Request, res: Response) {
+
+  // =====================================================
+  // MANEJOS - CRUD COMPLETO
+  // =====================================================
+
+  async createManejo(req: Request, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user?.uid;
       if (!userId) {
         return res.status(401).json({ error: 'Usuário não autenticado' });
       }
 
-      const manejoData = {
-        ...req.body,
-        user_id: userId,
-        data_execucao: req.body.data_execucao || new Date().toISOString(),
-        status: req.body.status || 'planejado'
-      };
-
-      const manejo = await supabaseService.createManejo(manejoData);
+      const manejoData: IManejoCreate = req.body;
       
-      logger.info(`Manejo criado: ${manejo.tipo}`, { userId, manejoId: manejo.id });
-      res.status(201).json(manejo);
-    } catch (error) {
+      // Validações básicas
+      if (!manejoData.animal_id || !manejoData.tipo_manejo || !manejoData.data_manejo) {
+        return res.status(400).json({ 
+          error: 'Campos obrigatórios: animal_id, tipo_manejo, data_manejo' 
+        });
+      }
+
+      const manejo = await bovinextSupabaseService.createManejo(userId, manejoData);
+      
+      logger.info(`Manejo criado: ${manejo.tipo_manejo} para usuário ${userId}`);
+      
+      res.status(201).json({
+        success: true,
+        data: manejo,
+        message: `💉 Manejo de ${manejo.tipo_manejo} registrado com sucesso!`
+      });
+
+    } catch (error: any) {
       logger.error('Erro ao criar manejo:', error);
-      res.status(500).json({ error: 'Erro interno do servidor' });
+      res.status(500).json({
+        error: 'Erro interno do servidor',
+        details: error.message
+      });
     }
   }
 
-  // Listar manejos do usuário
-  static async list(req: Request, res: Response) {
+  async getManejos(req: Request, res: Response) {
     try {
-      const userId = req.user?.id;
+      const userId = req.user?.uid;
       if (!userId) {
         return res.status(401).json({ error: 'Usuário não autenticado' });
       }
 
-      const { status, tipo, animal_id } = req.query;
-      const manejos = await supabaseService.getManejos(userId, {
-        status: status as string,
-        tipo: tipo as string,
-        animal_id: animal_id as string
-      });
-
-      res.json(manejos);
-    } catch (error) {
-      logger.error('Erro ao listar manejos:', error);
-      res.status(500).json({ error: 'Erro interno do servidor' });
-    }
-  }
-
-  // Buscar manejo por ID
-  static async getById(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const manejo = await supabaseService.getManejoById(id);
-
-      if (!manejo) {
-        return res.status(404).json({ error: 'Manejo não encontrado' });
-      }
-
-      res.json(manejo);
-    } catch (error) {
-      logger.error('Erro ao buscar manejo:', error);
-      res.status(500).json({ error: 'Erro interno do servidor' });
-    }
-  }
-
-  // Atualizar manejo
-  static async update(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const updates = req.body;
-
-      const manejo = await supabaseService.updateManejo(id, updates);
+      const { animalId, tipoManejo, dataInicio, dataFim } = req.query;
       
-      logger.info(`Manejo atualizado: ${manejo.tipo}`, { manejoId: id });
-      res.json(manejo);
-    } catch (error) {
-      logger.error('Erro ao atualizar manejo:', error);
-      res.status(500).json({ error: 'Erro interno do servidor' });
-    }
-  }
-
-  // Marcar manejo como executado
-  static async marcarExecutado(req: Request, res: Response) {
-    try {
-      const { id } = req.params;
-      const { observacoes, custo } = req.body;
-
-      const manejo = await supabaseService.updateManejo(id, {
-        status: 'executado',
-        data_execucao: new Date().toISOString(),
-        observacoes,
-        custo
-      });
-
-      logger.info(`Manejo executado: ${manejo.tipo}`, { manejoId: id });
-      res.json(manejo);
-    } catch (error) {
-      logger.error('Erro ao marcar manejo como executado:', error);
-      res.status(500).json({ error: 'Erro interno do servidor' });
-    }
-  }
-
-  // Agenda de manejos (próximos 30 dias)
-  static async getAgenda(req: Request, res: Response) {
-    try {
-      const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({ error: 'Usuário não autenticado' });
-      }
-
-      const hoje = new Date();
-      const em30Dias = new Date();
-      em30Dias.setDate(hoje.getDate() + 30);
-
-      const manejos = await supabaseService.getManejos(userId, {
-        status: 'planejado',
-        data_inicio: hoje.toISOString(),
-        data_fim: em30Dias.toISOString()
-      });
-
-      // Agrupar por data
-      const agenda = manejos.reduce((acc, manejo) => {
-        const data = manejo.data_prevista?.split('T')[0] || 'sem_data';
-        if (!acc[data]) acc[data] = [];
-        acc[data].push(manejo);
-        return acc;
-      }, {} as Record<string, any[]>);
-
-      res.json(agenda);
-    } catch (error) {
-      logger.error('Erro ao buscar agenda:', error);
-      res.status(500).json({ error: 'Erro interno do servidor' });
-    }
-  }
-
-  // Estatísticas de manejos
-  static async getEstatisticas(req: Request, res: Response) {
-    try {
-      const userId = req.user?.id;
-      if (!userId) {
-        return res.status(401).json({ error: 'Usuário não autenticado' });
-      }
-
-      const manejos = await supabaseService.getManejos(userId);
-      
-      const stats = {
-        total: manejos.length,
-        planejados: manejos.filter(m => m.status === 'planejado').length,
-        executados: manejos.filter(m => m.status === 'executado').length,
-        atrasados: manejos.filter(m => {
-          if (m.status !== 'planejado' || !m.data_prevista) return false;
-          return new Date(m.data_prevista) < new Date();
-        }).length,
-        por_tipo: manejos.reduce((acc, manejo) => {
-          acc[manejo.tipo] = (acc[manejo.tipo] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>),
-        custo_total: manejos
-          .filter(m => m.status === 'executado' && m.custo)
-          .reduce((sum, m) => sum + (m.custo || 0), 0)
+      const filters = {
+        animalId: animalId as string,
+        tipoManejo: tipoManejo as string,
+        dataInicio: dataInicio as string,
+        dataFim: dataFim as string
       };
 
-      res.json(stats);
-    } catch (error) {
-      logger.error('Erro ao calcular estatísticas de manejos:', error);
-      res.status(500).json({ error: 'Erro interno do servidor' });
+      const manejos = await bovinextSupabaseService.getManejosByUser(userId, filters);
+      
+      res.json({
+        success: true,
+        data: manejos,
+        total: manejos.length
+      });
+
+    } catch (error: any) {
+      logger.error('Erro ao buscar manejos:', error);
+      res.status(500).json({
+        error: 'Erro interno do servidor',
+        details: error.message
+      });
     }
   }
 
-  // Deletar manejo
-  static async delete(req: Request, res: Response) {
+  // =====================================================
+  // CALENDÁRIO SANITÁRIO
+  // =====================================================
+
+  async getCalendarioSanitario(req: Request, res: Response) {
     try {
-      const { id } = req.params;
+      const userId = req.user?.uid;
+      if (!userId) {
+        return res.status(401).json({ error: 'Usuário não autenticado' });
+      }
+
+      const { mes, ano } = req.query;
+      const currentDate = new Date();
+      const targetMonth = mes ? Number(mes) : currentDate.getMonth() + 1;
+      const targetYear = ano ? Number(ano) : currentDate.getFullYear();
+
+      // Buscar manejos do mês
+      const dataInicio = new Date(targetYear, targetMonth - 1, 1).toISOString();
+      const dataFim = new Date(targetYear, targetMonth, 0).toISOString();
+
+      const manejos = await bovinextSupabaseService.getManejosByUser(userId, {
+        dataInicio,
+        dataFim
+      });
+
+      // Buscar próximas aplicações
+      const proximoMes = new Date();
+      proximoMes.setMonth(proximoMes.getMonth() + 1);
+
+      const proximasAplicacoes = await bovinextSupabaseService.getManejosByUser(userId, {
+        tipoManejo: 'vacinacao'
+      });
+
+      const vacinasVencendo = proximasAplicacoes.filter(m => {
+        if (!m.proxima_aplicacao) return false;
+        const proxima = new Date(m.proxima_aplicacao);
+        return proxima >= currentDate && proxima <= proximoMes;
+      });
+
+      res.json({
+        success: true,
+        data: {
+          manejos,
+          proximasVacinacoes: vacinasVencendo,
+          resumo: {
+            totalManejos: manejos.length,
+            vacinacoes: manejos.filter(m => m.tipo_manejo === 'vacinacao').length,
+            vermifugacoes: manejos.filter(m => m.tipo_manejo === 'vermifugacao').length,
+            pesagens: manejos.filter(m => m.tipo_manejo === 'pesagem').length,
+            tratamentos: manejos.filter(m => m.tipo_manejo === 'tratamento').length
+          }
+        }
+      });
+
+    } catch (error: any) {
+      logger.error('Erro ao buscar calendário sanitário:', error);
+      res.status(500).json({
+        error: 'Erro interno do servidor',
+        details: error.message
+      });
+    }
+  }
+
+  // =====================================================
+  // PROTOCOLOS DE VACINAÇÃO
+  // =====================================================
+
+  async getProtocolosVacinacao(req: Request, res: Response) {
+    try {
+      // Protocolos padrão de vacinação bovina
+      const protocolos = {
+        bezerros: [
+          {
+            idade: '2-4 meses',
+            vacinas: ['Clostridioses', 'Pneumonia'],
+            observacoes: 'Primeira vacinação'
+          },
+          {
+            idade: '4-6 meses',
+            vacinas: ['Clostridioses (reforço)', 'Raiva'],
+            observacoes: 'Reforço obrigatório'
+          }
+        ],
+        novilhos: [
+          {
+            idade: '12-15 meses',
+            vacinas: ['Febre Aftosa', 'Brucelose (fêmeas)'],
+            observacoes: 'Vacinação anual'
+          }
+        ],
+        adultos: [
+          {
+            periodo: 'Maio/Novembro',
+            vacinas: ['Febre Aftosa'],
+            observacoes: 'Campanha oficial'
+          },
+          {
+            periodo: 'Anual',
+            vacinas: ['Clostridioses', 'Raiva'],
+            observacoes: 'Manter imunidade'
+          }
+        ]
+      };
+
+      res.json({
+        success: true,
+        data: protocolos,
+        disclaimer: '⚠️ Consulte sempre um veterinário para protocolos específicos da sua região'
+      });
+
+    } catch (error: any) {
+      logger.error('Erro ao buscar protocolos:', error);
+      res.status(500).json({
+        error: 'Erro interno do servidor',
+        details: error.message
+      });
+    }
+  }
+
+  // =====================================================
+  // CUSTOS DE MANEJO
+  // =====================================================
+
+  async getCustosManejo(req: Request, res: Response) {
+    try {
+      const userId = req.user?.uid;
+      if (!userId) {
+        return res.status(401).json({ error: 'Usuário não autenticado' });
+      }
+
+      const { dataInicio, dataFim, tipoManejo } = req.query;
       
-      await supabaseService.deleteManejo(id);
+      const filters: any = {};
+      if (dataInicio) filters.dataInicio = dataInicio as string;
+      if (dataFim) filters.dataFim = dataFim as string;
+      if (tipoManejo) filters.tipoManejo = tipoManejo as string;
+
+      const manejos = await bovinextSupabaseService.getManejosByUser(userId, filters);
       
-      logger.info(`Manejo deletado`, { manejoId: id });
-      res.status(204).send();
-    } catch (error) {
-      logger.error('Erro ao deletar manejo:', error);
-      res.status(500).json({ error: 'Erro interno do servidor' });
+      // Calcular custos por tipo
+      const custosPorTipo = manejos.reduce((acc: any, manejo) => {
+        const tipo = manejo.tipo_manejo;
+        const custo = manejo.custo || 0;
+        
+        if (!acc[tipo]) {
+          acc[tipo] = { total: 0, count: 0, media: 0 };
+        }
+        
+        acc[tipo].total += custo;
+        acc[tipo].count += 1;
+        acc[tipo].media = acc[tipo].total / acc[tipo].count;
+        
+        return acc;
+      }, {});
+
+      const custoTotal = manejos.reduce((sum, m) => sum + (m.custo || 0), 0);
+      
+      res.json({
+        success: true,
+        data: {
+          custoTotal,
+          custosPorTipo,
+          totalManejos: manejos.length,
+          custoMedio: manejos.length > 0 ? custoTotal / manejos.length : 0
+        }
+      });
+
+    } catch (error: any) {
+      logger.error('Erro ao calcular custos de manejo:', error);
+      res.status(500).json({
+        error: 'Erro interno do servidor',
+        details: error.message
+      });
     }
   }
 }
+
+export const manejoController = new ManejoController();
